@@ -1,23 +1,15 @@
 package main
 
 import (
-	"database/sql"
-	"log"
-
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/gin-gonic/gin"
+	//"github.com/go-sql-driver/mysql"
 )
 
 func main() {
-	db, err := sql.Open("mysql", "root:@tcp(127.0.0.1:4000)/test")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
+	r := gin.Default()
 
-	// Test the connection
-	err = db.Ping()
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println("Connected to TiDB!")
+	r.POST("/register", register)
+	r.POST("/login", login)
+
+	r.Run() // Defaults to :8080
 }
