@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: xpends-service
+spec:
+  selector:
+    app: xpends
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080  # Assuming your application runs on port 8080 inside the container
+  type: NodePort

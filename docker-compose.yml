@@ -1,0 +1,23 @@
+version: '3'
+
+services:
+  xpends-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - JWT_KEY=my_secret_key # For local development only
+    depends_on:
+      - tidb
+
+  tidb:
+    image: pingcap/tidb:latest
+    ports:
+      - "4000:4000"
+      - "10080:10080"
+    volumes:
+      - tidb-data:/tidb-data
+volumes:
+  tidb-data:

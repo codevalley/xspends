@@ -7,7 +7,7 @@ import (
 
 func main() {
 	r := gin.Default()
-
+	init_db()
 	r.POST("/register", register)
 	r.POST("/login", login)
 
