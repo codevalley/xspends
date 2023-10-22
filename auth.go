@@ -2,14 +2,12 @@ package main
 
 import (
 	"database/sql"
-	"log"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -20,23 +18,11 @@ type User struct {
 	Password string `json:"-"`
 }
 
-var db *sql.DB
 var jwtKey = []byte(os.Getenv("JWT_KEY"))
 
 type Claims struct {
 	UserID string `json:"user_id"`
 	jwt.StandardClaims
-}
-
-func init_db() {
-	var err error
-	db, err = sql.Open("mysql", "root:@tcp(tidb-cluster-tidb.tidb-cluster.svc.cluster.local:4000)/xpends")
-	if err != nil {
-		log.Fatal(err)
-	}
-	if err = db.Ping(); err != nil {
-		log.Fatal(err)
-	}
 }
 
 func generateToken(user User) (string, error) {
@@ -57,7 +43,7 @@ func register(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newUser.Password), 14)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newUser.Password), 12) // Adjusted bcrypt cost factor
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not hash password"})
 		return
@@ -67,7 +53,7 @@ func register(c *gin.Context) {
 
 	_, err = db.Exec("INSERT INTO users (id, username, password) VALUES (?, ?, ?)", newUser.ID, newUser.Username, newUser.Password)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not insert user"})
+		c.JSON(http.StatusConflict, gin.H{"error": "username already exists"}) // Specific error for user conflict
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"id": newUser.ID, "username": newUser.Username})
