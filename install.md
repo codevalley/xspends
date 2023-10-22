@@ -1,45 +1,116 @@
-General instructions to setup the entire setup in a local minikube.
-Assuming you have installed
-- docker
-- helm
-- minikube.
 
+# Xpends Project Setup Guide
 
-$minikube start --cpus=6 --memory='12288mb' 
+This guide provides step-by-step instructions to set up the Xpends project in a local Minikube environment.
 
-$eval $(minikube docker-env) 
+## Prerequisites
+Ensure you have the following tools installed:
+- Docker
+- Helm
+- Minikube
 
-$helm repo add pingcap https://charts.pingcap.org/ 
-$helm update
-$kubectl create namespace tidb-cluster
-$helm install tidb-operator pingcap/tidb-operator --version v1.5.1 --namespace tidb-cluster
-$kubectl create -f https://raw.githubusercontent.com/pingcap/tidb-operator/v1.5.1/manifests/crd.yaml
+## Setup Instructions
 
-$helm install tidb-cluster pingcap/tidb-cluster --version v1.5.1 -f values-tidb.yaml --namespace tidb-cluster
+1. **Start Minikube**:
+   ```bash
+   minikube start --cpus=6 --memory='12288mb'
+   ```
 
-$kubectl port-forward svc/tidb-cluster-tidb 4000:4000 -n tidb-cluster
+2. **Configure Docker to use Minikube's Docker daemon**:
+   ```bash
+   eval $(minikube docker-env)
+   ```
 
-$mysql -h 127.0.0.1 -P 4000 -u root
+3. **Add the PingCAP Helm repository and update it**:
+   ```bash
+   helm repo add pingcap https://charts.pingcap.org/
+   helm repo update
+   ```
 
-$docker build -t xpends-image .
+4. **Set up the TiDB Cluster**:
+   ```bash
+   kubectl create namespace tidb-cluster
+   helm install tidb-operator pingcap/tidb-operator --version v1.5.1 --namespace tidb-cluster
+   kubectl create -f https://raw.githubusercontent.com/pingcap/tidb-operator/v1.5.1/manifests/crd.yaml
+   helm install tidb-cluster pingcap/tidb-cluster --version v1.5.1 -f values-tidb.yaml --namespace tidb-cluster
+   ```
 
-$./setup.sh
+5. **Port-forward TiDB service for local access**:
+   ```bash
+   kubectl port-forward svc/tidb-cluster-tidb 4000:4000 -n tidb-cluster
+   ```
 
-$kubectl apply -f app-deployment.yaml
+6. **Access the TiDB database**:
+   ```bash
+   mysql -h 127.0.0.1 -P 4000 -u root
+   ```
 
-$kubectl apply -f xpends-service.yaml
+7. **Build the application's Docker image**:
+   ```bash
+   docker build -t xpends-image .
+   ```
 
-$minikube service xpends-service --url
+8. **Run the setup script**:
+   ```bash
+   ./setup.sh
+   ```
 
-Verify the service by checking register and login curls
+9. **Deploy the application**:
+   ```bash
+   kubectl apply -f app-deployment.yaml
+   kubectl apply -f xpends-service.yaml
+   ```
 
-$curl -X POST -H "Content-Type: application/json" -d '{"username": "testuser", "password": "testpass"}' <MINIKUBE_SERVICE_URL>/register
-Replace <MINIKUBE_SERVICE_URL> with the URL you got in the previous step.
+10. **Access the application's service URL**:
+    ```bash
+    minikube service xpends-service --url
+    ```
 
-$curl -X POST -H "Content-Type: application/json" -d '{"username": "testuser", "password": "testpass"}' <MINIKUBE_SERVICE_URL>/login
+11. **Verify the service**:
+    Replace `<MINIKUBE_SERVICE_URL>` with the URL obtained in the previous step:
+    ```bash
+    curl -X POST -H "Content-Type: application/json" -d '{"username": "testuser", "password": "testpass"}' <MINIKUBE_SERVICE_URL>/register
+    curl -X POST -H "Content-Type: application/json" -d '{"username": "testuser", "password": "testpass"}' <MINIKUBE_SERVICE_URL>/login
+    ```
 
+## Useful `kubectl` Commands
 
-some useful kubectl commands
-$kubectl get pods
-$kubectl describe pod <POD_NAME>
-$kubectl logs <POD_NAME> -c xpends-container
+- List all pods: `kubectl get pods`
+- Describe a specific pod: `kubectl describe pod <POD_NAME>`
+- View logs for a specific container: `kubectl logs <POD_NAME> -c xpends-container`
+
+## Commands After Code Changes
+
+If you make code changes and wish to redeploy:
+
+1. Rebuild the Docker image:
+   ```bash
+   docker build -t xpends-image .
+   ```
+
+2. Redeploy the application:
+   ```bash
+   kubectl delete -f app-deployment.yaml
+   kubectl apply -f app-deployment.yaml
+   ```
+
+3. Verify pods are running:
+   ```bash
+   kubectl get pods
+   ```
+
+4. Access the updated application's service URL:
+   ```bash
+   minikube service xpends-service --url
+   ```
+
+5. Quickly verify an endpoint (after replacing `<MINIKUBE_SERVICE_URL>`):
+   ```bash
+   curl -X POST -H "Content-Type: application/json" -d '{"username": "testuser", "password": "testpass"}' <MINIKUBE_SERVICE_URL>/login
+   ```
+
+6. Check logs for any issues:
+   ```bash
+   kubectl get pods # to get the pod name
+   kubectl logs <POD_NAME> -c xpends-container
+   ```
