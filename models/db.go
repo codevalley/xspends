@@ -1,4 +1,4 @@
-package main
+package models
 
 import (
 	"database/sql"
@@ -9,7 +9,11 @@ import (
 
 var db *sql.DB
 
-func init_db() {
+func GetDB() *sql.DB {
+	return db
+}
+
+func InitializeStore() {
 	var err error
 	db, err = sql.Open("mysql", "root:@tcp(tidb-cluster-tidb.tidb-cluster.svc.cluster.local:4000)/xpends")
 	if err != nil {
