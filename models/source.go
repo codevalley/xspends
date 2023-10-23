@@ -73,3 +73,25 @@ func GetSourceByID(sourceID string) (*Source, error) {
 	}
 	return &source, nil
 }
+
+// GetSourcesByUserID fetches all sources associated with the provided user ID.
+func GetSourcesByUserID(userID string) ([]Source, error) {
+	rows, err := GetDB().Query("SELECT id, user_id, name, type, balance FROM sources WHERE user_id=?", userID)
+	if err != nil {
+		log.Println("Error retrieving sources by user ID:", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var sources []Source
+	for rows.Next() {
+		var source Source
+		if err := rows.Scan(&source.ID, &source.UserID, &source.Name, &source.Type, &source.Balance); err != nil {
+			log.Println("Error scanning source row:", err)
+			return nil, err
+		}
+		sources = append(sources, source)
+	}
+
+	return sources, nil
+}

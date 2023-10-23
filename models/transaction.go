@@ -1,8 +1,12 @@
 package models
 
 import (
+	"bytes"
 	"database/sql"
+	"errors"
+	"fmt"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -21,6 +25,26 @@ type Transaction struct {
 	Amount     float64   `json:"amount"`
 	Type       string    `json:"type"`
 }
+
+type TransactionFilter struct {
+	UserID       string
+	StartDate    string
+	EndDate      string
+	Tags         []string
+	Category     string
+	Type         string
+	MinAmount    float64
+	MaxAmount    float64
+	SortBy       string
+	SortOrder    string // "ASC" or "DESC"
+	Page         int
+	ItemsPerPage int
+}
+
+var (
+	ErrTransactionNotFound = errors.New("transaction not found")
+	ErrInvalidFilter       = errors.New("invalid filter provided")
+)
 
 func InsertTransaction(transaction Transaction) error {
 	tx, err := GetDB().Begin()
@@ -143,4 +167,126 @@ func GetTransactionByID(transactionID string, userID string) (*Transaction, erro
 		return nil, err
 	}
 	return &transaction, nil
+}
+
+func ConstructQuery(filter TransactionFilter) (string, []interface{}, error) {
+	var queryBuffer bytes.Buffer
+	var args []interface{}
+	var conditions []string
+
+	// Always filter by user ID
+	conditions = append(conditions, "user_id = ?")
+	args = append(args, filter.UserID)
+
+	if filter.StartDate != "" {
+		// Optional: Check if the date format is correct here
+		conditions = append(conditions, "timestamp >= ?")
+		args = append(args, filter.StartDate)
+	}
+
+	if filter.EndDate != "" {
+		// Optional: Check if the date format is correct here
+		conditions = append(conditions, "timestamp <= ?")
+		args = append(args, filter.EndDate)
+	}
+
+	if filter.Category != "" {
+		conditions = append(conditions, "category_id = ?")
+		args = append(args, filter.Category)
+	}
+
+	if filter.Type != "" {
+		if filter.Type != TransactionTypeIncome && filter.Type != TransactionTypeExpense {
+			return "", nil, fmt.Errorf("invalid transaction type provided")
+		}
+		conditions = append(conditions, "type = ?")
+		args = append(args, filter.Type)
+	}
+
+	// Handling tags is a bit more involved, so we'll add the logic here
+	if len(filter.Tags) > 0 {
+		tagsPlaceholder := strings.Repeat("?,", len(filter.Tags)-1) + "?"
+		conditions = append(conditions, fmt.Sprintf("id IN (SELECT transaction_id FROM transaction_tags WHERE tag_id IN (%s))", tagsPlaceholder))
+		for _, tag := range filter.Tags {
+			args = append(args, tag)
+		}
+	}
+
+	if filter.MinAmount > 0 {
+		conditions = append(conditions, "amount >= ?")
+		args = append(args, filter.MinAmount)
+	}
+
+	if filter.MaxAmount > 0 {
+		conditions = append(conditions, "amount <= ?")
+		args = append(args, filter.MaxAmount)
+	}
+
+	// Sort
+	if filter.SortBy != "" {
+		// Validate the sortBy field here
+		allowedSortFields := []string{"timestamp", "amount"} // Example allowed fields
+		if !contains(allowedSortFields, filter.SortBy) {
+			return "", nil, fmt.Errorf("invalid sort field provided")
+		}
+
+		sortDirection := "ASC"
+		if filter.SortOrder == "DESC" {
+			sortDirection = "DESC"
+		}
+		queryBuffer.WriteString(fmt.Sprintf(" ORDER BY %s %s", filter.SortBy, sortDirection))
+	}
+
+	// Pagination
+	if filter.ItemsPerPage > 0 {
+		queryBuffer.WriteString(" LIMIT ?")
+		args = append(args, filter.ItemsPerPage)
+		if filter.Page > 1 {
+			offset := (filter.Page - 1) * filter.ItemsPerPage
+			queryBuffer.WriteString(" OFFSET ?")
+			args = append(args, offset)
+		}
+	}
+
+	return queryBuffer.String(), args, nil
+}
+
+func contains(slice []string, str string) bool {
+	for _, v := range slice {
+		if v == str {
+			return true
+		}
+	}
+	return false
+}
+
+func GetTransactionsByFilter(filter TransactionFilter) ([]Transaction, error) {
+	query, args, err := ConstructQuery(filter)
+	if err != nil {
+		log.Printf("Error constructing query: %v", err)
+		return nil, err
+	}
+
+	rows, err := GetDB().Query(query, args...)
+	if err != nil {
+		log.Printf("Error querying transactions: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var transactions []Transaction
+	for rows.Next() {
+		var transaction Transaction
+		if err := rows.Scan(&transaction.ID, &transaction.UserID, &transaction.SourceID, &transaction.CategoryID, &transaction.Timestamp, &transaction.Amount, &transaction.Type); err != nil {
+			log.Printf("Error scanning transaction row: %v", err)
+			return nil, err
+		}
+		transactions = append(transactions, transaction)
+	}
+
+	if len(transactions) == 0 {
+		return nil, ErrTransactionNotFound
+	}
+
+	return transactions, rows.Err()
 }

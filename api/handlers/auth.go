@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"database/sql"
 	"net/http"
 	"os"
 	"time"
@@ -13,23 +12,17 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type User struct {
-	ID       string `json:"id"`
-	Username string `json:"username"`
-	Password string `json:"-"`
-}
-
-var jwtKey = []byte(os.Getenv("JWT_KEY"))
-
 type Claims struct {
 	UserID string `json:"user_id"`
 	jwt.StandardClaims
 }
 
-func generateToken(user User) (string, error) {
+var jwtKey = []byte(os.Getenv("JWT_KEY"))
+
+func generateToken(userID string) (string, error) {
 	expirationTime := time.Now().Add(24 * time.Hour)
 	claims := &Claims{
-		UserID: user.ID,
+		UserID: userID,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 		},
@@ -39,52 +32,67 @@ func generateToken(user User) (string, error) {
 }
 
 func Register(c *gin.Context) {
-	var newUser User
+	var newUser models.User
 	if err := c.ShouldBindJSON(&newUser); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input data"})
 		return
 	}
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newUser.Password), 12) // Adjusted bcrypt cost factor
+
+	// Check if username or email already exists
+	exists, err := models.UserExists(newUser.Username, newUser.Email)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not hash password"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error checking user existence"})
+		return
+	}
+	if exists {
+		c.JSON(http.StatusConflict, gin.H{"error": "Username or email already exists"})
+		return
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newUser.Password), 12)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error hashing password"})
 		return
 	}
 	newUser.Password = string(hashedPassword)
 	newUser.ID = uuid.New().String()
 
-	_, err = models.GetDB().Exec("INSERT INTO users (id, username, password) VALUES (?, ?, ?)", newUser.ID, newUser.Username, newUser.Password)
+	err = models.InsertUser(&newUser)
 	if err != nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "username already exists"}) // Specific error for user conflict
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error inserting user into database"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"id": newUser.ID, "username": newUser.Username})
+
+	c.JSON(http.StatusOK, gin.H{"message": "User registered successfully"})
 }
 
 func Login(c *gin.Context) {
-	var creds User
+	var creds models.User
 	if err := c.ShouldBindJSON(&creds); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input data"})
 		return
 	}
-	row := models.GetDB().QueryRow("SELECT id, password FROM users WHERE username=?", creds.Username)
-	var foundUser User
-	err := row.Scan(&foundUser.ID, &foundUser.Password)
+
+	user, err := models.GetUserByUsername(creds.Username)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user"})
+		if err == models.ErrUserNotFound {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not retrieve user"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving user"})
 		return
 	}
-	if err := bcrypt.CompareHashAndPassword([]byte(foundUser.Password), []byte(creds.Password)); err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(creds.Password)); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
-	token, err := generateToken(foundUser)
+
+	token, err := generateToken(user.ID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not generate token"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error generating token"})
 		return
 	}
+
 	c.JSON(http.StatusOK, gin.H{"token": token})
 }

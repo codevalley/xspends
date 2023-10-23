@@ -7,7 +7,7 @@ import (
 
 type Category struct {
 	ID          string `json:"id"`
-	UserID      string `json:"user_id"` // Added this field
+	UserID      string `json:"user_id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Icon        string `json:"icon"`
@@ -95,4 +95,61 @@ func DeleteCategory(categoryID string) error {
 	}
 
 	return nil
+}
+
+// GetAllCategories retrieves all categories.
+func GetAllCategories() ([]Category, error) {
+	rows, err := GetDB().Query("SELECT id, user_id, name, description, icon FROM categories")
+	if err != nil {
+		log.Printf("Error querying categories: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var categories []Category
+	for rows.Next() {
+		var category Category
+		if err := rows.Scan(&category.ID, &category.UserID, &category.Name, &category.Description, &category.Icon); err != nil {
+			log.Printf("Error scanning category row: %v", err)
+			return nil, err
+		}
+		categories = append(categories, category)
+	}
+	return categories, nil
+}
+
+// GetCategoryByID retrieves a category by its ID.
+func GetCategoryByID(categoryID string) (*Category, error) {
+	row := GetDB().QueryRow("SELECT id, user_id, name, description, icon FROM categories WHERE id=?", categoryID)
+	var category Category
+	err := row.Scan(&category.ID, &category.UserID, &category.Name, &category.Description, &category.Icon)
+	if err != nil {
+		log.Printf("Error retrieving category by ID: %v", err)
+		return nil, err
+	}
+	return &category, nil
+}
+
+// GetPagedCategories retrieves categories in a paginated manner.
+func GetPagedCategories(page, itemsPerPage int) ([]Category, error) {
+	offset := (page - 1) * itemsPerPage
+
+	rows, err := GetDB().Query("SELECT id, user_id, name, description, icon FROM categories LIMIT ? OFFSET ?", itemsPerPage, offset)
+	if err != nil {
+		log.Printf("Error querying paginated categories: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var categories []Category
+	for rows.Next() {
+		var category Category
+		if err := rows.Scan(&category.ID, &category.UserID, &category.Name, &category.Description, &category.Icon); err != nil {
+			log.Printf("Error scanning category row: %v", err)
+			return nil, err
+		}
+		categories = append(categories, category)
+	}
+
+	return categories, nil
 }
