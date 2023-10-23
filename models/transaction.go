@@ -77,7 +77,7 @@ func UpdateTransaction(transaction Transaction) error {
 	}
 
 	// Update the transaction
-	_, err = tx.Exec("UPDATE transactions SET user_id=?, source_id=?, category_id=?, timestamp=?, amount=?, type=? WHERE id=?", transaction.UserID, transaction.SourceID, transaction.CategoryID, transaction.Timestamp, transaction.Amount, transaction.Type, transaction.ID)
+	_, err = tx.Exec("UPDATE transactions SET user_id=?, source_id=?, category_id=?, timestamp=?, amount=?, type=? WHERE id=? AND user_id=?", transaction.UserID, transaction.SourceID, transaction.CategoryID, transaction.Timestamp, transaction.Amount, transaction.Type, transaction.ID, transaction.UserID)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -125,8 +125,8 @@ func UpdateTransaction(transaction Transaction) error {
 	return tx.Commit()
 }
 
-func DeleteTransaction(transactionID string) error {
-	_, err := GetDB().Exec("DELETE FROM transactions WHERE id=?", transactionID)
+func DeleteTransaction(transactionID string, userID string) error {
+	_, err := GetDB().Exec("DELETE FROM transactions WHERE id=? AND user_id=?", transactionID, userID)
 	if err != nil {
 		log.Println("Error deleting transaction:", err)
 		return err
@@ -134,10 +134,10 @@ func DeleteTransaction(transactionID string) error {
 	return nil
 }
 
-func GetTransactionByID(transactionID string) (*Transaction, error) {
-	row := GetDB().QueryRow("SELECT id, user_id, source_id, tags, category_id, timestamp, amount, type FROM transactions WHERE id=?", transactionID)
+func GetTransactionByID(transactionID string, userID string) (*Transaction, error) {
+	row := GetDB().QueryRow("SELECT id, user_id, source_id, category_id, timestamp, amount, type FROM transactions WHERE id=? AND user_id=?", transactionID, userID)
 	var transaction Transaction
-	err := row.Scan(&transaction.ID, &transaction.UserID, &transaction.SourceID, &transaction.Tags, &transaction.CategoryID, &transaction.Timestamp, &transaction.Amount, &transaction.Type)
+	err := row.Scan(&transaction.ID, &transaction.UserID, &transaction.SourceID, &transaction.CategoryID, &transaction.Timestamp, &transaction.Amount, &transaction.Type)
 	if err != nil {
 		log.Println("Error retrieving transaction by ID:", err)
 		return nil, err
