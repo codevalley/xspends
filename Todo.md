@@ -1,47 +1,59 @@
-# General improvements
-1. **Detailed Error Messages for Database Operations**: 
-   - Provided specific error messages for certain database-related errors, but the code can still benefit from more specific error handling based on different database error types.
+# TODO
 
-2. **More Structured Logging with Log Levels**: 
-   - The current code uses basic logging; structured logging with different levels (info, error, debug, etc.) would be beneficial.
+## General Improvements
 
-3. **Handle JWT Token Expiry Gracefully**: 
-   The JWT token does have an expiry set, but there's no logic to handle token expiry and refresh in the current code.
+### Error Handling
+- Provide detailed error messages for database operations.
+- Handle JWT token expiry gracefully.
+- Implement more specific error handling for different database error types.
 
-4. **Handle Multiple Database Errors**: 
-   - Specific error handling was added for a situation where a username conflict might arise during registration. However, more specific error handling based on different database error types would be beneficial.
+### Logging & Monitoring
+- Implement structured logging with different log levels (info, error, debug, etc.).
+- Integrate with monitoring tools for database metrics.
+- Use monitoring tools for database performance metrics and set up alerts for unusual activities.
 
-5. **JWT Key Security:**
-    - Using Kubernetes secrets is a good start, but consider using a more secure system for managing secrets in production, such as HashiCorp's Vault.
+### Security
+- Improve JWT key security. Consider solutions like HashiCorp's Vault.
+- Use prepared statements everywhere to prevent SQL injection attacks.
+- Regularly review database security settings, ensure limited open ports, and consider encryption for sensitive data.
 
-6. **JWT Token Expiry:**
-    - You've set the JWT token to expire in 24 hours. Depending on your application's needs, you might want to have shorter-lived access tokens and introduce a refresh token mechanism.
+### Token Management
+- Handle JWT token expiry. Consider shorter-lived access tokens and a refresh token mechanism.
 
-7. **SQL Queries:**
-    - Your SQL queries are straightforward, but as your application grows, consider using an ORM (Object-Relational Mapping) tool for better maintainability and security.
+### API & Middleware
+- Consider rate limiting on API endpoints.
+- Implement middleware for tasks like logging, CORS handling, and authentication.
 
-8. **HTTP Status Codes:**
-    - When a user tries to register with an already existing username, it might be beneficial to return a `409 Conflict` status code instead of a `500 Internal Server Error`.
+### Configuration & Deployment
+- Move hardcoded configurations like database connection strings to environment variables or configuration files.
+- Ensure that database configurations are optimized for each environment (development, staging, production).
 
-9. **Middleware:**
-    - Consider using middleware for tasks such as logging, CORS handling, and authentication. This will make your main application logic cleaner.
+### Database
 
-10. **Configuration Management:**
-    - Right now, some configurations, like the database connection string, are hardcoded. In a larger application, consider using a configuration management tool or library.
+#### General
+- Consider using an ORM for maintainability and security.
+- Regularly update and patch the database software and libraries.
+- Ensure regular backups of the database and test the restoration process.
 
-11. **Ping Database:**
-    - In `init_db`, you're pinging the database immediately after opening a connection. It's good for an initial check, but consider having a health check endpoint which periodically checks the health of your services, including the database.
+#### Performance & Scalability
+- Implement caching mechanisms, like Redis, for frequently accessed data.
+- Regularly review queries and add optimized indexes to frequently searched columns.
+- Consider partitioning large tables like `transactions` for more efficient querying.
+- Evaluate database connection pooling libraries for better performance.
+- Consider sharding the database by `user_id` for scalability.
 
-# Model package
+#### Design & Structure
+- Review the database schema for normalization.
+- Consider database partitioning for managing large datasets efficiently.
+- Ensure table and column names follow a consistent naming convention.
+- Consider using a database migration tool for schema evolution.
 
-1. **Caching**: If certain categories are fetched frequently, consider implementing caching mechanisms to reduce database load.
+#### Operations & Maintenance
+- Implement a health check endpoint for periodic service health checks, including the database.
+- Consider archiving old or seldom-used data for a leaner database.
+- Use transactions judiciously to ensure data integrity without harming performance.
 
-2. **Archive Instead of Delete**: Instead of permanently deleting categories, consider adding a `status` or `is_deleted` flag. This way, you can "soft delete" entries. This can be useful for maintaining historical data and can be critical for certain types of audits.
-
-3. **Enhanced Logging**: Instead of just logging the error, you can log additional context, such as the input parameters. Be careful not to log sensitive information. Structured logging libraries can be useful here.
-
-4. **Metrics & Monitoring**: Integrate with monitoring tools to measure things like how often certain errors occur or how long database operations take.
-
-5. **Bulk Operations**: If there's a need to insert or update multiple categories at once, consider adding functions to handle bulk operations efficiently.
-
-6. **Consistency in Error Responses**: It's beneficial to have a consistent way to wrap and return errors, perhaps using custom error types. This ensures that the API consumers always receive errors in a predictable format.
+#### Error Handling & Feedback
+- Provide structured and informative error feedback.
+- Implement comprehensive error handling in DB operations.
+- Define and monitor SLAs for database performance and uptime.
