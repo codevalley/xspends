@@ -55,8 +55,6 @@
 - Implement comprehensive error handling in DB operations.
 - Define and monitor SLAs for database performance and uptime.
 
-Certainly! Here's the revised addition to your `todo.md`:
-
 ---
 
 ### Authentication Refactoring with Authboss
@@ -87,6 +85,7 @@ Certainly! Here's the revised addition to your `todo.md`:
 6. **Deployment Considerations**:
     - If deploying, ensure any Authboss configurations, especially secrets or keys, are securely managed in the production environment.
 
+---
 ### High priority items
 
 ### Must Have:
