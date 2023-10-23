@@ -9,6 +9,7 @@ services:
       - "8080:8080"
     environment:
       - JWT_KEY=my_secret_key # For local development only
+      - DB_DSN="root:@tcp(tidb-cluster-tidb.tidb-cluster.svc.cluster.local:4000)/xspends"
     depends_on:
       - tidb
 

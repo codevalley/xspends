@@ -4,6 +4,8 @@ FROM golang:1.21 AS build
 # Set the current working directory inside the container
 WORKDIR /app
 
+ENV DB_DSN="root:@tcp(tidb-cluster-tidb.tidb-cluster.svc.cluster.local:4000)/xspends"
+
 # Copy the local package files to the container's workspace
 COPY . .
 

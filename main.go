@@ -9,7 +9,7 @@ import (
 
 func main() {
 	r := gin.Default()
-	models.InitializeStore()
+	models.InitDB()
 	r.POST("/register", handlers.Register)
 	r.POST("/login", handlers.Login)
 
