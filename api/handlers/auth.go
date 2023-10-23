@@ -17,7 +17,7 @@ type Claims struct {
 	jwt.StandardClaims
 }
 
-var jwtKey = []byte(os.Getenv("JWT_KEY"))
+var JwtKey = []byte(os.Getenv("JWT_KEY"))
 
 func generateToken(userID string) (string, error) {
 	expirationTime := time.Now().Add(24 * time.Hour)
@@ -28,7 +28,7 @@ func generateToken(userID string) (string, error) {
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(jwtKey)
+	return token.SignedString(JwtKey)
 }
 
 func Register(c *gin.Context) {
