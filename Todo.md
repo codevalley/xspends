@@ -1,5 +1,8 @@
 # TODO
 
+* Category and tag names have to be unique
+* error on inserts
+
 ## General Improvements
 
 ### Error Handling

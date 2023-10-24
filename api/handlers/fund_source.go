@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 	"xspends/models"
@@ -61,11 +62,13 @@ func CreateSource(c *gin.Context) {
 	}
 	var newSource models.Source
 	if err := c.ShouldBindJSON(&newSource); err != nil {
+		log.Printf("Error creating source (400): %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	newSource.UserID = userID.(int64)
-	if err := models.InsertSource(newSource); err != nil {
+	if err := models.InsertSource(&newSource); err != nil {
+		log.Printf("Error creating source(500): %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create source"})
 		return
 	}
@@ -85,7 +88,7 @@ func UpdateSource(c *gin.Context) {
 		return
 	}
 	updatedSource.UserID = userID.(int64)
-	if err := models.UpdateSource(updatedSource); err != nil {
+	if err := models.UpdateSource(&updatedSource); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update source"})
 		return
 	}

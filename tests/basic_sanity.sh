@@ -2,9 +2,10 @@
 
 MINIKUBE_URL=$1
 SKIP_REGISTER=$2
+SKIP_SOURCES=$3
 
 if [ -z "$MINIKUBE_URL" ]; then
-  echo "Usage: $0 <MINIKUBE_URL> [skip_register]"
+  echo "Usage: $0 <MINIKUBE_URL> [skip_register] [skip_sources]"
   exit 1
 fi
 
@@ -30,8 +31,34 @@ response=$(curl -s -X POST "$MINIKUBE_URL/login" \
                  }')
 token=$(echo $response | jq -r .token)
 
+if [ -z "$SKIP_SOURCES" ]; then
+     # Create a source
+     echo -e "\n\nCreating a source..."
+     response=$(curl -s -X POST "$MINIKUBE_URL/sources" \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer $token" \
+          -d '{
+               "name": "Bank Savings",
+               "type": "SAVINGS",
+               "balance": 20000.0
+          }')
+     sourceID=$(echo $response | jq -r .id)
+     echo $response
+
+     # Create a category
+     echo -e "\n\nCreating a category..."
+     response=$(curl -s -X POST "$MINIKUBE_URL/categories" \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer $token" \
+          -d '{
+               "name": "Groceries",
+               "description": "Grocery related transactions",
+               "icon": "shopping-cart"
+          }')
+     categoryID=$(echo $response | jq -r .id)
+fi
 # Create a transaction
-echo -e "\n\nCreating a transaction..."
+echo -e "\n\nCreating a transaction... source: $sourceID,category: $categoryID"
 curl -X POST "$MINIKUBE_URL/transactions" \
      -H "Content-Type: application/json" \
      -H "Authorization: Bearer $token" \
@@ -39,7 +66,8 @@ curl -X POST "$MINIKUBE_URL/transactions" \
           "title": "Test Transaction",
           "amount": 100.50,
           "type": "expense",
-          "category": "Groceries",
+          "source_id": "'"$sourceID"'",
+          "category_id": "'"$categoryID"'",
           "tags": ["food", "essentials"]
          }'
 
@@ -57,7 +85,8 @@ curl -X PUT "$MINIKUBE_URL/transactions/1" \
           "title": "Updated Transaction",
           "amount": 110.75,
           "type": "expense",
-          "category": "Entertainment",
+          "source_id": "'"$sourceID"'",
+          "category_id": "'"$categoryID"'",
           "tags": ["movie", "night out"]
          }'
 

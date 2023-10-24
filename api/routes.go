@@ -15,6 +15,12 @@ func SetupRoutes(r *gin.Engine) {
 	// Middleware to authenticate JWT token and fetch user details.
 	r.Use(middleware.AuthMiddleware())
 
+	// Source routes
+	r.GET("/sources", handlers.ListSources)
+	r.POST("/sources", handlers.CreateSource)
+	r.GET("/sources/:id", handlers.GetSource)
+	r.PUT("/sources/:id", handlers.UpdateSource)
+	r.DELETE("/sources/:id", handlers.DeleteSource)
 	// Category routes
 	r.GET("/categories", handlers.ListCategories)
 	r.POST("/categories", handlers.CreateCategory)

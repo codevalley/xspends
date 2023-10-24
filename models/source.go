@@ -28,7 +28,7 @@ type Source struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-func InsertSource(source Source) error {
+func InsertSource(source *Source) error {
 	// Validation
 	if source.Name == "" || source.UserID == 0 {
 		return errors.New("source name and user ID cannot be empty")
@@ -36,13 +36,12 @@ func InsertSource(source Source) error {
 	if source.Type != SourceTypeCredit && source.Type != SourceTypeSavings {
 		return ErrInvalidType
 	}
-
-	sid, err := util.GenerateSnowflakeID()
+	var err error
+	source.ID, err = util.GenerateSnowflakeID()
 	if err != nil {
-		log.Printf("[ERROR] Generating snowflake ID for source: %v", err)
-		return err
+		log.Printf("[ERROR] Generating Snowflake ID: %v", err)
+		return ErrDatabase // or a more specific error like ErrGeneratingID
 	}
-	source.ID = sid
 	source.CreatedAt = time.Now()
 	source.UpdatedAt = time.Now()
 
@@ -62,7 +61,7 @@ func InsertSource(source Source) error {
 	return nil
 }
 
-func UpdateSource(source Source) error {
+func UpdateSource(source *Source) error {
 	// Validation
 	if source.Name == "" || source.UserID == 0 {
 		return errors.New("source name and user ID cannot be empty")
