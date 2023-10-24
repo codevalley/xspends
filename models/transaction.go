@@ -184,6 +184,17 @@ func ConstructQuery(filter TransactionFilter) (string, []interface{}, error) {
 		args = append(args, filter.MaxAmount)
 	}
 
+	// Combine all conditions with 'AND'
+	combinedConditions := strings.Join(conditions, " AND ")
+
+	// Base SQL query
+	queryBuffer.WriteString("SELECT * FROM transactions ")
+
+	if len(conditions) > 0 {
+		queryBuffer.WriteString(" WHERE ")
+		queryBuffer.WriteString(combinedConditions)
+	}
+
 	// Sort
 	if filter.SortBy != "" {
 		sortDirection := "ASC"
@@ -241,7 +252,7 @@ func GetTransactionsByFilter(filter TransactionFilter) ([]Transaction, error) {
 
 	rows, err := GetDB().Query(query, args...)
 	if err != nil {
-		log.Printf("Error querying transactions: %v", err)
+		log.Printf("Error querying transactions: %v \n %s", err, query)
 		return nil, err
 	}
 	defer rows.Close()

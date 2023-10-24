@@ -66,7 +66,7 @@ func InsertUser(user *User) error {
 }
 
 func GetUserByID(id int64) (*User, error) {
-	stmt, err := GetDB().Prepare("SELECT id, username, name, email, currency, password, created_at, updated_at FROM users WHERE id=?")
+	stmt, err := GetDB().Prepare("SELECT id, username, name, email, currency, password FROM users WHERE id=?")
 	if err != nil {
 		log.Printf("[ERROR] Preparing select statement for user by ID: %v", err)
 		return nil, err
@@ -74,7 +74,7 @@ func GetUserByID(id int64) (*User, error) {
 	defer stmt.Close()
 
 	user := &User{}
-	err = stmt.QueryRow(id).Scan(&user.ID, &user.Username, &user.Name, &user.Email, &user.Currency, &user.Password, &user.CreatedAt, &user.UpdatedAt)
+	err = stmt.QueryRow(id).Scan(&user.ID, &user.Username, &user.Name, &user.Email, &user.Currency, &user.Password)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrUserNotFound
@@ -87,7 +87,7 @@ func GetUserByID(id int64) (*User, error) {
 }
 
 func GetUserByUsername(username string) (*User, error) {
-	stmt, err := GetDB().Prepare("SELECT id, username, name, email, currency, password, created_at, updated_at FROM users WHERE username=?")
+	stmt, err := GetDB().Prepare("SELECT id, username, name, email, currency, password FROM users WHERE username=?")
 	if err != nil {
 		log.Printf("[ERROR] Preparing select statement for user by username: %v", err)
 		return nil, err
@@ -95,7 +95,7 @@ func GetUserByUsername(username string) (*User, error) {
 	defer stmt.Close()
 
 	user := &User{}
-	err = stmt.QueryRow(username).Scan(&user.ID, &user.Username, &user.Name, &user.Email, &user.Currency, &user.Password, &user.CreatedAt, &user.UpdatedAt)
+	err = stmt.QueryRow(username).Scan(&user.ID, &user.Username, &user.Name, &user.Email, &user.Currency, &user.Password)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrUserNotFound
