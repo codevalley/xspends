@@ -62,13 +62,13 @@ Ensure you have the following tools installed:
 
 8. **Run the setup script**:
    ```bash
-   ./setup.sh
+   ./scripts/setup.sh
    ```
 
 9. **Deploy the application**:
    ```bash
-   kubectl apply -f app-deployment.yaml
-   kubectl apply -f xspends-service.yaml
+   kubectl apply -f deployments/app-deployment.yaml
+   kubectl apply -f deployments/xspends-service.yaml
    ```
 
 10. **Access the application's service URL**:

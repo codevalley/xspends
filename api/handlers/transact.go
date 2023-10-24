@@ -20,6 +20,7 @@ func CreateTransaction(c *gin.Context) {
 
 	if err := models.InsertTransaction(newTransaction); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create transaction"})
+		log.Println(err.Error())
 		return
 	}
 

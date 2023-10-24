@@ -15,7 +15,7 @@ spec:
       containers:
       - name: xspends-container
         image: xspends-image  # You would replace this with the actual image name from your container registry.
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         resources:
           requests:
             memory: "64Mi"

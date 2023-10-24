@@ -11,5 +11,5 @@ kubectl create secret generic db-credentials --from-literal=DB_DSN="root:@tcp(ti
 mysql -h 127.0.0.1 -P 4000 -u root < ./scripts/setup.sql
 
 # Deploy your application (assuming you have a deployment file)
-kubectl apply -f app-deployment.yaml
+kubectl apply -f deployments/app-deployment.yaml
 
