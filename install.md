@@ -35,6 +35,16 @@ Ensure you have the following tools installed:
    helm install tidb-cluster pingcap/tidb-cluster --version v1.5.1 -f values-tidb.yaml --namespace tidb-cluster
    ```
 
+   **Check DB cluster status and troubleshoot if needed**:
+   ```bash
+   kubectl get pods --namespace tidb-cluster -l app.kubernetes.io/instance=tidb-cluster
+   kubectl describe pod <pod-name> --namespace tidb-cluster
+   kubectl logs <pod-name> --namespace tidb-cluster
+   kubectl get pvc --namespace tidb-cluster
+   kubectl get pv
+
+   ```
+
 5. **Port-forward TiDB service for local access**:
    ```bash
    kubectl port-forward svc/tidb-cluster-tidb 4000:4000 -n tidb-cluster
