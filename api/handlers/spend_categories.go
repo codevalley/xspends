@@ -29,11 +29,18 @@ func ListCategories(c *gin.Context) {
 	c.JSON(http.StatusOK, categories)
 }
 
-// GetCategory fetches details of a specific category by its ID.
+// GetCategory fetches details of a specific category by its ID.import "strconv"
 func GetCategory(c *gin.Context) {
-	categoryID := c.Param("id")
-	if categoryID == "" {
+	categoryIDStr := c.Param("id")
+	if categoryIDStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "category ID is required"})
+		return
+	}
+
+	// Convert string to int64
+	categoryID, err := strconv.ParseInt(categoryIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid category ID format"})
 		return
 	}
 
@@ -93,15 +100,22 @@ func UpdateCategory(c *gin.Context) {
 
 // DeleteCategory removes a specific category by its ID.
 func DeleteCategory(c *gin.Context) {
-	categoryID := c.Param("id")
-	if categoryID == "" {
+	categoryIDStr := c.Param("id")
+	if categoryIDStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "category ID is required"})
 		return
 	}
 
-	// Check if category exists before deletion
-	_, err := models.GetCategoryByID(categoryID)
+	// Convert string to int64
+	categoryID, err := strconv.ParseInt(categoryIDStr, 10, 64)
 	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid category ID format"})
+		return
+	}
+
+	// Check if category exists before deletion
+	_, err1 := models.GetCategoryByID(categoryID)
+	if err1 != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "category not found"})
 		return
 	}

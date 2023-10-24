@@ -21,9 +21,15 @@ func GetUserProfile(c *gin.Context) {
 		return
 	}
 
+	// Convert the interface type to int.
+	intUserID, ok := userID.(int)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
 	// Use the userID to fetch the user's details from the database using the `GetUserByID` function from the models package.
-	// Note: userID is an interface type when retrieved from the context, so it's type-asserted to string.
-	user, err := models.GetUserByID(userID.(string))
+	user, err := models.GetUserByID(intUserID)
 
 	// If there's an error fetching the user, it's assumed the user does not exist in the database.
 	// Therefore, a not found error is returned.
@@ -39,42 +45,36 @@ func GetUserProfile(c *gin.Context) {
 // UpdateUserProfile is a handler function to update the details of the authenticated user.
 func UpdateUserProfile(c *gin.Context) {
 	// Retrieve the userID from the request's context.
-	// The userID is expected to be injected into the context by a previous middleware (usually the JWT authentication middleware).
 	userID, exists := c.Get("userID")
-
-	// If the userID doesn't exist in the context, it means the user is not authenticated.
-	// So, return an unauthorized error.
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
 		return
 	}
 
-	// Declare a variable of type model.User to hold the user's updated details.
-	var updatedUser models.User
+	// Convert the interface type to int.
+	intUserID, ok := userID.(int64)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
 
-	// Try to bind (or map) the incoming JSON request body to the updatedUser variable.
-	// If there's an error in parsing the JSON or if it doesn't match the expected structure, return a bad request error.
+	var updatedUser models.User
 	if err := c.ShouldBindJSON(&updatedUser); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	// Set the ID of the updatedUser to the userID we retrieved from the context.
-	// This ensures that the user can only update their own profile and not someone else's.
-	updatedUser.ID = userID.(string)
+	updatedUser.ID = intUserID
 
-	// Call the model's UpdateUser function to update the user's details in the database.
-	// If there's an error during the update, return an internal server error.
 	if err := models.UpdateUser(&updatedUser); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update user"})
 		return
 	}
 
-	// If everything goes well, return the updated user details with a status OK.
 	c.JSON(http.StatusOK, updatedUser)
 }
 
-// DeleteUser deletes the authenticated user.
 func DeleteUser(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -82,7 +82,14 @@ func DeleteUser(c *gin.Context) {
 		return
 	}
 
-	if err := models.DeleteUser(userID.(string)); err != nil {
+	// Convert the interface type to int.
+	intUserID, ok := userID.(int)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	if err := models.DeleteUser(intUserID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete user"})
 		return
 	}

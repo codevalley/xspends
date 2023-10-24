@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 	"xspends/models"
 
 	"github.com/gin-gonic/gin"
@@ -15,7 +16,13 @@ func ListSources(c *gin.Context) {
 		return
 	}
 
-	sources, err := models.GetSourcesByUserID(userID.(string))
+	intUserID, ok := userID.(int)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	sources, err := models.GetSourcesByUserID(intUserID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch sources"})
 		return
@@ -24,9 +31,14 @@ func ListSources(c *gin.Context) {
 	c.JSON(http.StatusOK, sources)
 }
 
-// GetSource retrieves details of a specific source by its ID.
 func GetSource(c *gin.Context) {
-	sourceID := c.Param("id")
+	sourceIDStr := c.Param("id")
+	sourceID, err := strconv.Atoi(sourceIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid source ID"})
+		return
+	}
+
 	source, err := models.GetSourceByID(sourceID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "source not found"})
@@ -36,7 +48,6 @@ func GetSource(c *gin.Context) {
 	c.JSON(http.StatusOK, source)
 }
 
-// CreateSource adds a new source for the authenticated user.
 func CreateSource(c *gin.Context) {
 	var newSource models.Source
 	if err := c.ShouldBindJSON(&newSource); err != nil {
@@ -52,7 +63,6 @@ func CreateSource(c *gin.Context) {
 	c.JSON(http.StatusOK, newSource)
 }
 
-// UpdateSource modifies details of an existing source.
 func UpdateSource(c *gin.Context) {
 	var updatedSource models.Source
 	if err := c.ShouldBindJSON(&updatedSource); err != nil {
@@ -68,9 +78,14 @@ func UpdateSource(c *gin.Context) {
 	c.JSON(http.StatusOK, updatedSource)
 }
 
-// DeleteSource removes a specific source by its ID.
 func DeleteSource(c *gin.Context) {
-	sourceID := c.Param("id")
+	sourceIDStr := c.Param("id")
+	sourceID, err := strconv.Atoi(sourceIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid source ID"})
+		return
+	}
+
 	if err := models.DeleteSource(sourceID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete source"})
 		return

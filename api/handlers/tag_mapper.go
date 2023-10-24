@@ -11,7 +11,7 @@ import (
 // ListTransactionTags retrieves all tags for a specific transaction.
 func ListTransactionTags(c *gin.Context) {
 	transactionIDStr := c.Param("transaction_id")
-	transactionID, err := strconv.Atoi(transactionIDStr)
+	transactionID, err := strconv.ParseInt(transactionIDStr, 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid transaction ID"})
 		return
@@ -28,7 +28,7 @@ func ListTransactionTags(c *gin.Context) {
 // AddTagToTransaction adds a new tag to a specific transaction.
 func AddTagToTransaction(c *gin.Context) {
 	transactionIDStr := c.Param("transaction_id")
-	transactionID, err := strconv.Atoi(transactionIDStr)
+	transactionID, err := strconv.ParseInt(transactionIDStr, 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid transaction ID"})
 		return
@@ -50,14 +50,14 @@ func AddTagToTransaction(c *gin.Context) {
 // RemoveTagFromTransaction removes a specific tag from a specific transaction.
 func RemoveTagFromTransaction(c *gin.Context) {
 	transactionIDStr := c.Param("transaction_id")
-	transactionID, err := strconv.Atoi(transactionIDStr)
+	transactionID, err := strconv.ParseInt(transactionIDStr, 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid transaction ID"})
 		return
 	}
 
 	tagIDStr := c.Param("tag_id")
-	tagID, err := strconv.Atoi(tagIDStr)
+	tagID, err := strconv.ParseInt(tagIDStr, 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tag ID"})
 		return

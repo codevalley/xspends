@@ -8,18 +8,17 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type Claims struct {
-	UserID string `json:"user_id"`
+	UserID int64 `json:"user_id"`
 	jwt.StandardClaims
 }
 
 var JwtKey = []byte(os.Getenv("JWT_KEY"))
 
-func generateToken(userID string) (string, error) {
+func generateToken(userID int64) (string, error) {
 	expirationTime := time.Now().Add(24 * time.Hour)
 	claims := &Claims{
 		UserID: userID,
@@ -55,7 +54,8 @@ func Register(c *gin.Context) {
 		return
 	}
 	newUser.Password = string(hashedPassword)
-	newUser.ID = uuid.New().String()
+
+	// ID generation is now handled in the model, so we can safely remove the UUID generation here
 
 	err = models.InsertUser(&newUser)
 	if err != nil {

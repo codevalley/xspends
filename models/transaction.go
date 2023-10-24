@@ -53,7 +53,7 @@ func InsertTransaction(transaction Transaction) error {
 	}
 
 	// Insert the transaction
-	_, err = tx.Exec("INSERT INTO transactions (id, user_id, source_id, category_id, timestamp, amount, type) VALUES (?, ?, ?, ?, ?, ?, ?)", transaction.ID, transaction.UserID, transaction.SourceID, transaction.CategoryID, transaction.Timestamp, transaction.Amount, transaction.Type)
+	_, err = tx.Exec("INSERT INTO transactions ( user_id, source_id, category_id, timestamp, amount, type) VALUES ( ?, ?, ?, ?, ?, ?)", transaction.UserID, transaction.SourceID, transaction.CategoryID, transaction.Timestamp, transaction.Amount, transaction.Type)
 	if err != nil {
 		tx.Rollback()
 		return err

@@ -26,9 +26,9 @@ func CreateTransaction(c *gin.Context) {
 
 	// Associate tags with the transaction
 	if len(newTransaction.Tags) > 0 {
-		transactionID, err := strconv.Atoi(newTransaction.ID)
+		transactionID, err := strconv.ParseInt(newTransaction.ID, 10, 64)
 		if err == nil {
-			models.AddTagsToTransaction(transactionID, newTransaction.Tags, userID.(string))
+			models.AddTagsToTransaction(transactionID, newTransaction.Tags, userID.(int64))
 		}
 	}
 
@@ -63,9 +63,9 @@ func UpdateTransaction(c *gin.Context) {
 	}
 
 	// Update the associated tags with the transaction
-	transactionID, err := strconv.Atoi(updatedTransaction.ID)
+	transactionID, err := strconv.ParseInt(updatedTransaction.ID, 10, 64)
 	if err == nil {
-		models.UpdateTagsForTransaction(transactionID, updatedTransaction.Tags, userID.(string))
+		models.UpdateTagsForTransaction(transactionID, updatedTransaction.Tags, userID.(int64))
 	}
 
 	c.JSON(http.StatusOK, updatedTransaction)
@@ -81,7 +81,7 @@ func DeleteTransaction(c *gin.Context) {
 	}
 
 	// Remove all tags associated with the transaction
-	transID, err := strconv.Atoi(transactionID)
+	transID, err := strconv.ParseInt(transactionID, 10, 64)
 	if err == nil {
 		models.RemoveTagsFromTransaction(transID)
 	}
@@ -109,7 +109,7 @@ func ListTransactions(c *gin.Context) {
 
 	// Fetching associated tags for each transaction
 	for idx := range transactions {
-		transactionID, err := strconv.Atoi(transactions[idx].ID)
+		transactionID, err := strconv.ParseInt(transactions[idx].ID, 10, 64)
 		if err != nil {
 			log.Printf("Error converting transaction ID %s to integer: %v", transactions[idx].ID, err)
 			continue

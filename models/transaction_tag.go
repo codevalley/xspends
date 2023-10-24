@@ -2,20 +2,22 @@ package models
 
 import (
 	"log"
+	"time"
 )
 
-// TransactionTag represents a relationship between a transaction and a tag.
 type TransactionTag struct {
-	TransactionID int `json:"transaction_id"`
-	TagID         int `json:"tag_id"`
+	TransactionID int64     `json:"transaction_id"`
+	TagID         int64     `json:"tag_id"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 // GetTagsByTransactionID retrieves all tags for a specific transaction.
-func GetTagsByTransactionID(transactionID int) ([]Tag, error) {
-	rows, err := GetDB().Query("SELECT tags.id, tags.name FROM tags JOIN transaction_tags ON tags.id = transaction_tags.tag_id WHERE transaction_tags.transaction_id = ?", transactionID)
+func GetTagsByTransactionID(transactionID int64) ([]Tag, error) {
+	rows, err := GetDB().Query("SELECT t.id, t.name FROM tags t JOIN transaction_tags tt ON t.id = tt.tag_id WHERE tt.transaction_id = ?", transactionID)
 	if err != nil {
-		log.Printf("Error querying tags for transaction %d: %v", transactionID, err)
-		return nil, err
+		log.Printf("[ERROR] Querying tags for transaction %d: %v", transactionID, err)
+		return nil, ErrDatabase
 	}
 	defer rows.Close()
 
@@ -23,8 +25,8 @@ func GetTagsByTransactionID(transactionID int) ([]Tag, error) {
 	for rows.Next() {
 		var tag Tag
 		if err := rows.Scan(&tag.ID, &tag.Name); err != nil {
-			log.Printf("Error scanning tag row: %v", err)
-			return nil, err
+			log.Printf("[ERROR] Scanning tag row: %v", err)
+			return nil, ErrDatabase
 		}
 		tags = append(tags, tag)
 	}
@@ -32,55 +34,54 @@ func GetTagsByTransactionID(transactionID int) ([]Tag, error) {
 }
 
 // InsertTransactionTag adds a new tag to a specific transaction.
-func InsertTransactionTag(transactionID, tagID int) error {
-	_, err := GetDB().Exec("INSERT INTO transaction_tags (transaction_id, tag_id) VALUES (?, ?)", transactionID, tagID)
+func InsertTransactionTag(transactionID, tagID int64) error {
+	_, err := GetDB().Exec("INSERT INTO transaction_tags (transaction_id, tag_id, created_at, updated_at) VALUES (?, ?, ?, ?)", transactionID, tagID, time.Now(), time.Now())
 	if err != nil {
-		log.Printf("Error inserting tag %d for transaction %d: %v", tagID, transactionID, err)
-		return err
+		log.Printf("[ERROR] Inserting tag %d for transaction %d: %v", tagID, transactionID, err)
+		return ErrDatabase
 	}
 	return nil
 }
 
 // DeleteTransactionTag removes a specific tag from a specific transaction.
-func DeleteTransactionTag(transactionID, tagID int) error {
+func DeleteTransactionTag(transactionID, tagID int64) error {
 	_, err := GetDB().Exec("DELETE FROM transaction_tags WHERE transaction_id = ? AND tag_id = ?", transactionID, tagID)
 	if err != nil {
-		log.Printf("Error deleting tag %d from transaction %d: %v", tagID, transactionID, err)
-		return err
+		log.Printf("[ERROR] Deleting tag %d from transaction %d: %v", tagID, transactionID, err)
+		return ErrDatabase
 	}
 	return nil
 }
 
 // AddTagsToTransaction adds multiple tags to a specific transaction.
-func AddTagsToTransaction(transactionID int, tags []string, userID string) error {
+func AddTagsToTransaction(transactionID int64, tags []string, userID int64) error {
 	for _, tagName := range tags {
 		tag, err := GetTagByName(tagName, userID)
 		if err != nil {
-			continue // if the tag doesn't exist or doesn't belong to the user, skip it
+			continue
 		}
 		err = InsertTransactionTag(transactionID, tag.ID)
 		if err != nil {
-			log.Printf("Error associating tag %s with transaction %d: %v", tagName, transactionID, err)
+			log.Printf("[ERROR] Associating tag %s with transaction %d: %v", tagName, transactionID, err)
 		}
 	}
 	return nil
 }
 
 // UpdateTagsForTransaction updates the tag associations for a specific transaction.
-func UpdateTagsForTransaction(transactionID int, tags []string, userID string) error {
-	// First, remove all existing tags for the transaction
-	RemoveTagsFromTransaction(transactionID)
-
-	// Then, add the new tags
+func UpdateTagsForTransaction(transactionID int64, tags []string, userID int64) error {
+	if err := RemoveTagsFromTransaction(transactionID); err != nil {
+		return err
+	}
 	return AddTagsToTransaction(transactionID, tags, userID)
 }
 
 // RemoveTagsFromTransaction removes all tags associated with a specific transaction.
-func RemoveTagsFromTransaction(transactionID int) error {
+func RemoveTagsFromTransaction(transactionID int64) error {
 	_, err := GetDB().Exec("DELETE FROM transaction_tags WHERE transaction_id = ?", transactionID)
 	if err != nil {
-		log.Printf("Error removing tags from transaction %d: %v", transactionID, err)
-		return err
+		log.Printf("[ERROR] Removing tags from transaction %d: %v", transactionID, err)
+		return ErrDatabase
 	}
 	return nil
 }

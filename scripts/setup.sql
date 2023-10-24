@@ -3,7 +3,7 @@ CREATE DATABASE IF NOT EXISTS xspends;
 USE xspends;
 
 CREATE TABLE IF NOT EXISTS `users` (
-    `id` VARCHAR(255) NOT NULL,
+    `id` INT NOT NULL,
     `username` VARCHAR(255) NOT NULL UNIQUE,
     `name` VARCHAR(255) NOT NULL,
     `email` VARCHAR(255) NOT NULL UNIQUE,
@@ -12,37 +12,31 @@ CREATE TABLE IF NOT EXISTS `users` (
     PRIMARY KEY (`id`)
 );
 
-CREATE TABLE IF NOT EXISTS `categories` (
-    `id` INT AUTO_INCREMENT NOT NULL,
-    `user_id` VARCHAR(255) NOT NULL,
-    `name` VARCHAR(255) NOT NULL,
-    `description` TEXT,
-    `icon` VARCHAR(255),
-    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`),
-    PRIMARY KEY (`id`)
-);
-
 CREATE TABLE IF NOT EXISTS `sources` (
-    `id` INT AUTO_INCREMENT NOT NULL,
-    `user_id` VARCHAR(255) NOT NULL,
+    `id` BIGINT NOT NULL,
+    `user_id` BIGINT NOT NULL,
     `name` VARCHAR(255) NOT NULL,
     `type` VARCHAR(255) NOT NULL, 
     `balance` DECIMAL(10, 2) DEFAULT 0.00,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`),
     PRIMARY KEY (`id`)
 );
 
 CREATE TABLE IF NOT EXISTS `tags` (
-    `id` INT AUTO_INCREMENT NOT NULL,
-    `user_id` VARCHAR(255) NOT NULL,
+    `id` INT NOT NULL,
+    `user_id` INT NOT NULL,
     `name` VARCHAR(255) NOT NULL UNIQUE,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`),
     PRIMARY KEY (`id`)
 );
 
 CREATE TABLE IF NOT EXISTS `transactions` (
-    `id` INT AUTO_INCREMENT NOT NULL,
-    `user_id` VARCHAR(255) NOT NULL,
+    `id` INT NOT NULL,
+    `user_id` INT NOT NULL,
     `type` VARCHAR(255) NOT NULL DEFAULT 'SAVINGS',
     `source_id` INT,
     `amount` DECIMAL(10, 2) NOT NULL,

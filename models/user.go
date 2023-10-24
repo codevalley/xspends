@@ -3,12 +3,13 @@ package models
 import (
 	"database/sql"
 	"errors"
+	"log"
 	"strings"
+	"xspends/util"
 )
 
-// User represents the user of the application.
 type User struct {
-	ID       string `json:"id"`
+	ID       int64  `json:"id"`
 	Username string `json:"username"`
 	Name     string `json:"name"`
 	Email    string `json:"email"`
@@ -19,63 +20,89 @@ type User struct {
 var (
 	ErrUserNotFound  = errors.New("user not found")
 	ErrEmailExists   = errors.New("email already exists")
-	ErrUsernameTaken = errors.New("username already exists") // New error definition
+	ErrUsernameTaken = errors.New("username already exists")
 )
 
-// ... (rest of the functions remain unchanged)
-
-// InsertUser adds a new user to the database.
 func InsertUser(user *User) error {
-	_, err := GetDB().Exec("INSERT INTO users (id, username, name, email, currency, password) VALUES (?, ?, ?, ?, ?, ?)",
-		user.ID, user.Username, user.Name, user.Email, user.Currency, user.Password)
+	if user.Username == "" || user.Email == "" || user.Password == "" {
+		return errors.New("mandatory fields missing")
+	}
+
+	// Generate SnowflakeId for user ID
+	sid, err := util.GenerateSnowflakeID()
 	if err != nil {
-		if strings.Contains(err.Error(), "duplicate") && strings.Contains(err.Error(), "username") { // This is a generic check; adjust based on your database error message
+		log.Printf("Error generating user: %v", err)
+		return err
+	}
+	user.ID = sid
+	stmt, err := GetDB().Prepare("INSERT INTO users (id, username, name, email, currency, password) VALUES (?, ?, ?, ?, ?, ?)")
+	if err != nil {
+		log.Printf("Error preparing statement: %v", err)
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(user.ID, user.Username, user.Name, user.Email, user.Currency, user.Password)
+	if err != nil {
+		if strings.Contains(err.Error(), "duplicate") && strings.Contains(err.Error(), "username") {
+			log.Printf("Username taken: %v", err)
 			return ErrUsernameTaken
 		}
 		if strings.Contains(err.Error(), "duplicate") && strings.Contains(err.Error(), "email") {
+			log.Printf("Email exists: %v", err)
 			return ErrEmailExists
 		}
+		log.Printf("Error inserting user: %v", err)
+		return err
 	}
-	return err
+
+	log.Printf("User %s inserted successfully", user.Username)
+	return nil
 }
 
-// GetUserByID retrieves a user by their ID.
-func GetUserByID(id string) (*User, error) {
-	row := GetDB().QueryRow("SELECT id, username, name, email, currency, password FROM users WHERE id=?", id)
+func GetUserByID(id int) (*User, error) {
+	stmt, err := GetDB().Prepare("SELECT id, username, name, email, currency, password FROM users WHERE id=?")
+	if err != nil {
+		log.Printf("Error preparing statement: %v", err)
+		return nil, err
+	}
+	defer stmt.Close()
 
 	user := &User{}
-	err := row.Scan(&user.ID, &user.Username, &user.Name, &user.Email, &user.Currency, &user.Password)
+	err = stmt.QueryRow(id).Scan(&user.ID, &user.Username, &user.Name, &user.Email, &user.Currency, &user.Password)
 	if err != nil {
+		log.Printf("Error retrieving user by ID: %v", err)
 		return nil, ErrUserNotFound
 	}
 	return user, nil
 }
 
-// GetUserByUsername retrieves a user by their username.
 func GetUserByUsername(username string) (*User, error) {
-	row := GetDB().QueryRow("SELECT id, username, name, email, currency, password FROM users WHERE username=?", username)
+	stmt, err := GetDB().Prepare("SELECT id, username, name, email, currency, password FROM users WHERE username=?")
+	if err != nil {
+		log.Printf("Error preparing statement: %v", err)
+		return nil, err
+	}
+	defer stmt.Close()
 
 	user := &User{}
-	err := row.Scan(&user.ID, &user.Username, &user.Name, &user.Email, &user.Currency, &user.Password)
+	err = stmt.QueryRow(username).Scan(&user.ID, &user.Username, &user.Name, &user.Email, &user.Currency, &user.Password)
 	if err != nil {
+		log.Printf("Error retrieving user by username: %v", err)
 		return nil, ErrUserNotFound
 	}
 	return user, nil
 }
 
-// EmailExists checks if an email already exists in the database.
-func EmailExists(email string) bool {
-	row := GetDB().QueryRow("SELECT 1 FROM users WHERE email=?", email)
-
-	var exists bool
-	err := row.Scan(&exists)
-	return err == nil && exists
-}
-
-// UpdateUser updates the user details in the database.
 func UpdateUser(user *User) error {
-	result, err := GetDB().Exec("UPDATE users SET username=?, name=?, email=?, currency=?, password=? WHERE id=?",
-		user.Username, user.Name, user.Email, user.Currency, user.Password, user.ID)
+	stmt, err := GetDB().Prepare("UPDATE users SET username=?, name=?, email=?, currency=?, password=? WHERE id=?")
+	if err != nil {
+		log.Printf("Error preparing statement: %v", err)
+		return err
+	}
+	defer stmt.Close()
+
+	result, err := stmt.Exec(user.Username, user.Name, user.Email, user.Currency, user.Password, user.ID)
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate") && strings.Contains(err.Error(), "username") {
 			return ErrUsernameTaken
@@ -83,47 +110,64 @@ func UpdateUser(user *User) error {
 		if strings.Contains(err.Error(), "duplicate") && strings.Contains(err.Error(), "email") {
 			return ErrEmailExists
 		}
+		log.Printf("Error updating user: %v", err)
 		return err
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
+		log.Printf("Error fetching rows affected: %v", err)
 		return err
 	}
 	if rowsAffected == 0 {
+		log.Println("No user found to update")
 		return ErrUserNotFound
 	}
 	return nil
 }
 
-func DeleteUser(id string) error {
-	result, err := GetDB().Exec("DELETE FROM users WHERE id=?", id)
+func DeleteUser(id int) error {
+	stmt, err := GetDB().Prepare("DELETE FROM users WHERE id=?")
 	if err != nil {
+		log.Printf("Error preparing statement: %v", err)
+		return err
+	}
+	defer stmt.Close()
+
+	result, err := stmt.Exec(id)
+	if err != nil {
+		log.Printf("Error deleting user: %v", err)
 		return err
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
+		log.Printf("Error fetching rows affected: %v", err)
 		return err
 	}
 	if rowsAffected == 0 {
+		log.Println("No user found to delete")
 		return ErrUserNotFound
 	}
 	return nil
 }
 
-// UserExists checks if a user with the provided username or email exists.
 func UserExists(username string, email string) (bool, error) {
-	var exists bool
-	row := GetDB().QueryRow("SELECT 1 FROM users WHERE username=? OR email=?", username, email)
+	stmt, err := GetDB().Prepare("SELECT 1 FROM users WHERE username=? OR email=?")
+	if err != nil {
+		log.Printf("Error preparing statement: %v", err)
+		return false, err
+	}
+	defer stmt.Close()
 
-	err := row.Scan(&exists)
+	var exists int
+	err = stmt.QueryRow(username, email).Scan(&exists)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return false, nil // User does not exist
+			return false, nil
 		}
-		return false, err // Some other database error occurred
+		log.Printf("Error checking if user exists: %v", err)
+		return false, err
 	}
-
-	return true, nil // User exists
+	return exists == 1, nil
 }

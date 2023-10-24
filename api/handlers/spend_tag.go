@@ -22,7 +22,7 @@ func ListTags(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", strconv.Itoa(defaultLimit)))
 	offset, _ := strconv.Atoi(c.Query("offset"))
 
-	tags, err := models.GetAllTags(userID.(string), models.PaginationParams{Limit: limit, Offset: offset})
+	tags, err := models.GetAllTags(userID.(int64), models.PaginationParams{Limit: limit, Offset: offset})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch tags"})
 		return
@@ -39,7 +39,7 @@ func ListTags(c *gin.Context) {
 // GetTag fetches details of a specific tag by its ID.
 func GetTag(c *gin.Context) {
 	tagIDStr := c.Param("id")
-	tagID, err := strconv.Atoi(tagIDStr)
+	tagID, err := strconv.ParseInt(tagIDStr, 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tag ID"})
 		return
@@ -86,7 +86,7 @@ func UpdateTag(c *gin.Context) {
 // DeleteTag removes a specific tag by its ID.
 func DeleteTag(c *gin.Context) {
 	tagIDStr := c.Param("id")
-	tagID, err := strconv.Atoi(tagIDStr)
+	tagID, err := strconv.ParseInt(tagIDStr, 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tag ID"})
 		return
