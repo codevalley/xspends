@@ -63,12 +63,10 @@ curl -X POST "$MINIKUBE_URL/transactions" \
      -H "Content-Type: application/json" \
      -H "Authorization: Bearer $token" \
      -d '{
-          "title": "Test Transaction",
           "amount": 100.50,
           "type": "expense",
-          "source_id": "'"$sourceID"'",
-          "category_id": "'"$categoryID"'",
-          "tags": ["food", "essentials"]
+          "source_id": '"$sourceID"',
+          "category_id": '"$categoryID"'
          }'
 
 # Fetch transactions
@@ -82,7 +80,6 @@ curl -X PUT "$MINIKUBE_URL/transactions/1" \
      -H "Content-Type: application/json" \
      -H "Authorization: Bearer $token" \
      -d '{
-          "title": "Updated Transaction",
           "amount": 110.75,
           "type": "expense",
           "source_id": "'"$sourceID"'",

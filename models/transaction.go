@@ -7,6 +7,7 @@ import (
 	"log"
 	"strings"
 	"time"
+	"xspends/util"
 )
 
 const (
@@ -53,6 +54,12 @@ func InsertTransaction(transaction Transaction) error {
 	if err != nil {
 		return err
 	}
+	var err1 error
+	transaction.ID, err = util.GenerateSnowflakeID()
+	if err1 != nil {
+		log.Printf("[ERROR] Generating Snowflake ID: %v", err)
+		return ErrDatabase // or a more specific error like ErrGeneratingID
+	}
 
 	err = validateForeignKeyReferences(transaction)
 	if err != nil {
@@ -60,14 +67,14 @@ func InsertTransaction(transaction Transaction) error {
 		return err
 	}
 
-	stmt, err := tx.Prepare("INSERT INTO transactions (user_id, source_id, category_id, timestamp, amount, type) VALUES (?, ?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("INSERT INTO transactions (id, user_id, source_id, category_id, amount, type) VALUES (?,?, ?, ?, ?, ?)")
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(transaction.UserID, transaction.SourceID, transaction.CategoryID, transaction.Timestamp, transaction.Amount, transaction.Type)
+	_, err = stmt.Exec(transaction.ID, transaction.UserID, transaction.SourceID, transaction.CategoryID, transaction.Amount, transaction.Type)
 	if err != nil {
 		tx.Rollback()
 		return err

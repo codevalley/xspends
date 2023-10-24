@@ -11,13 +11,16 @@ import (
 
 // CreateTransaction creates a new transaction for the authenticated user.
 func CreateTransaction(c *gin.Context) {
+
 	userID, ok := c.Get("userID")
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "user not authenticated"})
 		return
 	}
+
 	var newTransaction models.Transaction
 	if err := c.ShouldBindJSON(&newTransaction); err != nil {
+
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
