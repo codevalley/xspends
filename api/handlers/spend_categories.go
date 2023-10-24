@@ -12,10 +12,15 @@ const defaultItemsPerPage = 10
 
 // ListCategories retrieves all available categories with pagination.
 func ListCategories(c *gin.Context) {
+	userID, ok := c.Get("userID")
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "user ID not found in context"})
+		return
+	}
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	itemsPerPage, _ := strconv.Atoi(c.DefaultQuery("items_per_page", strconv.Itoa(defaultItemsPerPage)))
 
-	categories, err := models.GetPagedCategories(page, itemsPerPage)
+	categories, err := models.GetPagedCategories(page, itemsPerPage, userID.(int64))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch categories"})
 		return
@@ -31,6 +36,11 @@ func ListCategories(c *gin.Context) {
 
 // GetCategory fetches details of a specific category by its ID.import "strconv"
 func GetCategory(c *gin.Context) {
+	userID, ok := c.Get("userID")
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "user ID not found in context"})
+		return
+	}
 	categoryIDStr := c.Param("id")
 	if categoryIDStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "category ID is required"})
@@ -44,7 +54,7 @@ func GetCategory(c *gin.Context) {
 		return
 	}
 
-	category, err := models.GetCategoryByID(categoryID)
+	category, err := models.GetCategoryByID(categoryID, userID.(int64))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "category not found"})
 		return
@@ -55,12 +65,17 @@ func GetCategory(c *gin.Context) {
 
 // CreateCategory adds a new category.
 func CreateCategory(c *gin.Context) {
+	userID, ok := c.Get("userID")
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "user ID not found in context"})
+		return
+	}
 	var newCategory models.Category
 	if err := c.ShouldBindJSON(&newCategory); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
+	newCategory.UserID = userID.(int64)
 	if err := models.InsertCategory(&newCategory); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create category"})
 		return
@@ -71,25 +86,18 @@ func CreateCategory(c *gin.Context) {
 
 // UpdateCategory modifies details of an existing category.
 func UpdateCategory(c *gin.Context) {
+	userID, ok := c.Get("userID")
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "user ID not found in context"})
+		return
+	}
 	var updatedCategory models.Category
 	if err := c.ShouldBindJSON(&updatedCategory); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
+	updatedCategory.UserID = userID.(int64)
 	// Ensure the category exists before updating
-	existingCategory, err := models.GetCategoryByID(updatedCategory.ID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "category not found"})
-		return
-	}
-
-	// Validate that the user is updating their own category (or has permission)
-	if existingCategory.UserID != updatedCategory.UserID {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "permission denied"})
-		return
-	}
-
 	if err := models.UpdateCategory(&updatedCategory); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update category"})
 		return
@@ -100,6 +108,11 @@ func UpdateCategory(c *gin.Context) {
 
 // DeleteCategory removes a specific category by its ID.
 func DeleteCategory(c *gin.Context) {
+	userID, ok := c.Get("userID")
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "user ID not found in context"})
+		return
+	}
 	categoryIDStr := c.Param("id")
 	if categoryIDStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "category ID is required"})
@@ -113,14 +126,7 @@ func DeleteCategory(c *gin.Context) {
 		return
 	}
 
-	// Check if category exists before deletion
-	_, err1 := models.GetCategoryByID(categoryID)
-	if err1 != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "category not found"})
-		return
-	}
-
-	if err := models.DeleteCategory(categoryID); err != nil {
+	if err := models.DeleteCategory(categoryID, userID.(int64)); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete category"})
 		return
 	}

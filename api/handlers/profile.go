@@ -22,7 +22,7 @@ func GetUserProfile(c *gin.Context) {
 	}
 
 	// Convert the interface type to int.
-	intUserID, ok := userID.(int)
+	intUserID, ok := userID.(int64)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
@@ -83,7 +83,7 @@ func DeleteUser(c *gin.Context) {
 	}
 
 	// Convert the interface type to int.
-	intUserID, ok := userID.(int)
+	intUserID, ok := userID.(int64)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return

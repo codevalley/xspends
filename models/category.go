@@ -68,14 +68,14 @@ func UpdateCategory(category *Category) error {
 
 	category.UpdatedAt = time.Now()
 
-	stmt, err := GetDB().Prepare("UPDATE categories SET user_id=?, name=?, description=?, icon=?, updated_at=? WHERE id=?")
+	stmt, err := GetDB().Prepare("UPDATE categories SET name=?, description=?, icon=?, updated_at=? WHERE id=? AND user_id=?")
 	if err != nil {
 		log.Printf("[ERROR] Preparing statement: %v", err)
 		return ErrDatabase
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(category.UserID, category.Name, category.Description, category.Icon, category.UpdatedAt, category.ID)
+	_, err = stmt.Exec(category.Name, category.Description, category.Icon, category.UpdatedAt, category.ID, category.UserID)
 	if err != nil {
 		log.Printf("[ERROR] Executing statement with category %v: %v", category, err)
 		return ErrDatabase
@@ -84,8 +84,8 @@ func UpdateCategory(category *Category) error {
 	return nil
 }
 
-func DeleteCategory(categoryID int64) error {
-	stmt, err := GetDB().Prepare("DELETE FROM categories WHERE id=?")
+func DeleteCategory(categoryID int64, userID int64) error {
+	stmt, err := GetDB().Prepare("DELETE FROM categories WHERE id=? AND user_id=?")
 	if err != nil {
 		log.Printf("[ERROR] Preparing statement: %v", err)
 		return ErrDatabase
@@ -101,8 +101,8 @@ func DeleteCategory(categoryID int64) error {
 	return nil
 }
 
-func GetAllCategories() ([]Category, error) {
-	rows, err := GetDB().Query("SELECT id, user_id, name, description, icon, created_at, updated_at FROM categories")
+func GetAllCategories(userID int64) ([]Category, error) {
+	rows, err := GetDB().Query("SELECT id, user_id, name, description, icon, created_at, updated_at FROM categories WHERE user_id=?", userID)
 	if err != nil {
 		log.Printf("[ERROR] Querying categories: %v", err)
 		return nil, ErrDatabase
@@ -122,8 +122,8 @@ func GetAllCategories() ([]Category, error) {
 	return categories, nil
 }
 
-func GetCategoryByID(categoryID int64) (*Category, error) {
-	row := GetDB().QueryRow("SELECT id, user_id, name, description, icon, created_at, updated_at FROM categories WHERE id=?", categoryID)
+func GetCategoryByID(categoryID int64, userID int64) (*Category, error) {
+	row := GetDB().QueryRow("SELECT id, user_id, name, description, icon, created_at, updated_at FROM categories WHERE id=? AND user_id=?", categoryID, userID)
 	var category Category
 	err := row.Scan(&category.ID, &category.UserID, &category.Name, &category.Description, &category.Icon, &category.CreatedAt, &category.UpdatedAt)
 	if err == sql.ErrNoRows {
@@ -136,10 +136,10 @@ func GetCategoryByID(categoryID int64) (*Category, error) {
 	return &category, nil
 }
 
-func GetPagedCategories(page, itemsPerPage int) ([]Category, error) {
+func GetPagedCategories(page int, itemsPerPage int, userID int64) ([]Category, error) {
 	offset := (page - 1) * itemsPerPage
 
-	rows, err := GetDB().Query("SELECT id, user_id, name, description, icon, created_at, updated_at FROM categories LIMIT ? OFFSET ?", itemsPerPage, offset)
+	rows, err := GetDB().Query("SELECT id, user_id, name, description, icon, created_at, updated_at FROM categories WHERE user_id=? LIMIT ? OFFSET ?", userID, itemsPerPage, offset)
 	if err != nil {
 		log.Printf("[ERROR] Querying paginated categories: %v", err)
 		return nil, ErrDatabase
@@ -157,4 +157,25 @@ func GetPagedCategories(page, itemsPerPage int) ([]Category, error) {
 	}
 
 	return categories, nil
+}
+
+// CategoryIDExists checks if a category with the given ID exists in the database.
+func CategoryIDExists(categoryID int64, userID int64) (bool, error) {
+	stmt, err := GetDB().Prepare("SELECT 1 FROM categories WHERE id=? and user_id=?")
+	if err != nil {
+		log.Printf("[ERROR] Preparing select statement to check if category exists by ID: %v", err)
+		return false, err
+	}
+	defer stmt.Close()
+
+	var exists int
+	err = stmt.QueryRow(categoryID, userID).Scan(&exists)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		log.Printf("[ERROR] Checking if category exists by ID: %v", err)
+		return false, err
+	}
+	return exists == 1, nil
 }

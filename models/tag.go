@@ -63,14 +63,14 @@ func UpdateTag(tag *Tag) error {
 
 	tag.UpdatedAt = time.Now()
 
-	stmt, err := GetDB().Prepare("UPDATE tags SET user_id=?, name=?, updated_at=? WHERE id=?")
+	stmt, err := GetDB().Prepare("UPDATE tags SET name=?, updated_at=? WHERE id=? AND user_id=?")
 	if err != nil {
 		log.Printf("[ERROR] Preparing statement: %v", err)
 		return ErrDatabase
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(tag.UserID, tag.Name, tag.UpdatedAt, tag.ID)
+	_, err = stmt.Exec(tag.Name, tag.UpdatedAt, tag.ID, tag.UserID)
 	if err != nil {
 		log.Printf("[ERROR] Executing statement with tag %v: %v", tag, err)
 		return ErrDatabase
@@ -80,15 +80,15 @@ func UpdateTag(tag *Tag) error {
 }
 
 // DeleteTag removes a tag from the database.
-func DeleteTag(tagID int64) error {
-	stmt, err := GetDB().Prepare("DELETE FROM tags WHERE id=?")
+func DeleteTag(tagID int64, userID int64) error {
+	stmt, err := GetDB().Prepare("DELETE FROM tags WHERE id=? AND user_id=?")
 	if err != nil {
 		log.Printf("[ERROR] Preparing statement: %v", err)
 		return ErrDatabase
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(tagID)
+	_, err = stmt.Exec(tagID, userID)
 	if err != nil {
 		log.Printf("[ERROR] Executing statement with tagID %d: %v", tagID, err)
 		return ErrDatabase
@@ -98,8 +98,8 @@ func DeleteTag(tagID int64) error {
 }
 
 // GetTagByID retrieves a tag by its ID.
-func GetTagByID(tagID int64) (*Tag, error) {
-	row := GetDB().QueryRow("SELECT id, user_id, name, created_at, updated_at FROM tags WHERE id=?", tagID)
+func GetTagByID(tagID int64, userID int64) (*Tag, error) {
+	row := GetDB().QueryRow("SELECT id, user_id, name, created_at, updated_at FROM tags WHERE id=? AND user_id=?", tagID, userID)
 	var tag Tag
 	err := row.Scan(&tag.ID, &tag.UserID, &tag.Name, &tag.CreatedAt, &tag.UpdatedAt)
 	if err != nil {

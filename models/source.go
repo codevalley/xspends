@@ -20,7 +20,7 @@ var (
 
 type Source struct {
 	ID        int64     `json:"id"`
-	UserID    int       `json:"user_id"`
+	UserID    int64     `json:"user_id"`
 	Name      string    `json:"name"`
 	Type      string    `json:"type"`
 	Balance   float64   `json:"balance"`
@@ -73,14 +73,14 @@ func UpdateSource(source Source) error {
 
 	source.UpdatedAt = time.Now()
 
-	stmt, err := GetDB().Prepare("UPDATE sources SET user_id=?, name=?, type=?, balance=?, updated_at=? WHERE id=?")
+	stmt, err := GetDB().Prepare("UPDATE sources SET name=?, type=?, balance=?, updated_at=? WHERE id=? AND user_id=?")
 	if err != nil {
 		log.Printf("[ERROR] Preparing update statement for source: %v", err)
 		return err
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(source.UserID, source.Name, source.Type, source.Balance, source.UpdatedAt, source.ID)
+	_, err = stmt.Exec(source.Name, source.Type, source.Balance, source.UpdatedAt, source.ID, source.UserID)
 	if err != nil {
 		log.Printf("[ERROR] Updating source: %v", err)
 		return err
@@ -89,15 +89,15 @@ func UpdateSource(source Source) error {
 	return nil
 }
 
-func DeleteSource(sourceID int64) error {
-	stmt, err := GetDB().Prepare("DELETE FROM sources WHERE id=?")
+func DeleteSource(sourceID int64, userID int64) error {
+	stmt, err := GetDB().Prepare("DELETE FROM sources WHERE id=? AND user_id=?")
 	if err != nil {
 		log.Printf("[ERROR] Preparing delete statement for source: %v", err)
 		return err
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(sourceID)
+	_, err = stmt.Exec(sourceID, userID)
 	if err != nil {
 		log.Printf("[ERROR] Deleting source: %v", err)
 		return err
@@ -106,8 +106,8 @@ func DeleteSource(sourceID int64) error {
 	return nil
 }
 
-func GetSourceByID(sourceID int64) (*Source, error) {
-	stmt, err := GetDB().Prepare("SELECT id, user_id, name, type, balance, created_at, updated_at FROM sources WHERE id=?")
+func GetSourceByID(sourceID int64, userID int64) (*Source, error) {
+	stmt, err := GetDB().Prepare("SELECT id, user_id, name, type, balance, created_at, updated_at FROM sources WHERE id=? AND user_id=?")
 	if err != nil {
 		log.Printf("[ERROR] Preparing select statement for source by ID: %v", err)
 		return nil, err
@@ -115,7 +115,7 @@ func GetSourceByID(sourceID int64) (*Source, error) {
 	defer stmt.Close()
 
 	source := &Source{}
-	err = stmt.QueryRow(sourceID).Scan(&source.ID, &source.UserID, &source.Name, &source.Type, &source.Balance, &source.CreatedAt, &source.UpdatedAt)
+	err = stmt.QueryRow(sourceID, userID).Scan(&source.ID, &source.UserID, &source.Name, &source.Type, &source.Balance, &source.CreatedAt, &source.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrSourceNotFound
@@ -127,7 +127,7 @@ func GetSourceByID(sourceID int64) (*Source, error) {
 	return source, nil
 }
 
-func GetSourcesByUserID(userID int) ([]Source, error) {
+func GetSources(userID int) ([]Source, error) {
 	stmt, err := GetDB().Prepare("SELECT id, user_id, name, type, balance, created_at, updated_at FROM sources WHERE user_id=?")
 	if err != nil {
 		log.Printf("[ERROR] Preparing select statement for sources by user ID: %v", err)
@@ -158,4 +158,25 @@ func GetSourcesByUserID(userID int) ([]Source, error) {
 	}
 
 	return sources, nil
+}
+
+// SourceIDExists checks if a source with the given ID exists in the database.
+func SourceIDExists(sourceID int64, userID int64) (bool, error) {
+	stmt, err := GetDB().Prepare("SELECT 1 FROM sources WHERE id=? AND user_id=?")
+	if err != nil {
+		log.Printf("[ERROR] Preparing select statement to check if source exists by ID: %v", err)
+		return false, err
+	}
+	defer stmt.Close()
+
+	var exists int
+	err = stmt.QueryRow(sourceID, userID).Scan(&exists)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		log.Printf("[ERROR] Checking if source exists by ID: %v", err)
+		return false, err
+	}
+	return exists == 1, nil
 }

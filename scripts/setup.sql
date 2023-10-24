@@ -14,6 +14,18 @@ CREATE TABLE IF NOT EXISTS `users` (
     PRIMARY KEY (`id`)
 );
 
+CREATE TABLE IF NOT EXISTS `categories` (
+    `id` INT NOT NULL,
+    `user_id` INT NOT NULL,
+    `name` VARCHAR(255) NOT NULL,
+    `description` TEXT,
+    `icon` VARCHAR(255),
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`),
+    PRIMARY KEY (`id`)
+);
+
 CREATE TABLE IF NOT EXISTS `sources` (
     `id` BIGINT NOT NULL,
     `user_id` BIGINT NOT NULL,

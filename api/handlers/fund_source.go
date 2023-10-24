@@ -22,7 +22,7 @@ func ListSources(c *gin.Context) {
 		return
 	}
 
-	sources, err := models.GetSourcesByUserID(intUserID)
+	sources, err := models.GetSources(intUserID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch sources"})
 		return
@@ -32,6 +32,11 @@ func ListSources(c *gin.Context) {
 }
 
 func GetSource(c *gin.Context) {
+	userID, ok := c.Get("userID")
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "user ID not found in context"})
+		return
+	}
 	sourceIDStr := c.Param("id")
 	sourceID, err := strconv.ParseInt(sourceIDStr, 10, 64)
 	if err != nil {
@@ -39,7 +44,7 @@ func GetSource(c *gin.Context) {
 		return
 	}
 
-	source, err := models.GetSourceByID(sourceID)
+	source, err := models.GetSourceByID(sourceID, userID.(int64))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "source not found"})
 		return
@@ -49,12 +54,17 @@ func GetSource(c *gin.Context) {
 }
 
 func CreateSource(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		return
+	}
 	var newSource models.Source
 	if err := c.ShouldBindJSON(&newSource); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
+	newSource.UserID = userID.(int64)
 	if err := models.InsertSource(newSource); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create source"})
 		return
@@ -64,12 +74,17 @@ func CreateSource(c *gin.Context) {
 }
 
 func UpdateSource(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		return
+	}
 	var updatedSource models.Source
 	if err := c.ShouldBindJSON(&updatedSource); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
+	updatedSource.UserID = userID.(int64)
 	if err := models.UpdateSource(updatedSource); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update source"})
 		return
@@ -79,6 +94,11 @@ func UpdateSource(c *gin.Context) {
 }
 
 func DeleteSource(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		return
+	}
 	sourceIDStr := c.Param("id")
 	sourceID, err := strconv.ParseInt(sourceIDStr, 10, 64)
 	if err != nil {
@@ -86,7 +106,7 @@ func DeleteSource(c *gin.Context) {
 		return
 	}
 
-	if err := models.DeleteSource(sourceID); err != nil {
+	if err := models.DeleteSource(sourceID, userID.(int64)); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete source"})
 		return
 	}

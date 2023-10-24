@@ -186,3 +186,23 @@ func UserExists(username string, email string) (bool, error) {
 	}
 	return exists == 1, nil
 }
+
+func UserIDExists(userID int64) (bool, error) {
+	stmt, err := GetDB().Prepare("SELECT 1 FROM users WHERE id=?")
+	if err != nil {
+		log.Printf("[ERROR] Preparing select statement to check if user exists by ID: %v", err)
+		return false, err
+	}
+	defer stmt.Close()
+
+	var exists int
+	err = stmt.QueryRow(userID).Scan(&exists)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		log.Printf("[ERROR] Checking if user exists by ID: %v", err)
+		return false, err
+	}
+	return exists == 1, nil
+}
