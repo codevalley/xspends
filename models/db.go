@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -18,6 +19,7 @@ func GetDB() *sql.DB {
 func InitDB() {
 	var err error
 	dsn := os.Getenv("DB_DSN")
+	fmt.Println(dsn)
 	if dsn == "" {
 		log.Fatal("DB_DSN environment variable not set.")
 	}

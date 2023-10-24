@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: xpends
+  name: xspends
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: xpends
+      app: xspends
   template:
     metadata:
       labels:
-        app: xpends
+        app: xspends
     spec:
       containers:
-      - name: xpends-container
-        image: xpends-image  # You would replace this with the actual image name from your container registry.
-        imagePullPolicy: IfNotPresent
+      - name: xspends-container
+        image: xspends-image  # You would replace this with the actual image name from your container registry.
+        imagePullPolicy: Always
         resources:
           requests:
             memory: "64Mi"

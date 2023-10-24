@@ -2,6 +2,7 @@ package api
 
 import (
 	"xspends/api/handlers"
+	"xspends/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -12,7 +13,7 @@ func SetupRoutes(r *gin.Engine) {
 	r.POST("/login", handlers.Login)
 
 	// Middleware to authenticate JWT token and fetch user details.
-	//r.Use(handlers.AuthMiddleware())
+	r.Use(middleware.AuthMiddleware())
 
 	// Category routes
 	r.GET("/categories", handlers.ListCategories)

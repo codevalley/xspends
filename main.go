@@ -1,7 +1,7 @@
 package main
 
 import (
-	"xspends/api/handlers"
+	"xspends/api"
 	"xspends/models"
 
 	"github.com/gin-gonic/gin"
@@ -10,8 +10,8 @@ import (
 func main() {
 	r := gin.Default()
 	models.InitDB()
-	r.POST("/register", handlers.Register)
-	r.POST("/login", handlers.Login)
+
+	api.SetupRoutes(r)
 
 	r.Run() // Defaults to :8080
 }

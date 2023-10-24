@@ -1,0 +1,5 @@
+pd:
+  storageClassName: standard
+
+tikv:
+  storageClassName: standard
