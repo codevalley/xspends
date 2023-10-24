@@ -33,7 +33,7 @@ func ListSources(c *gin.Context) {
 
 func GetSource(c *gin.Context) {
 	sourceIDStr := c.Param("id")
-	sourceID, err := strconv.Atoi(sourceIDStr)
+	sourceID, err := strconv.ParseInt(sourceIDStr, 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid source ID"})
 		return
@@ -80,7 +80,7 @@ func UpdateSource(c *gin.Context) {
 
 func DeleteSource(c *gin.Context) {
 	sourceIDStr := c.Param("id")
-	sourceID, err := strconv.Atoi(sourceIDStr)
+	sourceID, err := strconv.ParseInt(sourceIDStr, 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid source ID"})
 		return

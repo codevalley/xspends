@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS `users` (
     `email` VARCHAR(255) NOT NULL UNIQUE,
     `currency` VARCHAR(10) DEFAULT 'USD',
     `password` VARCHAR(255) NOT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`)
 );
 
@@ -52,6 +54,8 @@ CREATE TABLE IF NOT EXISTS `transactions` (
 CREATE TABLE IF NOT EXISTS `transaction_tags` (
     `transaction_id` INT NOT NULL,
     `tag_id` INT NOT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (`transaction_id`) REFERENCES `transactions`(`id`),
     FOREIGN KEY (`tag_id`) REFERENCES `tags`(`id`),
     PRIMARY KEY (`transaction_id`, `tag_id`)

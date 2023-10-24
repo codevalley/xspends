@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"log"
+	"time"
 	"xspends/util"
 )
 
@@ -18,11 +19,13 @@ var (
 )
 
 type Source struct {
-	ID      int64   `json:"id"`
-	UserID  int     `json:"user_id"`
-	Name    string  `json:"name"`
-	Type    string  `json:"type"`
-	Balance float64 `json:"balance"`
+	ID        int64     `json:"id"`
+	UserID    int       `json:"user_id"`
+	Name      string    `json:"name"`
+	Type      string    `json:"type"`
+	Balance   float64   `json:"balance"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 func InsertSource(source Source) error {
@@ -36,21 +39,23 @@ func InsertSource(source Source) error {
 
 	sid, err := util.GenerateSnowflakeID()
 	if err != nil {
-		log.Printf("Error generating user: %v", err)
+		log.Printf("[ERROR] Generating snowflake ID for source: %v", err)
 		return err
 	}
 	source.ID = sid
+	source.CreatedAt = time.Now()
+	source.UpdatedAt = time.Now()
 
-	stmt, err := GetDB().Prepare("INSERT INTO sources (id, user_id, name, type, balance) VALUES (?, ?, ?, ?, ?)")
+	stmt, err := GetDB().Prepare("INSERT INTO sources (id, user_id, name, type, balance, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
-		log.Println("Error preparing insert statement for source:", err)
+		log.Printf("[ERROR] Preparing insert statement for source: %v", err)
 		return err
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(source.ID, source.UserID, source.Name, source.Type, source.Balance)
+	_, err = stmt.Exec(source.ID, source.UserID, source.Name, source.Type, source.Balance, source.CreatedAt, source.UpdatedAt)
 	if err != nil {
-		log.Println("Error inserting source:", err)
+		log.Printf("[ERROR] Inserting source: %v", err)
 		return err
 	}
 
@@ -66,54 +71,56 @@ func UpdateSource(source Source) error {
 		return ErrInvalidType
 	}
 
-	stmt, err := GetDB().Prepare("UPDATE sources SET user_id=?, name=?, type=?, balance=? WHERE id=?")
+	source.UpdatedAt = time.Now()
+
+	stmt, err := GetDB().Prepare("UPDATE sources SET user_id=?, name=?, type=?, balance=?, updated_at=? WHERE id=?")
 	if err != nil {
-		log.Println("Error preparing update statement for source:", err)
+		log.Printf("[ERROR] Preparing update statement for source: %v", err)
 		return err
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(source.UserID, source.Name, source.Type, source.Balance, source.ID)
+	_, err = stmt.Exec(source.UserID, source.Name, source.Type, source.Balance, source.UpdatedAt, source.ID)
 	if err != nil {
-		log.Println("Error updating source:", err)
+		log.Printf("[ERROR] Updating source: %v", err)
 		return err
 	}
 
 	return nil
 }
 
-func DeleteSource(sourceID int) error {
+func DeleteSource(sourceID int64) error {
 	stmt, err := GetDB().Prepare("DELETE FROM sources WHERE id=?")
 	if err != nil {
-		log.Println("Error preparing delete statement for source:", err)
+		log.Printf("[ERROR] Preparing delete statement for source: %v", err)
 		return err
 	}
 	defer stmt.Close()
 
 	_, err = stmt.Exec(sourceID)
 	if err != nil {
-		log.Println("Error deleting source:", err)
+		log.Printf("[ERROR] Deleting source: %v", err)
 		return err
 	}
 
 	return nil
 }
 
-func GetSourceByID(sourceID int) (*Source, error) {
-	stmt, err := GetDB().Prepare("SELECT id, user_id, name, type, balance FROM sources WHERE id=?")
+func GetSourceByID(sourceID int64) (*Source, error) {
+	stmt, err := GetDB().Prepare("SELECT id, user_id, name, type, balance, created_at, updated_at FROM sources WHERE id=?")
 	if err != nil {
-		log.Println("Error preparing select statement for source by ID:", err)
+		log.Printf("[ERROR] Preparing select statement for source by ID: %v", err)
 		return nil, err
 	}
 	defer stmt.Close()
 
 	source := &Source{}
-	err = stmt.QueryRow(sourceID).Scan(&source.ID, &source.UserID, &source.Name, &source.Type, &source.Balance)
+	err = stmt.QueryRow(sourceID).Scan(&source.ID, &source.UserID, &source.Name, &source.Type, &source.Balance, &source.CreatedAt, &source.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrSourceNotFound
 		}
-		log.Println("Error retrieving source by ID:", err)
+		log.Printf("[ERROR] Retrieving source by ID: %v", err)
 		return nil, err
 	}
 
@@ -121,16 +128,16 @@ func GetSourceByID(sourceID int) (*Source, error) {
 }
 
 func GetSourcesByUserID(userID int) ([]Source, error) {
-	stmt, err := GetDB().Prepare("SELECT id, user_id, name, type, balance FROM sources WHERE user_id=?")
+	stmt, err := GetDB().Prepare("SELECT id, user_id, name, type, balance, created_at, updated_at FROM sources WHERE user_id=?")
 	if err != nil {
-		log.Println("Error preparing select statement for sources by user ID:", err)
+		log.Printf("[ERROR] Preparing select statement for sources by user ID: %v", err)
 		return nil, err
 	}
 	defer stmt.Close()
 
 	rows, err := stmt.Query(userID)
 	if err != nil {
-		log.Println("Error querying sources by user ID:", err)
+		log.Printf("[ERROR] Querying sources by user ID: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -138,15 +145,15 @@ func GetSourcesByUserID(userID int) ([]Source, error) {
 	var sources []Source
 	for rows.Next() {
 		var source Source
-		if err := rows.Scan(&source.ID, &source.UserID, &source.Name, &source.Type, &source.Balance); err != nil {
-			log.Println("Error scanning source row:", err)
+		if err := rows.Scan(&source.ID, &source.UserID, &source.Name, &source.Type, &source.Balance, &source.CreatedAt, &source.UpdatedAt); err != nil {
+			log.Printf("[ERROR] Scanning source row: %v", err)
 			return nil, err
 		}
 		sources = append(sources, source)
 	}
 
 	if err = rows.Err(); err != nil {
-		log.Println("Error during rows scan:", err)
+		log.Printf("[ERROR] During rows scan: %v", err)
 		return nil, err
 	}
 
