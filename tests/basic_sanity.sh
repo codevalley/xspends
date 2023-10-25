@@ -82,8 +82,8 @@ curl -X PUT "$MINIKUBE_URL/transactions/1" \
      -d '{
           "amount": 110.75,
           "type": "expense",
-          "source_id": "'"$sourceID"'",
-          "category_id": "'"$categoryID"'",
+          "source_id": '"$sourceID"',
+          "category_id": '"$categoryID"',
           "tags": ["movie", "night out"]
          }'
 

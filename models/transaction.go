@@ -144,6 +144,36 @@ func GetTransactionByID(transactionID int64, userID int64) (*Transaction, error)
 	return &transaction, nil
 }
 
+func GetTransactionsByFilter(filter TransactionFilter) ([]Transaction, error) {
+	query, args, err := ConstructQuery(filter)
+	if err != nil {
+		log.Printf("Error constructing query: %v", err)
+		return nil, err
+	}
+
+	rows, err := GetDB().Query(query, args...)
+	if err != nil {
+		log.Printf("Error querying transactions: %v \n %s", err, query)
+		return nil, err
+	}
+	defer rows.Close()
+	log.Printf("Result: %v", rows)
+	var transactions []Transaction
+	for rows.Next() {
+		var transaction Transaction
+		if err := rows.Scan(&transaction.ID, &transaction.UserID, &transaction.SourceID, &transaction.CategoryID, &transaction.Timestamp, &transaction.Amount, &transaction.Type); err != nil {
+			log.Printf("Error scanning transaction row: %v", err)
+			return nil, err
+		}
+		transactions = append(transactions, transaction)
+	}
+
+	if len(transactions) == 0 {
+		return nil, ErrTransactionNotFound
+	}
+
+	return transactions, rows.Err()
+}
 func ConstructQuery(filter TransactionFilter) (string, []interface{}, error) {
 	var queryBuffer bytes.Buffer
 	var args []interface{}
@@ -195,7 +225,7 @@ func ConstructQuery(filter TransactionFilter) (string, []interface{}, error) {
 	combinedConditions := strings.Join(conditions, " AND ")
 
 	// Base SQL query
-	queryBuffer.WriteString("SELECT * FROM transactions ")
+	queryBuffer.WriteString("SELECT id, user_id, source_id, category_id, timestamp, amount, type FROM transactions ")
 
 	if len(conditions) > 0 {
 		queryBuffer.WriteString(" WHERE ")
@@ -248,35 +278,4 @@ func contains(slice []string, str string) bool {
 		}
 	}
 	return false
-}
-
-func GetTransactionsByFilter(filter TransactionFilter) ([]Transaction, error) {
-	query, args, err := ConstructQuery(filter)
-	if err != nil {
-		log.Printf("Error constructing query: %v", err)
-		return nil, err
-	}
-
-	rows, err := GetDB().Query(query, args...)
-	if err != nil {
-		log.Printf("Error querying transactions: %v \n %s", err, query)
-		return nil, err
-	}
-	defer rows.Close()
-
-	var transactions []Transaction
-	for rows.Next() {
-		var transaction Transaction
-		if err := rows.Scan(&transaction.ID, &transaction.UserID, &transaction.SourceID, &transaction.CategoryID, &transaction.Timestamp, &transaction.Amount, &transaction.Type); err != nil {
-			log.Printf("Error scanning transaction row: %v", err)
-			return nil, err
-		}
-		transactions = append(transactions, transaction)
-	}
-
-	if len(transactions) == 0 {
-		return nil, ErrTransactionNotFound
-	}
-
-	return transactions, rows.Err()
 }

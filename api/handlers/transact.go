@@ -64,6 +64,13 @@ func UpdateTransaction(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "user not authenticated"})
 		return
 	}
+	// bodyBytes, err := c.GetRawData()
+	// if err != nil {
+	// 	c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to retrieve request body"})
+	// 	return
+	// }
+	// bodyString := string(bodyBytes)
+	// log.Println(bodyString)
 	var updatedTransaction models.Transaction
 	if err := c.ShouldBindJSON(&updatedTransaction); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

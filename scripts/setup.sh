@@ -5,7 +5,7 @@ SECRET=$(openssl rand -base64 32)
 
 # Create a Kubernetes secret
 kubectl create secret generic jwt-secret --from-literal=jwt-key=$SECRET
-kubectl create secret generic db-credentials --from-literal=DB_DSN="root:@tcp(tidb-cluster-tidb.tidb-cluster.svc.cluster.local:4000)/xspends"
+kubectl create secret generic db-credentials --from-literal=DB_DSN="root:@tcp(tidb-cluster-tidb.tidb-cluster.svc.cluster.local:4000)/xspends?parseTime=true"
 
 # Create the database and tables
 mysql -h 127.0.0.1 -P 4000 -u root < ./scripts/setup.sql
