@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"xspends/models"
+	"xspends/util"
 
 	"github.com/gin-gonic/gin"
 )
@@ -121,12 +122,12 @@ func ListTransactions(c *gin.Context) {
 		Category:     c.DefaultQuery("category", ""),
 		Type:         c.DefaultQuery("type", ""),
 		Tags:         c.QueryArray("tags"),
-		MinAmount:    getFloatFromQuery(c, "min_amount", 0),
-		MaxAmount:    getFloatFromQuery(c, "max_amount", 0),
+		MinAmount:    util.GetFloatFromQuery(c, "min_amount", 0),
+		MaxAmount:    util.GetFloatFromQuery(c, "max_amount", 0),
 		SortBy:       c.DefaultQuery("sort_by", "timestamp"), // defaulting to timestamp
 		SortOrder:    c.DefaultQuery("sort_order", "DESC"),   // defaulting to descending
-		Page:         getIntFromQuery(c, "page", 1),
-		ItemsPerPage: getIntFromQuery(c, "items_per_page", 10), // defaulting to 10 items per page
+		Page:         util.GetIntFromQuery(c, "page", 1),
+		ItemsPerPage: util.GetIntFromQuery(c, "items_per_page", 10), // defaulting to 10 items per page
 	}
 
 	transactions, err := models.GetTransactionsByFilter(filter)
@@ -141,22 +142,4 @@ func ListTransactions(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, transactions)
-}
-
-// Helper function to safely retrieve float values from query parameters.
-func getFloatFromQuery(c *gin.Context, key string, defaultValue float64) float64 {
-	valueStr := c.DefaultQuery(key, "")
-	if value, err := strconv.ParseFloat(valueStr, 64); err == nil {
-		return value
-	}
-	return defaultValue
-}
-
-// Helper function to safely retrieve integer values from query parameters.
-func getIntFromQuery(c *gin.Context, key string, defaultValue int) int {
-	valueStr := c.DefaultQuery(key, "")
-	if value, err := strconv.Atoi(valueStr); err == nil {
-		return value
-	}
-	return defaultValue
 }

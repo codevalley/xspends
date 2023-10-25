@@ -3,6 +3,7 @@ package models
 import (
 	"log"
 	"time"
+	"xspends/util"
 )
 
 type TransactionTag struct {
@@ -17,7 +18,7 @@ func GetTagsByTransactionID(transactionID int64) ([]Tag, error) {
 	rows, err := GetDB().Query("SELECT t.id, t.name FROM tags t JOIN transaction_tags tt ON t.id = tt.tag_id WHERE tt.transaction_id = ?", transactionID)
 	if err != nil {
 		log.Printf("[ERROR] Querying tags for transaction %d: %v", transactionID, err)
-		return nil, ErrDatabase
+		return nil, util.ErrDatabase
 	}
 	defer rows.Close()
 
@@ -26,7 +27,7 @@ func GetTagsByTransactionID(transactionID int64) ([]Tag, error) {
 		var tag Tag
 		if err := rows.Scan(&tag.ID, &tag.Name); err != nil {
 			log.Printf("[ERROR] Scanning tag row: %v", err)
-			return nil, ErrDatabase
+			return nil, util.ErrDatabase
 		}
 		tags = append(tags, tag)
 	}
@@ -38,7 +39,7 @@ func InsertTransactionTag(transactionID, tagID int64) error {
 	_, err := GetDB().Exec("INSERT INTO transaction_tags (transaction_id, tag_id, created_at, updated_at) VALUES (?, ?, ?, ?)", transactionID, tagID, time.Now(), time.Now())
 	if err != nil {
 		log.Printf("[ERROR] Inserting tag %d for transaction %d: %v", tagID, transactionID, err)
-		return ErrDatabase
+		return util.ErrDatabase
 	}
 	return nil
 }
@@ -48,7 +49,7 @@ func DeleteTransactionTag(transactionID, tagID int64) error {
 	_, err := GetDB().Exec("DELETE FROM transaction_tags WHERE transaction_id = ? AND tag_id = ?", transactionID, tagID)
 	if err != nil {
 		log.Printf("[ERROR] Deleting tag %d from transaction %d: %v", tagID, transactionID, err)
-		return ErrDatabase
+		return util.ErrDatabase
 	}
 	return nil
 }
@@ -81,7 +82,7 @@ func RemoveTagsFromTransaction(transactionID int64) error {
 	_, err := GetDB().Exec("DELETE FROM transaction_tags WHERE transaction_id = ?", transactionID)
 	if err != nil {
 		log.Printf("[ERROR] Removing tags from transaction %d: %v", transactionID, err)
-		return ErrDatabase
+		return util.ErrDatabase
 	}
 	return nil
 }

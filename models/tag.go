@@ -27,14 +27,14 @@ type PaginationParams struct {
 // InsertTag adds a new tag to the database.
 func InsertTag(tag *Tag) error {
 	if tag.UserID <= 0 || len(tag.Name) == 0 || len(tag.Name) > maxTagNameLength {
-		return ErrInvalidInput
+		return util.ErrInvalidInput
 	}
 
 	var err error
 	tag.ID, err = util.GenerateSnowflakeID()
 	if err != nil {
 		log.Printf("[ERROR] Generating Snowflake ID: %v", err)
-		return ErrDatabase
+		return util.ErrDatabase
 	}
 	tag.CreatedAt = time.Now()
 	tag.UpdatedAt = time.Now()
@@ -42,14 +42,14 @@ func InsertTag(tag *Tag) error {
 	stmt, err := GetDB().Prepare("INSERT INTO tags (id, user_id, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
 	if err != nil {
 		log.Printf("[ERROR] Preparing statement: %v", err)
-		return ErrDatabase
+		return util.ErrDatabase
 	}
 	defer stmt.Close()
 
 	_, err = stmt.Exec(tag.ID, tag.UserID, tag.Name, tag.CreatedAt, tag.UpdatedAt)
 	if err != nil {
 		log.Printf("[ERROR] Executing statement with tag %v: %v", tag, err)
-		return ErrDatabase
+		return util.ErrDatabase
 	}
 
 	return nil
@@ -58,7 +58,7 @@ func InsertTag(tag *Tag) error {
 // UpdateTag updates an existing tag in the database.
 func UpdateTag(tag *Tag) error {
 	if tag.UserID <= 0 || len(tag.Name) == 0 || len(tag.Name) > maxTagNameLength {
-		return ErrInvalidInput
+		return util.ErrInvalidInput
 	}
 
 	tag.UpdatedAt = time.Now()
@@ -66,14 +66,14 @@ func UpdateTag(tag *Tag) error {
 	stmt, err := GetDB().Prepare("UPDATE tags SET name=?, updated_at=? WHERE id=? AND user_id=?")
 	if err != nil {
 		log.Printf("[ERROR] Preparing statement: %v", err)
-		return ErrDatabase
+		return util.ErrDatabase
 	}
 	defer stmt.Close()
 
 	_, err = stmt.Exec(tag.Name, tag.UpdatedAt, tag.ID, tag.UserID)
 	if err != nil {
 		log.Printf("[ERROR] Executing statement with tag %v: %v", tag, err)
-		return ErrDatabase
+		return util.ErrDatabase
 	}
 
 	return nil
@@ -84,14 +84,14 @@ func DeleteTag(tagID int64, userID int64) error {
 	stmt, err := GetDB().Prepare("DELETE FROM tags WHERE id=? AND user_id=?")
 	if err != nil {
 		log.Printf("[ERROR] Preparing statement: %v", err)
-		return ErrDatabase
+		return util.ErrDatabase
 	}
 	defer stmt.Close()
 
 	_, err = stmt.Exec(tagID, userID)
 	if err != nil {
 		log.Printf("[ERROR] Executing statement with tagID %d: %v", tagID, err)
-		return ErrDatabase
+		return util.ErrDatabase
 	}
 
 	return nil

@@ -13,11 +13,6 @@ const (
 	SourceTypeSavings = "SAVINGS"
 )
 
-var (
-	ErrSourceNotFound = errors.New("source not found")
-	ErrInvalidType    = errors.New("invalid source type; only 'CREDIT' and 'SAVINGS' are allowed")
-)
-
 type Source struct {
 	ID        int64     `json:"id"`
 	UserID    int64     `json:"user_id"`
@@ -34,13 +29,13 @@ func InsertSource(source *Source) error {
 		return errors.New("source name and user ID cannot be empty")
 	}
 	if source.Type != SourceTypeCredit && source.Type != SourceTypeSavings {
-		return ErrInvalidType
+		return util.ErrInvalidType
 	}
 	var err error
 	source.ID, err = util.GenerateSnowflakeID()
 	if err != nil {
 		log.Printf("[ERROR] Generating Snowflake ID: %v", err)
-		return ErrDatabase // or a more specific error like ErrGeneratingID
+		return util.ErrDatabase // or a more specific error like ErrGeneratingID
 	}
 	source.CreatedAt = time.Now()
 	source.UpdatedAt = time.Now()
@@ -67,7 +62,7 @@ func UpdateSource(source *Source) error {
 		return errors.New("source name and user ID cannot be empty")
 	}
 	if source.Type != SourceTypeCredit && source.Type != SourceTypeSavings {
-		return ErrInvalidType
+		return util.ErrInvalidType
 	}
 
 	source.UpdatedAt = time.Now()
@@ -117,7 +112,7 @@ func GetSourceByID(sourceID int64, userID int64) (*Source, error) {
 	err = stmt.QueryRow(sourceID, userID).Scan(&source.ID, &source.UserID, &source.Name, &source.Type, &source.Balance, &source.CreatedAt, &source.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrSourceNotFound
+			return nil, util.ErrSourceNotFound
 		}
 		log.Printf("[ERROR] Retrieving source by ID: %v", err)
 		return nil, err

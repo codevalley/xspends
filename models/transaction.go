@@ -43,11 +43,6 @@ type TransactionFilter struct {
 	ItemsPerPage int
 }
 
-var (
-	ErrTransactionNotFound = errors.New("transaction not found")
-	ErrInvalidFilter       = errors.New("invalid filter provided")
-)
-
 func InsertTransaction(transaction Transaction) error {
 	db := GetDB()
 	tx, err := db.Begin()
@@ -58,7 +53,7 @@ func InsertTransaction(transaction Transaction) error {
 	transaction.ID, err = util.GenerateSnowflakeID()
 	if err1 != nil {
 		log.Printf("[ERROR] Generating Snowflake ID: %v", err)
-		return ErrDatabase // or a more specific error like ErrGeneratingID
+		return util.ErrDatabase // or a more specific error like ErrGeneratingID
 	}
 
 	err = validateForeignKeyReferences(transaction)
@@ -169,7 +164,7 @@ func GetTransactionsByFilter(filter TransactionFilter) ([]Transaction, error) {
 	}
 
 	if len(transactions) == 0 {
-		return nil, ErrTransactionNotFound
+		return nil, util.ErrTransactionNotFound
 	}
 
 	return transactions, rows.Err()
@@ -269,13 +264,4 @@ func validateForeignKeyReferences(transaction Transaction) error {
 	}
 
 	return nil
-}
-
-func contains(slice []string, str string) bool {
-	for _, v := range slice {
-		if v == str {
-			return true
-		}
-	}
-	return false
 }
