@@ -18,14 +18,15 @@ const (
 )
 
 type Transaction struct {
-	ID         int64     `json:"id"`
-	UserID     int64     `json:"user_id"`
-	SourceID   int64     `json:"source_id"`
-	Tags       []string  `json:"tags"`
-	CategoryID int64     `json:"category_id"`
-	Timestamp  time.Time `json:"timestamp"`
-	Amount     float64   `json:"amount"`
-	Type       string    `json:"type"`
+	ID          int64     `json:"id"`
+	UserID      int64     `json:"user_id"`
+	SourceID    int64     `json:"source_id"`
+	Tags        []string  `json:"tags"`
+	CategoryID  int64     `json:"category_id"`
+	Timestamp   time.Time `json:"timestamp"`
+	Amount      float64   `json:"amount"`
+	Type        string    `json:"type"`
+	Description string    `json:"description"`
 }
 
 type TransactionFilter struct {
@@ -35,6 +36,7 @@ type TransactionFilter struct {
 	Tags         []string
 	Category     string
 	Type         string
+	Description  string
 	MinAmount    float64
 	MaxAmount    float64
 	SortBy       string
@@ -43,39 +45,39 @@ type TransactionFilter struct {
 	ItemsPerPage int
 }
 
-func InsertTransaction(transaction Transaction) error {
+func InsertTransaction(txn Transaction) error {
 	db := GetDB()
 	tx, err := db.Begin()
 	if err != nil {
 		return err
 	}
 	var err1 error
-	transaction.ID, err = util.GenerateSnowflakeID()
+	txn.ID, err = util.GenerateSnowflakeID()
 	if err1 != nil {
 		log.Printf("[ERROR] Generating Snowflake ID: %v", err)
 		return util.ErrDatabase // or a more specific error like ErrGeneratingID
 	}
 
-	err = validateForeignKeyReferences(transaction)
+	err = validateForeignKeyReferences(txn)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	stmt, err := tx.Prepare("INSERT INTO transactions (id, user_id, source_id, category_id, amount, type) VALUES (?,?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("INSERT INTO transactions (id, user_id, source_id, category_id, amount, type, description) VALUES (?,?, ?, ?, ?, ?,	?)")
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(transaction.ID, transaction.UserID, transaction.SourceID, transaction.CategoryID, transaction.Amount, transaction.Type)
+	_, err = stmt.Exec(txn.ID, txn.UserID, txn.SourceID, txn.CategoryID, txn.Amount, txn.Type, txn.Description)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	err = AddTagsToTransaction(transaction.ID, transaction.Tags, transaction.UserID)
+	err = AddTagsToTransaction(txn.ID, txn.Tags, txn.UserID)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -84,37 +86,37 @@ func InsertTransaction(transaction Transaction) error {
 	return tx.Commit()
 }
 
-func UpdateTransaction(transaction Transaction) error {
+func UpdateTransaction(txn Transaction) error {
 	db := GetDB()
 	tx, err := db.Begin()
 	if err != nil {
 		return err
 	}
 
-	err = validateForeignKeyReferences(transaction)
+	err = validateForeignKeyReferences(txn)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	stmt, err := tx.Prepare("UPDATE transactions SET user_id=?, source_id=?, category_id=?, timestamp=?, amount=?, type=? WHERE id=? AND user_id=?")
+	stmt, err := tx.Prepare("UPDATE transactions SET source_id=?, category_id=?, amount=?, type=?, description=? WHERE id=? AND user_id=?")
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(transaction.UserID, transaction.SourceID, transaction.CategoryID, transaction.Timestamp, transaction.Amount, transaction.Type, transaction.ID, transaction.UserID)
+	_, err = stmt.Exec(txn.SourceID, txn.CategoryID, txn.Amount, txn.Type, txn.Description, txn.ID, txn.UserID)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	err = UpdateTagsForTransaction(transaction.ID, transaction.Tags, transaction.UserID)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
+	// err = UpdateTagsForTransaction(txn.ID, txn.Tags, txn.UserID)
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return err
+	// }
 
 	return tx.Commit()
 }
@@ -129,9 +131,9 @@ func DeleteTransaction(transactionID int64, userID int64) error {
 }
 
 func GetTransactionByID(transactionID int64, userID int64) (*Transaction, error) {
-	row := GetDB().QueryRow("SELECT id, user_id, source_id, category_id, timestamp, amount, type FROM transactions WHERE id=? AND user_id=?", transactionID, userID)
+	row := GetDB().QueryRow("SELECT id, user_id, source_id, category_id, timestamp, amount, type, description FROM transactions WHERE id=? AND user_id=?", transactionID, userID)
 	var transaction Transaction
-	err := row.Scan(&transaction.ID, &transaction.UserID, &transaction.SourceID, &transaction.CategoryID, &transaction.Timestamp, &transaction.Amount, &transaction.Type)
+	err := row.Scan(&transaction.ID, &transaction.UserID, &transaction.SourceID, &transaction.CategoryID, &transaction.Timestamp, &transaction.Amount, &transaction.Type, &transaction.Description)
 	if err != nil {
 		log.Println("Error retrieving transaction by ID:", err)
 		return nil, err
@@ -152,11 +154,11 @@ func GetTransactionsByFilter(filter TransactionFilter) ([]Transaction, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	log.Printf("Result: %v", rows)
+
 	var transactions []Transaction
 	for rows.Next() {
 		var transaction Transaction
-		if err := rows.Scan(&transaction.ID, &transaction.UserID, &transaction.SourceID, &transaction.CategoryID, &transaction.Timestamp, &transaction.Amount, &transaction.Type); err != nil {
+		if err := rows.Scan(&transaction.ID, &transaction.UserID, &transaction.SourceID, &transaction.CategoryID, &transaction.Timestamp, &transaction.Amount, &transaction.Type, &transaction.Description); err != nil {
 			log.Printf("Error scanning transaction row: %v", err)
 			return nil, err
 		}
@@ -197,6 +199,10 @@ func ConstructQuery(filter TransactionFilter) (string, []interface{}, error) {
 		conditions = append(conditions, "type = ?")
 		args = append(args, filter.Type)
 	}
+	if filter.Description != "" {
+		conditions = append(conditions, "description = ?")
+		args = append(args, filter.Type)
+	}
 
 	if len(filter.Tags) > 0 {
 		tagsPlaceholder := strings.Repeat("?,", len(filter.Tags)-1) + "?"
@@ -220,7 +226,7 @@ func ConstructQuery(filter TransactionFilter) (string, []interface{}, error) {
 	combinedConditions := strings.Join(conditions, " AND ")
 
 	// Base SQL query
-	queryBuffer.WriteString("SELECT id, user_id, source_id, category_id, timestamp, amount, type FROM transactions ")
+	queryBuffer.WriteString("SELECT id, user_id, source_id, category_id, timestamp, amount, type, description FROM transactions ")
 
 	if len(conditions) > 0 {
 		queryBuffer.WriteString(" WHERE ")

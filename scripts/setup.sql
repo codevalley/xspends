@@ -23,7 +23,8 @@ CREATE TABLE IF NOT EXISTS `categories` (
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`),
-    PRIMARY KEY (`id`)
+    PRIMARY KEY (`id`),
+    UNIQUE (`user_id`, `name`)
 );
 
 CREATE TABLE IF NOT EXISTS `sources` (
@@ -35,7 +36,8 @@ CREATE TABLE IF NOT EXISTS `sources` (
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`),
-    PRIMARY KEY (`id`)
+    PRIMARY KEY (`id`),
+    UNIQUE (`user_id`, `name`)
 );
 
 CREATE TABLE IF NOT EXISTS `tags` (
@@ -45,7 +47,8 @@ CREATE TABLE IF NOT EXISTS `tags` (
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`),
-    PRIMARY KEY (`id`)
+    PRIMARY KEY (`id`),
+    UNIQUE (`user_id`, `name`)
 );
 
 CREATE TABLE IF NOT EXISTS `transactions` (
@@ -56,6 +59,7 @@ CREATE TABLE IF NOT EXISTS `transactions` (
     `amount` DECIMAL(10, 2) NOT NULL,
     `timestamp` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `category_id` BIGINT,
+    `description` TEXT,
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`),
     FOREIGN KEY (`source_id`) REFERENCES `sources`(`id`),
     FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`),

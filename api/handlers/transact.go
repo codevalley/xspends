@@ -58,13 +58,18 @@ func UpdateTransaction(c *gin.Context) {
 	// }
 	// bodyString := string(bodyBytes)
 	// log.Println(bodyString)
+	transactionID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid transaction ID"})
+		return
+	}
 	var updatedTransaction models.Transaction
 	if err := c.ShouldBindJSON(&updatedTransaction); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	updatedTransaction.UserID = userID
-
+	updatedTransaction.ID = transactionID
 	if err := models.UpdateTransaction(updatedTransaction); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update transaction"})
 		return

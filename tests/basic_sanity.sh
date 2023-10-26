@@ -65,10 +65,11 @@ curl -X POST "$MINIKUBE_URL/transactions" \
      -d '{
           "amount": 100.50,
           "type": "expense",
+          "description": "My transaction",
           "source_id": '"$sourceID"',
           "category_id": '"$categoryID"'
          }'
-
+     txnID=$(echo $response | jq -r .id)
 # Fetch transactions
 echo -e "\n\nFetching transactions..."
 curl -X GET "$MINIKUBE_URL/transactions" \
@@ -76,15 +77,21 @@ curl -X GET "$MINIKUBE_URL/transactions" \
 
 # Update a transaction (assuming transaction ID is 1 for simplicity)
 echo -e "\n\nUpdating a transaction..."
-curl -X PUT "$MINIKUBE_URL/transactions/1" \
+curl -X PUT "$MINIKUBE_URL/transactions/$txnID" \
      -H "Content-Type: application/json" \
      -H "Authorization: Bearer $token" \
      -d '{
           "amount": 110.75,
           "type": "expense",
+          "description": "Your transaction",
           "source_id": '"$sourceID"',
           "category_id": '"$categoryID"',
           "tags": ["movie", "night out"]
          }'
+
+# Get transaction
+echo -e "\n\nFetching transactions..."
+curl -X GET "$MINIKUBE_URL/transactions/$txnID" \
+     -H "Authorization: Bearer $token"
 
 echo -e "\n\nDone testing."
