@@ -8,13 +8,20 @@ import (
 )
 
 func SetupRoutes(r *gin.Engine) {
+
+	// Health check endpoint
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status": "UP",
+		})
+	})
 	// Authentication routes
 	r.POST("/register", handlers.Register)
 	r.POST("/login", handlers.Login)
 
 	// Middleware to authenticate JWT token and fetch user details.
 	r.Use(middleware.AuthMiddleware())
-
+	r.Use(middleware.EnsureUserID())
 	// Source routes
 	r.GET("/sources", handlers.ListSources)
 	r.POST("/sources", handlers.CreateSource)
@@ -47,10 +54,4 @@ func SetupRoutes(r *gin.Engine) {
 	r.POST("/transactions/:id/tags", handlers.AddTagToTransaction)
 	r.DELETE("/transactions/:id/tags/:tagID", handlers.RemoveTagFromTransaction)
 
-	// Health check endpoint
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"status": "UP",
-		})
-	})
 }

@@ -46,3 +46,14 @@ func AuthMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
+func EnsureUserID() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		_, exists := c.Get("userID")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+			c.Abort() // This prevents the handler from being executed if the check fails
+			return
+		}
+		c.Next()
+	}
+}

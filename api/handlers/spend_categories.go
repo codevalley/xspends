@@ -12,15 +12,12 @@ const defaultItemsPerPage = 10
 
 // ListCategories retrieves all available categories with pagination.
 func ListCategories(c *gin.Context) {
-	userID, ok := c.Get("userID")
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "user ID not found in context"})
-		return
-	}
+	userID := c.MustGet("userID").(int64)
+
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	itemsPerPage, _ := strconv.Atoi(c.DefaultQuery("items_per_page", strconv.Itoa(defaultItemsPerPage)))
 
-	categories, err := models.GetPagedCategories(page, itemsPerPage, userID.(int64))
+	categories, err := models.GetPagedCategories(page, itemsPerPage, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch categories"})
 		return
@@ -36,11 +33,8 @@ func ListCategories(c *gin.Context) {
 
 // GetCategory fetches details of a specific category by its ID.import "strconv"
 func GetCategory(c *gin.Context) {
-	userID, ok := c.Get("userID")
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "user ID not found in context"})
-		return
-	}
+	userID := c.MustGet("userID").(int64)
+
 	categoryIDStr := c.Param("id")
 	if categoryIDStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "category ID is required"})
@@ -54,7 +48,7 @@ func GetCategory(c *gin.Context) {
 		return
 	}
 
-	category, err := models.GetCategoryByID(categoryID, userID.(int64))
+	category, err := models.GetCategoryByID(categoryID, userID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "category not found"})
 		return
@@ -65,17 +59,13 @@ func GetCategory(c *gin.Context) {
 
 // CreateCategory adds a new category.
 func CreateCategory(c *gin.Context) {
-	userID, ok := c.Get("userID")
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "user ID not found in context"})
-		return
-	}
+	userID := c.MustGet("userID").(int64)
 	var newCategory models.Category
 	if err := c.ShouldBindJSON(&newCategory); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	newCategory.UserID = userID.(int64)
+	newCategory.UserID = userID
 	if err := models.InsertCategory(&newCategory); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create category"})
 		return
@@ -86,17 +76,13 @@ func CreateCategory(c *gin.Context) {
 
 // UpdateCategory modifies details of an existing category.
 func UpdateCategory(c *gin.Context) {
-	userID, ok := c.Get("userID")
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "user ID not found in context"})
-		return
-	}
+	userID := c.MustGet("userID").(int64)
 	var updatedCategory models.Category
 	if err := c.ShouldBindJSON(&updatedCategory); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	updatedCategory.UserID = userID.(int64)
+	updatedCategory.UserID = userID
 	// Ensure the category exists before updating
 	if err := models.UpdateCategory(&updatedCategory); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update category"})
@@ -108,11 +94,7 @@ func UpdateCategory(c *gin.Context) {
 
 // DeleteCategory removes a specific category by its ID.
 func DeleteCategory(c *gin.Context) {
-	userID, ok := c.Get("userID")
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "user ID not found in context"})
-		return
-	}
+	userID := c.MustGet("userID").(int64)
 	categoryIDStr := c.Param("id")
 	if categoryIDStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "category ID is required"})
@@ -126,7 +108,7 @@ func DeleteCategory(c *gin.Context) {
 		return
 	}
 
-	if err := models.DeleteCategory(categoryID, userID.(int64)); err != nil {
+	if err := models.DeleteCategory(categoryID, userID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete category"})
 		return
 	}

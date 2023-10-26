@@ -33,11 +33,8 @@ func ListSources(c *gin.Context) {
 }
 
 func GetSource(c *gin.Context) {
-	userID, ok := c.Get("userID")
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "user ID not found in context"})
-		return
-	}
+	userID := c.MustGet("userID").(int64)
+
 	sourceIDStr := c.Param("id")
 	sourceID, err := strconv.ParseInt(sourceIDStr, 10, 64)
 	if err != nil {
@@ -45,7 +42,7 @@ func GetSource(c *gin.Context) {
 		return
 	}
 
-	source, err := models.GetSourceByID(sourceID, userID.(int64))
+	source, err := models.GetSourceByID(sourceID, userID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "source not found"})
 		return
@@ -55,18 +52,14 @@ func GetSource(c *gin.Context) {
 }
 
 func CreateSource(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
-		return
-	}
+	userID := c.MustGet("userID").(int64)
 	var newSource models.Source
 	if err := c.ShouldBindJSON(&newSource); err != nil {
 		log.Printf("Error creating source (400): %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	newSource.UserID = userID.(int64)
+	newSource.UserID = userID
 	if err := models.InsertSource(&newSource); err != nil {
 		log.Printf("Error creating source(500): %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create source"})
@@ -77,17 +70,13 @@ func CreateSource(c *gin.Context) {
 }
 
 func UpdateSource(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
-		return
-	}
+	userID := c.MustGet("userID").(int64)
 	var updatedSource models.Source
 	if err := c.ShouldBindJSON(&updatedSource); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	updatedSource.UserID = userID.(int64)
+	updatedSource.UserID = userID
 	if err := models.UpdateSource(&updatedSource); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update source"})
 		return

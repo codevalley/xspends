@@ -80,17 +80,13 @@ func CreateTag(c *gin.Context) {
 
 // UpdateTag modifies details of an existing tag.
 func UpdateTag(c *gin.Context) {
-	userID, ok := c.Get("userID")
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "user ID not found in context"})
-		return
-	}
+	userID := c.MustGet("userID").(int64)
 	var updatedTag models.Tag
 	if err := c.ShouldBindJSON(&updatedTag); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	updatedTag.UserID = userID.(int64)
+	updatedTag.UserID = userID
 	if err := models.UpdateTag(&updatedTag); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update tag"})
 		return
@@ -100,11 +96,7 @@ func UpdateTag(c *gin.Context) {
 
 // DeleteTag removes a specific tag by its ID.
 func DeleteTag(c *gin.Context) {
-	userID, ok := c.Get("userID")
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "user ID not found in context"})
-		return
-	}
+	userID := c.MustGet("userID").(int64)
 	tagIDStr := c.Param("id")
 	tagID, err := strconv.ParseInt(tagIDStr, 10, 64)
 	if err != nil {
@@ -112,7 +104,7 @@ func DeleteTag(c *gin.Context) {
 		return
 	}
 
-	if err := models.DeleteTag(tagID, userID.(int64)); err != nil {
+	if err := models.DeleteTag(tagID, userID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete tag"})
 		return
 	}

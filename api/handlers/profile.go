@@ -45,18 +45,7 @@ func GetUserProfile(c *gin.Context) {
 // UpdateUserProfile is a handler function to update the details of the authenticated user.
 func UpdateUserProfile(c *gin.Context) {
 	// Retrieve the userID from the request's context.
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
-		return
-	}
-
-	// Convert the interface type to int.
-	intUserID, ok := userID.(int64)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
-		return
-	}
+	userID := c.MustGet("userID").(int64)
 
 	var updatedUser models.User
 	if err := c.ShouldBindJSON(&updatedUser); err != nil {
@@ -65,7 +54,7 @@ func UpdateUserProfile(c *gin.Context) {
 	}
 
 	// Set the ID of the updatedUser to the userID we retrieved from the context.
-	updatedUser.ID = intUserID
+	updatedUser.ID = userID
 
 	if err := models.UpdateUser(&updatedUser); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update user"})
@@ -76,20 +65,9 @@ func UpdateUserProfile(c *gin.Context) {
 }
 
 func DeleteUser(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
-		return
-	}
+	userID := c.MustGet("userID").(int64)
 
-	// Convert the interface type to int.
-	intUserID, ok := userID.(int64)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
-		return
-	}
-
-	if err := models.DeleteUser(intUserID); err != nil {
+	if err := models.DeleteUser(userID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete user"})
 		return
 	}

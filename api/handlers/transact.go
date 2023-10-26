@@ -12,12 +12,7 @@ import (
 
 // CreateTransaction creates a new transaction for the authenticated user.
 func CreateTransaction(c *gin.Context) {
-
-	userID, ok := c.Get("userID")
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "user not authenticated"})
-		return
-	}
+	userID := c.MustGet("userID").(int64)
 
 	var newTransaction models.Transaction
 	if err := c.ShouldBindJSON(&newTransaction); err != nil {
@@ -25,7 +20,7 @@ func CreateTransaction(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	newTransaction.UserID = userID.(int64)
+	newTransaction.UserID = userID
 	if err := models.InsertTransaction(newTransaction); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create transaction"})
 		log.Println(err.Error())
@@ -42,14 +37,9 @@ func GetTransaction(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid transaction ID"})
 		return
 	}
+	userID := c.MustGet("userID").(int64)
 
-	userID, ok := c.Get("userID")
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "user not authenticated"})
-		return
-	}
-
-	transaction, err := models.GetTransactionByID(transactionID, userID.(int64))
+	transaction, err := models.GetTransactionByID(transactionID, userID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "transaction not found"})
 		return
@@ -60,11 +50,7 @@ func GetTransaction(c *gin.Context) {
 
 // UpdateTransaction modifies the details of an existing transaction.
 func UpdateTransaction(c *gin.Context) {
-	userID, ok := c.Get("userID")
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "user not authenticated"})
-		return
-	}
+	userID := c.MustGet("userID").(int64)
 	// bodyBytes, err := c.GetRawData()
 	// if err != nil {
 	// 	c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to retrieve request body"})
@@ -77,7 +63,7 @@ func UpdateTransaction(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	updatedTransaction.UserID = userID.(int64)
+	updatedTransaction.UserID = userID
 
 	if err := models.UpdateTransaction(updatedTransaction); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update transaction"})
@@ -93,13 +79,8 @@ func DeleteTransaction(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid transaction ID"})
 		return
 	}
-	userID, ok := c.Get("userID")
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "user ID not found in context"})
-		return
-	}
-
-	if err := models.DeleteTransaction(transactionID, userID.(int64)); err != nil {
+	userID := c.MustGet("userID").(int64)
+	if err := models.DeleteTransaction(transactionID, userID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "user not authenticated"})
 		return
 	}
@@ -109,14 +90,11 @@ func DeleteTransaction(c *gin.Context) {
 
 // ListTransactions fetches all transactions for the authenticated user, with optional filters.
 func ListTransactions(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
-		return
-	}
+	userID := c.MustGet("userID").(int64)
+
 	// Create a filter from the query parameters.
 	filter := models.TransactionFilter{
-		UserID:       userID.(int64),
+		UserID:       userID,
 		StartDate:    c.DefaultQuery("start_date", ""),
 		EndDate:      c.DefaultQuery("end_date", ""),
 		Category:     c.DefaultQuery("category", ""),
