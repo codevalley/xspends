@@ -63,19 +63,43 @@ func UpdateTransaction(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid transaction ID"})
 		return
 	}
-	var updatedTransaction models.Transaction
-	if err := c.ShouldBindJSON(&updatedTransaction); err != nil {
+	var uTxn models.Transaction
+	if err := c.ShouldBindJSON(&uTxn); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	updatedTransaction.UserID = userID
-	updatedTransaction.ID = transactionID
-	if err := models.UpdateTransaction(updatedTransaction); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update transaction"})
+	uTxn.UserID = userID
+	uTxn.ID = transactionID
+	oTxn, err := models.GetTransactionByID(transactionID, userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "unable to find transaction:"})
+		return
+	}
+	if uTxn.Amount != 0 {
+		oTxn.Amount = uTxn.Amount
+	}
+	if uTxn.Description != "" {
+		oTxn.Description = uTxn.Description
+	}
+	if uTxn.Tags != nil {
+		oTxn.Tags = uTxn.Tags
+	}
+	if uTxn.Type != "" {
+		oTxn.Type = uTxn.Type
+	}
+	if uTxn.SourceID != 0 {
+		oTxn.SourceID = uTxn.SourceID
+	}
+	if uTxn.CategoryID != 0 {
+		oTxn.CategoryID = uTxn.CategoryID
+	}
+	if err := models.UpdateTransaction(*oTxn); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update transaction:" + err.Error()})
+		log.Print(uTxn)
 		return
 	}
 
-	c.JSON(http.StatusOK, updatedTransaction)
+	c.JSON(http.StatusOK, oTxn)
 }
 
 func DeleteTransaction(c *gin.Context) {

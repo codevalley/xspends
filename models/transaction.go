@@ -76,7 +76,8 @@ func InsertTransaction(txn Transaction) error {
 		tx.Rollback()
 		return err
 	}
-
+	addMissingTags(txn.Tags, txn.UserID)
+	// to be refactored
 	err = AddTagsToTransaction(txn.ID, txn.Tags, txn.UserID)
 	if err != nil {
 		tx.Rollback()
@@ -112,11 +113,12 @@ func UpdateTransaction(txn Transaction) error {
 		return err
 	}
 
-	// err = UpdateTagsForTransaction(txn.ID, txn.Tags, txn.UserID)
-	// if err != nil {
-	// 	tx.Rollback()
-	// 	return err
-	// }
+	addMissingTags(txn.Tags, txn.UserID)
+	err = UpdateTagsForTransaction(txn.ID, txn.Tags, txn.UserID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 
 	return tx.Commit()
 }
@@ -269,5 +271,21 @@ func validateForeignKeyReferences(transaction Transaction) error {
 		return errors.New("invalid foreign key references")
 	}
 
+	return nil
+}
+
+func addMissingTags(tags []string, userID int64) error {
+	// Handle tags
+	for _, tagName := range tags {
+		log.Println("Tag name:", tagName)
+		// Check if the tag exists in the `tags` table
+		tag, _ := GetTagByName(tagName, userID)
+		if tag == nil {
+			var nTag Tag
+			nTag.Name = tagName
+			nTag.UserID = userID
+			InsertTag(&nTag)
+		}
+	}
 	return nil
 }
