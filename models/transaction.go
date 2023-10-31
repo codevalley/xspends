@@ -117,7 +117,6 @@ func UpdateTransaction(txn Transaction, otx ...*sql.Tx) error {
 	}
 
 	addMissingTags(txn.Tags, txn.UserID, tx)
-	log.Printf("update Txn id: %v", tx)
 	err = UpdateTagsForTransaction(txn.ID, txn.Tags, txn.UserID, tx)
 	if err != nil {
 		tx.Rollback()
@@ -143,7 +142,6 @@ func GetTransactionByID(transactionID int64, userID int64) (*Transaction, error)
 	var transaction Transaction
 	err := row.Scan(&transaction.ID, &transaction.UserID, &transaction.SourceID, &transaction.CategoryID, &transaction.Timestamp, &transaction.Amount, &transaction.Type, &transaction.Description)
 	if err != nil {
-		log.Println("Error retrieving transaction by ID:", err)
 		return nil, err
 	}
 	return &transaction, nil
@@ -152,13 +150,11 @@ func GetTransactionByID(transactionID int64, userID int64) (*Transaction, error)
 func GetTransactionsByFilter(filter TransactionFilter) ([]Transaction, error) {
 	query, args, err := ConstructQuery(filter)
 	if err != nil {
-		log.Printf("Error constructing query: %v", err)
 		return nil, err
 	}
 
 	rows, err := GetDB().Query(query, args...)
 	if err != nil {
-		log.Printf("Error querying transactions: %v \n %s", err, query)
 		return nil, err
 	}
 	defer rows.Close()
@@ -167,7 +163,6 @@ func GetTransactionsByFilter(filter TransactionFilter) ([]Transaction, error) {
 	for rows.Next() {
 		var transaction Transaction
 		if err := rows.Scan(&transaction.ID, &transaction.UserID, &transaction.SourceID, &transaction.CategoryID, &transaction.Timestamp, &transaction.Amount, &transaction.Type, &transaction.Description); err != nil {
-			log.Printf("Error scanning transaction row: %v", err)
 			return nil, err
 		}
 		transactions = append(transactions, transaction)
@@ -288,15 +283,9 @@ func addMissingTags(tags []string, userID int64, tx ...*sql.Tx) error {
 
 	// Handle tags
 	for _, tagName := range tags {
-		log.Println("Tag name:", tagName)
 		// Check if the tag exists in the `tags` table
 		tag, err := GetTagByName(tagName, userID, txInstance)
-		if err != nil {
-			if !isExternalTx {
-				txInstance.Rollback()
-			}
-			return err
-		}
+
 		if tag == nil {
 			var nTag Tag
 			nTag.Name = tagName

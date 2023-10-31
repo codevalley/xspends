@@ -42,7 +42,7 @@ func InsertTransactionTag(transactionID, tagID int64, tx ...*sql.Tx) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("insert tag txn id: %v", tx)
+
 	_, err = txInstance.Exec("INSERT INTO transaction_tags (transaction_id, tag_id, created_at, updated_at) VALUES (?, ?, ?, ?)", transactionID, tagID, time.Now(), time.Now())
 	if err != nil {
 		log.Printf("[ERROR] Inserting tag %d for transaction %d: %v", tagID, transactionID, err)
@@ -89,7 +89,7 @@ func AddTagsToTransaction(transactionID int64, tags []string, userID int64, tx .
 	if err != nil {
 		return err
 	}
-	log.Printf("add tag Txn id: %v", tx)
+
 	for _, tagName := range tags {
 		tag, err := GetTagByName(tagName, userID, txInstance)
 		if err != nil {
@@ -121,7 +121,6 @@ func UpdateTagsForTransaction(transactionID int64, tags []string, userID int64, 
 	if err != nil {
 		return err
 	}
-	log.Printf("update tag txn id: %v", tx)
 	if err := RemoveTagsFromTransaction(transactionID, txInstance); err != nil {
 		if !isExternalTx {
 			txInstance.Rollback()

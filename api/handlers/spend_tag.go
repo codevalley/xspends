@@ -13,16 +13,12 @@ const defaultLimit = 10
 // ListTags retrieves all available tags with pagination.
 func ListTags(c *gin.Context) {
 	// Retrieve the user ID from JWT (set in a middleware).
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
-		return
-	}
+	userID := c.MustGet("userID").(int64)
 
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", strconv.Itoa(defaultLimit)))
 	offset, _ := strconv.Atoi(c.Query("offset"))
 
-	tags, err := models.GetAllTags(userID.(int64), models.PaginationParams{Limit: limit, Offset: offset})
+	tags, err := models.GetAllTags(userID, models.PaginationParams{Limit: limit, Offset: offset})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch tags"})
 		return
@@ -38,11 +34,7 @@ func ListTags(c *gin.Context) {
 
 // GetTag fetches details of a specific tag by its ID.
 func GetTag(c *gin.Context) {
-	userID, ok := c.Get("userID")
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "user ID not found in context"})
-		return
-	}
+	userID := c.MustGet("userID").(int64)
 	tagIDStr := c.Param("id")
 	tagID, err := strconv.ParseInt(tagIDStr, 10, 64)
 	if err != nil {
@@ -50,7 +42,7 @@ func GetTag(c *gin.Context) {
 		return
 	}
 
-	tag, err := models.GetTagByID(tagID, userID.(int64))
+	tag, err := models.GetTagByID(tagID, userID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "tag not found"})
 		return
@@ -60,17 +52,13 @@ func GetTag(c *gin.Context) {
 
 // CreateTag adds a new tag.
 func CreateTag(c *gin.Context) {
-	userID, ok := c.Get("userID")
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "user ID not found in context"})
-		return
-	}
+	userID := c.MustGet("userID").(int64)
 	var newTag models.Tag
 	if err := c.ShouldBindJSON(&newTag); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	newTag.UserID = userID.(int64)
+	newTag.UserID = userID
 	if err := models.InsertTag(&newTag); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create tag"})
 		return
