@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"xspends/api"
 	"xspends/models"
 	"xspends/util"
@@ -13,6 +14,6 @@ func main() {
 	util.InitializeSnowflake()
 	models.InitDB()
 	api.SetupRoutes(r)
-
+	log.Println("MATERIAL!@!!!!")
 	r.Run() // Defaults to :8080
 }

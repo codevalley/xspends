@@ -45,3 +45,16 @@ func CloseDB() {
 		DB.Close()
 	}
 }
+
+func GetTransaction(tx ...*sql.Tx) (isExternalTx bool, newTx *sql.Tx, err error) {
+	db := GetDB()
+
+	if len(tx) > 0 && tx[0] != nil {
+		isExternalTx = true
+		newTx = tx[0]
+	} else {
+		newTx, err = db.Begin()
+	}
+
+	return
+}

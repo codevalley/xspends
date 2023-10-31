@@ -1,6 +1,7 @@
 package models
 
 import (
+	"database/sql"
 	"log"
 	"time"
 	"xspends/util" // Adjust this import to your project's structure
@@ -25,7 +26,7 @@ type PaginationParams struct {
 }
 
 // InsertTag adds a new tag to the database.
-func InsertTag(tag *Tag) error {
+func InsertTag(tag *Tag, tx ...*sql.Tx) error {
 	if tag.UserID <= 0 || len(tag.Name) == 0 || len(tag.Name) > maxTagNameLength {
 		return util.ErrInvalidInput
 	}
@@ -39,9 +40,17 @@ func InsertTag(tag *Tag) error {
 	tag.CreatedAt = time.Now()
 	tag.UpdatedAt = time.Now()
 
-	stmt, err := GetDB().Prepare("INSERT INTO tags (id, user_id, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
+	isExternalTx, txInstance, err := GetTransaction(tx...)
+	if err != nil {
+		return err
+	}
+
+	stmt, err := txInstance.Prepare("INSERT INTO tags (id, user_id, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
 	if err != nil {
 		log.Printf("[ERROR] Preparing statement: %v", err)
+		if !isExternalTx {
+			txInstance.Rollback()
+		}
 		return util.ErrDatabase
 	}
 	defer stmt.Close()
@@ -49,23 +58,38 @@ func InsertTag(tag *Tag) error {
 	_, err = stmt.Exec(tag.ID, tag.UserID, tag.Name, tag.CreatedAt, tag.UpdatedAt)
 	if err != nil {
 		log.Printf("[ERROR] Executing statement with tag %v: %v", tag, err)
+		if !isExternalTx {
+			txInstance.Rollback()
+		}
 		return util.ErrDatabase
+	}
+
+	if !isExternalTx {
+		return txInstance.Commit()
 	}
 
 	return nil
 }
 
 // UpdateTag updates an existing tag in the database.
-func UpdateTag(tag *Tag) error {
+func UpdateTag(tag *Tag, tx ...*sql.Tx) error {
 	if tag.UserID <= 0 || len(tag.Name) == 0 || len(tag.Name) > maxTagNameLength {
 		return util.ErrInvalidInput
 	}
 
 	tag.UpdatedAt = time.Now()
 
-	stmt, err := GetDB().Prepare("UPDATE tags SET name=?, updated_at=? WHERE id=? AND user_id=?")
+	isExternalTx, txInstance, err := GetTransaction(tx...)
+	if err != nil {
+		return err
+	}
+
+	stmt, err := txInstance.Prepare("UPDATE tags SET name=?, updated_at=? WHERE id=? AND user_id=?")
 	if err != nil {
 		log.Printf("[ERROR] Preparing statement: %v", err)
+		if !isExternalTx {
+			txInstance.Rollback()
+		}
 		return util.ErrDatabase
 	}
 	defer stmt.Close()
@@ -73,7 +97,14 @@ func UpdateTag(tag *Tag) error {
 	_, err = stmt.Exec(tag.Name, tag.UpdatedAt, tag.ID, tag.UserID)
 	if err != nil {
 		log.Printf("[ERROR] Executing statement with tag %v: %v", tag, err)
+		if !isExternalTx {
+			txInstance.Rollback()
+		}
 		return util.ErrDatabase
+	}
+
+	if !isExternalTx {
+		return txInstance.Commit()
 	}
 
 	return nil
@@ -131,13 +162,22 @@ func GetAllTags(userID int64, pagination PaginationParams) ([]Tag, error) {
 }
 
 // GetTagByName retrieves a tag by its name for a specific user.
-func GetTagByName(name string, userID int64) (*Tag, error) {
-	row := GetDB().QueryRow("SELECT id, user_id, name, created_at, updated_at FROM tags WHERE name=? AND user_id=?", name, userID)
-	var tag Tag
-	err := row.Scan(&tag.ID, &tag.UserID, &tag.Name, &tag.CreatedAt, &tag.UpdatedAt)
+func GetTagByName(name string, userID int64, tx ...*sql.Tx) (*Tag, error) {
+	isExternalTx, txInstance, err := GetTransaction(tx...)
 	if err != nil {
-		log.Printf("[ERROR] Retrieving tag by name %s: %v", name, err)
 		return nil, err
 	}
+
+	row := txInstance.QueryRow("SELECT id, user_id, name, created_at, updated_at FROM tags WHERE name=? AND user_id=?", name, userID)
+	var tag Tag
+	err = row.Scan(&tag.ID, &tag.UserID, &tag.Name, &tag.CreatedAt, &tag.UpdatedAt)
+	if err != nil {
+		log.Printf("[ERROR] Retrieving tag by name %s: %v", name, err)
+		if !isExternalTx {
+			txInstance.Rollback()
+		}
+		return nil, err
+	}
+
 	return &tag, nil
 }

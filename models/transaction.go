@@ -2,6 +2,7 @@ package models
 
 import (
 	"bytes"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log"
@@ -45,12 +46,13 @@ type TransactionFilter struct {
 	ItemsPerPage int
 }
 
-func InsertTransaction(txn Transaction) error {
-	db := GetDB()
-	tx, err := db.Begin()
+func InsertTransaction(txn Transaction, otx ...*sql.Tx) error {
+
+	isExternalTx, tx, err := GetTransaction(otx...)
 	if err != nil {
 		return err
 	}
+
 	var err1 error
 	txn.ID, err = util.GenerateSnowflakeID()
 	if err1 != nil {
@@ -76,24 +78,25 @@ func InsertTransaction(txn Transaction) error {
 		tx.Rollback()
 		return err
 	}
-	addMissingTags(txn.Tags, txn.UserID)
+	addMissingTags(txn.Tags, txn.UserID, tx)
 	// to be refactored
-	err = AddTagsToTransaction(txn.ID, txn.Tags, txn.UserID)
+	err = AddTagsToTransaction(txn.ID, txn.Tags, txn.UserID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-
-	return tx.Commit()
+	if !isExternalTx {
+		return tx.Commit()
+	}
+	return nil
 }
 
-func UpdateTransaction(txn Transaction) error {
-	db := GetDB()
-	tx, err := db.Begin()
+func UpdateTransaction(txn Transaction, otx ...*sql.Tx) error {
+	isExternalTx, tx, err := GetTransaction(otx...)
 	if err != nil {
 		return err
 	}
-
+	log.Println("Checking if this is actually building!!")
 	err = validateForeignKeyReferences(txn)
 	if err != nil {
 		tx.Rollback()
@@ -113,14 +116,17 @@ func UpdateTransaction(txn Transaction) error {
 		return err
 	}
 
-	addMissingTags(txn.Tags, txn.UserID)
-	err = UpdateTagsForTransaction(txn.ID, txn.Tags, txn.UserID)
+	addMissingTags(txn.Tags, txn.UserID, tx)
+	log.Printf("update Txn id: %v", tx)
+	err = UpdateTagsForTransaction(txn.ID, txn.Tags, txn.UserID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-
-	return tx.Commit()
+	if !isExternalTx {
+		return tx.Commit()
+	}
+	return nil
 }
 
 func DeleteTransaction(transactionID int64, userID int64) error {
@@ -274,18 +280,40 @@ func validateForeignKeyReferences(transaction Transaction) error {
 	return nil
 }
 
-func addMissingTags(tags []string, userID int64) error {
+func addMissingTags(tags []string, userID int64, tx ...*sql.Tx) error {
+	isExternalTx, txInstance, err := GetTransaction(tx...)
+	if err != nil {
+		return err
+	}
+
 	// Handle tags
 	for _, tagName := range tags {
 		log.Println("Tag name:", tagName)
 		// Check if the tag exists in the `tags` table
-		tag, _ := GetTagByName(tagName, userID)
+		tag, err := GetTagByName(tagName, userID, txInstance)
+		if err != nil {
+			if !isExternalTx {
+				txInstance.Rollback()
+			}
+			return err
+		}
 		if tag == nil {
 			var nTag Tag
 			nTag.Name = tagName
 			nTag.UserID = userID
-			InsertTag(&nTag)
+			err = InsertTag(&nTag, txInstance)
+			if err != nil {
+				if !isExternalTx {
+					txInstance.Rollback()
+				}
+				return err
+			}
 		}
 	}
+
+	if !isExternalTx {
+		return txInstance.Commit()
+	}
+
 	return nil
 }
