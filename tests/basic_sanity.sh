@@ -92,7 +92,7 @@ curl -X PUT "$MINIKUBE_URL/transactions/$txnID" \
           "description": "Newer transaction",
           "source_id": '"$sourceID"',
           "category_id": '"$categoryID"',
-          "tags": ["movy", "knight"]
+          "tags": ["movie", "night"]
          }'
 
 # Get transaction

@@ -2,10 +2,12 @@ package models
 
 import (
 	"database/sql"
-	"errors"
-	"log"
 	"time"
+
 	"xspends/util"
+
+	"github.com/Masterminds/squirrel"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -24,42 +26,39 @@ type Source struct {
 }
 
 func InsertSource(source *Source) error {
-	// Validation
 	if source.Name == "" || source.UserID == 0 {
-		return errors.New("source name and user ID cannot be empty")
+		return util.ErrInvalidInput
 	}
 	if source.Type != SourceTypeCredit && source.Type != SourceTypeSavings {
 		return util.ErrInvalidType
 	}
-	var err error
-	source.ID, err = util.GenerateSnowflakeID()
-	if err != nil {
-		log.Printf("[ERROR] Generating Snowflake ID: %v", err)
-		return util.ErrDatabase // or a more specific error like ErrGeneratingID
-	}
+
+	source.ID, _ = util.GenerateSnowflakeID()
 	source.CreatedAt = time.Now()
-	source.UpdatedAt = time.Now()
+	source.UpdatedAt = source.CreatedAt
 
-	stmt, err := GetDB().Prepare("INSERT INTO sources (id, user_id, name, type, balance, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
+	query, args, err := SQLBuilder.Insert("sources").
+		Columns("id", "user_id", "name", "type", "balance", "created_at", "updated_at").
+		Values(source.ID, source.UserID, source.Name, source.Type, source.Balance, source.CreatedAt, source.UpdatedAt).
+		ToSql()
+
 	if err != nil {
-		log.Printf("[ERROR] Preparing insert statement for source: %v", err)
-		return err
+		logrus.WithError(err).Error("Error preparing insert SQL for source")
+		return util.ErrDatabase
 	}
-	defer stmt.Close()
 
-	_, err = stmt.Exec(source.ID, source.UserID, source.Name, source.Type, source.Balance, source.CreatedAt, source.UpdatedAt)
+	_, err = GetDB().Exec(query, args...)
 	if err != nil {
-		log.Printf("[ERROR] Inserting source: %v", err)
-		return err
+		logrus.WithError(err).Error("Error executing insert for source")
+		return util.ErrDatabase
 	}
 
 	return nil
 }
 
 func UpdateSource(source *Source) error {
-	// Validation
 	if source.Name == "" || source.UserID == 0 {
-		return errors.New("source name and user ID cannot be empty")
+		return util.ErrInvalidInput
 	}
 	if source.Type != SourceTypeCredit && source.Type != SourceTypeSavings {
 		return util.ErrInvalidType
@@ -67,110 +66,128 @@ func UpdateSource(source *Source) error {
 
 	source.UpdatedAt = time.Now()
 
-	stmt, err := GetDB().Prepare("UPDATE sources SET name=?, type=?, balance=?, updated_at=? WHERE id=? AND user_id=?")
-	if err != nil {
-		log.Printf("[ERROR] Preparing update statement for source: %v", err)
-		return err
-	}
-	defer stmt.Close()
+	query, args, err := SQLBuilder.Update("sources").
+		Set("name", source.Name).
+		Set("type", source.Type).
+		Set("balance", source.Balance).
+		Set("updated_at", source.UpdatedAt).
+		Where(squirrel.Eq{"id": source.ID, "user_id": source.UserID}).
+		ToSql()
 
-	_, err = stmt.Exec(source.Name, source.Type, source.Balance, source.UpdatedAt, source.ID, source.UserID)
 	if err != nil {
-		log.Printf("[ERROR] Updating source: %v", err)
-		return err
+		logrus.WithError(err).Error("Error preparing update SQL for source")
+		return util.ErrDatabase
+	}
+
+	_, err = GetDB().Exec(query, args...)
+	if err != nil {
+		logrus.WithError(err).Error("Error executing update for source")
+		return util.ErrDatabase
 	}
 
 	return nil
 }
 
 func DeleteSource(sourceID int64, userID int64) error {
-	stmt, err := GetDB().Prepare("DELETE FROM sources WHERE id=? AND user_id=?")
-	if err != nil {
-		log.Printf("[ERROR] Preparing delete statement for source: %v", err)
-		return err
-	}
-	defer stmt.Close()
+	query, args, err := SQLBuilder.Delete("sources").
+		Where(squirrel.Eq{"id": sourceID, "user_id": userID}).
+		ToSql()
 
-	_, err = stmt.Exec(sourceID, userID)
 	if err != nil {
-		log.Printf("[ERROR] Deleting source: %v", err)
-		return err
+		logrus.WithError(err).Error("Error preparing delete SQL for source")
+		return util.ErrDatabase
+	}
+
+	_, err = GetDB().Exec(query, args...)
+	if err != nil {
+		logrus.WithError(err).Error("Error executing delete for source")
+		return util.ErrDatabase
 	}
 
 	return nil
 }
 
 func GetSourceByID(sourceID int64, userID int64) (*Source, error) {
-	stmt, err := GetDB().Prepare("SELECT id, user_id, name, type, balance, created_at, updated_at FROM sources WHERE id=? AND user_id=?")
+	query, args, err := SQLBuilder.Select("id", "user_id", "name", "type", "balance", "created_at", "updated_at").
+		From("sources").
+		Where(squirrel.Eq{"id": sourceID, "user_id": userID}).
+		ToSql()
+
 	if err != nil {
-		log.Printf("[ERROR] Preparing select statement for source by ID: %v", err)
-		return nil, err
+		logrus.WithError(err).Error("Error preparing select SQL for source by ID")
+		return nil, util.ErrDatabase
 	}
-	defer stmt.Close()
 
 	source := &Source{}
-	err = stmt.QueryRow(sourceID, userID).Scan(&source.ID, &source.UserID, &source.Name, &source.Type, &source.Balance, &source.CreatedAt, &source.UpdatedAt)
+	err = GetDB().QueryRow(query, args...).Scan(&source.ID, &source.UserID, &source.Name, &source.Type, &source.Balance, &source.CreatedAt, &source.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, util.ErrSourceNotFound
 		}
-		log.Printf("[ERROR] Retrieving source by ID: %v", err)
-		return nil, err
+		logrus.WithError(err).Error("Error querying source by ID")
+		return nil, util.ErrDatabase
 	}
 
 	return source, nil
 }
 
-func GetSources(userID int) ([]Source, error) {
-	stmt, err := GetDB().Prepare("SELECT id, user_id, name, type, balance, created_at, updated_at FROM sources WHERE user_id=?")
-	if err != nil {
-		log.Printf("[ERROR] Preparing select statement for sources by user ID: %v", err)
-		return nil, err
-	}
-	defer stmt.Close()
+func GetSources(userID int64) ([]Source, error) {
+	query, args, err := SQLBuilder.Select("id", "user_id", "name", "type", "balance", "created_at", "updated_at").
+		From("sources").
+		Where(squirrel.Eq{"user_id": userID}).
+		ToSql()
 
-	rows, err := stmt.Query(userID)
 	if err != nil {
-		log.Printf("[ERROR] Querying sources by user ID: %v", err)
-		return nil, err
+		logrus.WithError(err).Error("Error preparing select SQL for sources by user ID")
+		return nil, util.ErrDatabase
+	}
+
+	rows, err := GetDB().Query(query, args...)
+	if err != nil {
+		logrus.WithError(err).Error("Error querying sources by user ID")
+		return nil, util.ErrDatabase
 	}
 	defer rows.Close()
 
 	var sources []Source
 	for rows.Next() {
 		var source Source
-		if err := rows.Scan(&source.ID, &source.UserID, &source.Name, &source.Type, &source.Balance, &source.CreatedAt, &source.UpdatedAt); err != nil {
-			log.Printf("[ERROR] Scanning source row: %v", err)
-			return nil, err
+		if err = rows.Scan(&source.ID, &source.UserID, &source.Name, &source.Type, &source.Balance, &source.CreatedAt, &source.UpdatedAt); err != nil {
+			logrus.WithError(err).Error("Error scanning source row")
+			return nil, util.ErrDatabase
 		}
 		sources = append(sources, source)
 	}
 
 	if err = rows.Err(); err != nil {
-		log.Printf("[ERROR] During rows scan: %v", err)
-		return nil, err
+		logrus.WithError(err).Error("Error during row processing for sources")
+		return nil, util.ErrDatabase
 	}
 
 	return sources, nil
 }
 
-// SourceIDExists checks if a source with the given ID exists in the database.
 func SourceIDExists(sourceID int64, userID int64) (bool, error) {
-	stmt, err := GetDB().Prepare("SELECT 1 FROM sources WHERE id=? AND user_id=?")
+	query, args, err := SQLBuilder.Select("1").
+		From("sources").
+		Where(squirrel.Eq{"id": sourceID, "user_id": userID}).
+		Limit(1).
+		ToSql()
+
 	if err != nil {
-		log.Printf("[ERROR] Preparing select statement to check if source exists by ID: %v", err)
-		return false, err
+		logrus.WithError(err).Error("Error preparing SQL to check if source exists by ID")
+		return false, util.ErrDatabase
 	}
-	defer stmt.Close()
 
 	var exists int
-	err = stmt.QueryRow(sourceID, userID).Scan(&exists)
+	err = GetDB().QueryRow(query, args...).Scan(&exists)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return false, nil
 		}
-		log.Printf("[ERROR] Checking if source exists by ID: %v", err)
-		return false, err
+		logrus.WithError(err).Error("Error checking if source exists by ID")
+		return false, util.ErrDatabase
 	}
+
 	return exists == 1, nil
 }

@@ -17,7 +17,7 @@ func ListSources(c *gin.Context) {
 		return
 	}
 
-	intUserID, ok := userID.(int)
+	intUserID, ok := userID.(int64)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
