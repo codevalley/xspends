@@ -3,10 +3,12 @@ package models
 import (
 	"database/sql"
 	"errors"
-	"log"
 	"strings"
 	"time"
 	"xspends/util"
+
+	"github.com/Masterminds/squirrel"
+	"github.com/sirupsen/logrus"
 )
 
 type User struct {
@@ -31,76 +33,68 @@ func InsertUser(user *User) error {
 		return errors.New("mandatory fields missing")
 	}
 
-	sid, err := util.GenerateSnowflakeID()
+	var err error
+	user.ID, err = util.GenerateSnowflakeID()
 	if err != nil {
-		log.Printf("[ERROR] Generating snowflake ID for user: %v", err)
-		return err
+		logrs.WithError(err).Error("Generating Snowflake ID failed")
+		return util.ErrDatabase // or a more specific error like ErrGeneratingID
 	}
-	user.ID = sid
-	user.CreatedAt = time.Now()
-	user.UpdatedAt = time.Now()
+	user.CreatedAt, user.UpdatedAt = time.Now(), time.Now()
 
-	stmt, err := GetDB().Prepare("INSERT INTO users (id, username, name, email, currency, password, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
-	if err != nil {
-		log.Printf("[ERROR] Preparing insert statement for user: %v", err)
-		return err
-	}
-	defer stmt.Close()
+	query := SQLBuilder.Insert("users").
+		Columns("id", "username", "name", "email", "currency", "password", "created_at", "updated_at").
+		Values(user.ID, user.Username, user.Name, user.Email, user.Currency, user.Password, user.CreatedAt, user.UpdatedAt)
 
-	_, err = stmt.Exec(user.ID, user.Username, user.Name, user.Email, user.Currency, user.Password, user.CreatedAt, user.UpdatedAt)
+	_, err = query.RunWith(GetDB()).Exec()
 	if err != nil {
-		if strings.Contains(err.Error(), "duplicate") && strings.Contains(err.Error(), "username") {
-			log.Printf("[ERROR] Username taken: %v", err)
-			return ErrUsernameTaken
+		if strings.Contains(err.Error(), "duplicate") {
+			if strings.Contains(err.Error(), "username") {
+				logrus.WithError(err).Error("Username taken")
+				return ErrUsernameTaken
+			}
+			if strings.Contains(err.Error(), "email") {
+				logrus.WithError(err).Error("Email exists")
+				return ErrEmailExists
+			}
 		}
-		if strings.Contains(err.Error(), "duplicate") && strings.Contains(err.Error(), "email") {
-			log.Printf("[ERROR] Email exists: %v", err)
-			return ErrEmailExists
-		}
-		log.Printf("[ERROR] Inserting user: %v", err)
+		logrus.WithError(err).Error("Inserting user failed")
 		return err
 	}
 
-	log.Printf("User %s inserted successfully", user.Username)
+	logrus.Infof("User %s inserted successfully", user.Username)
 	return nil
 }
 
 func GetUserByID(id int64) (*User, error) {
-	stmt, err := GetDB().Prepare("SELECT id, username, name, email, currency, password FROM users WHERE id=?")
-	if err != nil {
-		log.Printf("[ERROR] Preparing select statement for user by ID: %v", err)
-		return nil, err
-	}
-	defer stmt.Close()
-
 	user := &User{}
-	err = stmt.QueryRow(id).Scan(&user.ID, &user.Username, &user.Name, &user.Email, &user.Currency, &user.Password)
+	query := SQLBuilder.Select("id", "username", "name", "email", "currency", "password").From("users").Where(squirrel.Eq{"id": id})
+
+	err := query.RunWith(GetDB()).QueryRow().Scan(&user.ID, &user.Username, &user.Name, &user.Email, &user.Currency, &user.Password)
 	if err != nil {
 		if err == sql.ErrNoRows {
+			logrus.WithError(err).Warn("User not found by ID")
 			return nil, ErrUserNotFound
 		}
-		log.Printf("[ERROR] Retrieving user by ID: %v", err)
+		logrus.WithError(err).Error("Retrieving user by ID failed")
 		return nil, err
 	}
 
 	return user, nil
 }
 
+// GetUserByUsername retrieves a user by their username.
 func GetUserByUsername(username string) (*User, error) {
-	stmt, err := GetDB().Prepare("SELECT id, username, name, email, currency, password FROM users WHERE username=?")
-	if err != nil {
-		log.Printf("[ERROR] Preparing select statement for user by username: %v", err)
-		return nil, err
-	}
-	defer stmt.Close()
-
 	user := &User{}
-	err = stmt.QueryRow(username).Scan(&user.ID, &user.Username, &user.Name, &user.Email, &user.Currency, &user.Password)
+
+	query := SQLBuilder.Select("id", "username", "name", "email", "currency", "password").From("users").Where(squirrel.Eq{"username": username})
+	err := query.RunWith(GetDB()).QueryRow().Scan(&user.ID, &user.Username, &user.Name, &user.Email, &user.Currency, &user.Password)
+
 	if err != nil {
 		if err == sql.ErrNoRows {
+			logrus.WithField("username", username).Warn("User not found by username")
 			return nil, ErrUserNotFound
 		}
-		log.Printf("[ERROR] Retrieving user by username: %v", err)
+		logrus.WithError(err).Error("Retrieving user by username failed")
 		return nil, err
 	}
 
@@ -110,99 +104,103 @@ func GetUserByUsername(username string) (*User, error) {
 func UpdateUser(user *User) error {
 	user.UpdatedAt = time.Now()
 
-	stmt, err := GetDB().Prepare("UPDATE users SET username=?, name=?, email=?, currency=?, password=?, updated_at=? WHERE id=?")
-	if err != nil {
-		log.Printf("[ERROR] Preparing update statement for user: %v", err)
-		return err
-	}
-	defer stmt.Close()
+	query := SQLBuilder.Update("users").
+		SetMap(map[string]interface{}{
+			"username":   user.Username,
+			"name":       user.Name,
+			"email":      user.Email,
+			"currency":   user.Currency,
+			"password":   user.Password,
+			"updated_at": user.UpdatedAt,
+		}).
+		Where(squirrel.Eq{"id": user.ID})
 
-	result, err := stmt.Exec(user.Username, user.Name, user.Email, user.Currency, user.Password, user.UpdatedAt, user.ID)
+	result, err := query.RunWith(GetDB()).Exec()
 	if err != nil {
-		if strings.Contains(err.Error(), "duplicate") && strings.Contains(err.Error(), "username") {
-			return ErrUsernameTaken
+		if strings.Contains(err.Error(), "duplicate") {
+			if strings.Contains(err.Error(), "username") {
+				return ErrUsernameTaken
+			}
+			if strings.Contains(err.Error(), "email") {
+				return ErrEmailExists
+			}
 		}
-		if strings.Contains(err.Error(), "duplicate") && strings.Contains(err.Error(), "email") {
-			return ErrEmailExists
-		}
-		log.Printf("[ERROR] Updating user: %v", err)
+		logrus.WithError(err).Error("Updating user failed")
 		return err
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		log.Printf("[ERROR] Fetching rows affected after updating user: %v", err)
+		logrus.WithError(err).Error("Fetching rows affected after updating user failed")
 		return err
 	}
 	if rowsAffected == 0 {
-		log.Println("[WARNING] No user found to update")
+		logrus.Warn("No user found to update")
 		return ErrUserNotFound
 	}
+
 	return nil
 }
 
+// DeleteUser deletes a user with the specified ID.
 func DeleteUser(id int64) error {
-	stmt, err := GetDB().Prepare("DELETE FROM users WHERE id=?")
-	if err != nil {
-		log.Printf("[ERROR] Preparing delete statement for user: %v", err)
-		return err
-	}
-	defer stmt.Close()
+	query := SQLBuilder.Delete("users").Where(squirrel.Eq{"id": id})
+	result, err := query.RunWith(GetDB()).Exec()
 
-	result, err := stmt.Exec(id)
 	if err != nil {
-		log.Printf("[ERROR] Deleting user: %v", err)
+		logrus.WithError(err).Error("Deleting user failed")
 		return err
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		log.Printf("[ERROR] Fetching rows affected after deleting user: %v", err)
+		logrus.WithError(err).Error("Fetching rows affected after deleting user failed")
 		return err
 	}
+
 	if rowsAffected == 0 {
-		log.Println("[WARNING] No user found to delete")
+		logrus.Warn("No user found to delete")
 		return ErrUserNotFound
 	}
+
 	return nil
 }
 
-func UserExists(username string, email string) (bool, error) {
-	stmt, err := GetDB().Prepare("SELECT 1 FROM users WHERE username=? OR email=?")
-	if err != nil {
-		log.Printf("[ERROR] Preparing select statement to check if user exists: %v", err)
-		return false, err
-	}
-	defer stmt.Close()
+// UserExists checks if a user with the given username or email exists.
+func UserExists(username, email string) (bool, error) {
+	var exists bool
 
-	var exists int
-	err = stmt.QueryRow(username, email).Scan(&exists)
+	query := SQLBuilder.Select("1").From("users").Where(squirrel.Or{
+		squirrel.Eq{"username": username},
+		squirrel.Eq{"email": email},
+	})
+	err := query.RunWith(GetDB()).QueryRow().Scan(&exists)
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return false, nil
 		}
-		log.Printf("[ERROR] Checking if user exists: %v", err)
+		logrus.WithError(err).Error("Checking if user exists failed")
 		return false, err
 	}
-	return exists == 1, nil
+
+	return exists, nil
 }
 
+// UserIDExists checks if a user with the given userID exists.
 func UserIDExists(userID int64) (bool, error) {
-	stmt, err := GetDB().Prepare("SELECT 1 FROM users WHERE id=?")
-	if err != nil {
-		log.Printf("[ERROR] Preparing select statement to check if user exists by ID: %v", err)
-		return false, err
-	}
-	defer stmt.Close()
+	var exists bool
 
-	var exists int
-	err = stmt.QueryRow(userID).Scan(&exists)
+	query := SQLBuilder.Select("1").From("users").Where(squirrel.Eq{"id": userID})
+	err := query.RunWith(GetDB()).QueryRow().Scan(&exists)
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return false, nil
 		}
-		log.Printf("[ERROR] Checking if user exists by ID: %v", err)
+		logrus.WithError(err).Error("Checking if user ID exists failed")
 		return false, err
 	}
-	return exists == 1, nil
+
+	return exists, nil
 }
