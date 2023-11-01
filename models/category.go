@@ -33,7 +33,7 @@ func InsertCategory(category *Category) error {
 	var err error
 	category.ID, err = util.GenerateSnowflakeID()
 	if err != nil {
-		logrus.WithError(err).Error("Generating Snowflake ID failed")
+		logrs.WithError(err).Error("Generating Snowflake ID failed")
 		return util.ErrDatabase
 	}
 	category.CreatedAt = time.Now()
@@ -44,12 +44,12 @@ func InsertCategory(category *Category) error {
 		Values(category.ID, category.UserID, category.Name, category.Description, category.Icon, category.CreatedAt, category.UpdatedAt).
 		ToSql()
 	if err != nil {
-		logrus.WithError(err).Error("Preparing insert statement failed")
+		logrs.WithError(err).Error("Preparing insert statement failed")
 		return util.ErrDatabase
 	}
 
 	if _, err := GetDB().Exec(query, args...); err != nil {
-		logrus.WithError(err).WithField("category", category).Error("Executing insert statement failed")
+		logrs.WithError(err).WithField("category", category).Error("Executing insert statement failed")
 		return util.ErrDatabase
 	}
 
@@ -72,12 +72,12 @@ func UpdateCategory(category *Category) error {
 		Where(squirrel.Eq{"id": category.ID, "user_id": category.UserID}).
 		ToSql()
 	if err != nil {
-		logrus.WithError(err).Error("Preparing update statement failed")
+		logrs.WithError(err).Error("Preparing update statement failed")
 		return util.ErrDatabase
 	}
 
 	if _, err := GetDB().Exec(query, args...); err != nil {
-		logrus.WithError(err).WithField("category", category).Error("Executing update statement failed")
+		logrs.WithError(err).WithField("category", category).Error("Executing update statement failed")
 		return util.ErrDatabase
 	}
 
@@ -90,12 +90,12 @@ func DeleteCategory(categoryID int64, userID int64) error {
 		Where(squirrel.Eq{"id": categoryID, "user_id": userID}).
 		ToSql()
 	if err != nil {
-		logrus.WithError(err).Error("Preparing delete statement failed")
+		logrs.WithError(err).Error("Preparing delete statement failed")
 		return util.ErrDatabase
 	}
 
 	if _, err := GetDB().Exec(query, args...); err != nil {
-		logrus.WithError(err).WithField("categoryID", categoryID).Error("Executing delete statement failed")
+		logrs.WithError(err).WithField("categoryID", categoryID).Error("Executing delete statement failed")
 		return util.ErrDatabase
 	}
 
@@ -109,13 +109,13 @@ func GetAllCategories(userID int64) ([]Category, error) {
 		Where(squirrel.Eq{"user_id": userID}).
 		ToSql()
 	if err != nil {
-		logrus.WithError(err).Error("Preparing select statement for all categories failed")
+		logrs.WithError(err).Error("Preparing select statement for all categories failed")
 		return nil, util.ErrDatabase
 	}
 
 	rows, err := GetDB().Query(query, args...)
 	if err != nil {
-		logrus.WithError(err).Error("Querying categories failed")
+		logrs.WithError(err).Error("Querying categories failed")
 		return nil, util.ErrDatabase
 	}
 	defer rows.Close()
@@ -124,7 +124,7 @@ func GetAllCategories(userID int64) ([]Category, error) {
 	for rows.Next() {
 		var category Category
 		if err := rows.Scan(&category.ID, &category.UserID, &category.Name, &category.Description, &category.Icon, &category.CreatedAt, &category.UpdatedAt); err != nil {
-			logrus.WithError(err).Error("Scanning category row failed")
+			logrs.WithError(err).Error("Scanning category row failed")
 			return nil, util.ErrDatabase
 		}
 		categories = append(categories, category)
@@ -140,7 +140,7 @@ func GetCategoryByID(categoryID int64, userID int64) (*Category, error) {
 		Where(squirrel.Eq{"id": categoryID, "user_id": userID}).
 		ToSql()
 	if err != nil {
-		logrus.WithError(err).Error("Preparing select statement for a category by ID failed")
+		logrs.WithError(err).Error("Preparing select statement for a category by ID failed")
 		return nil, util.ErrDatabase
 	}
 
@@ -150,7 +150,7 @@ func GetCategoryByID(categoryID int64, userID int64) (*Category, error) {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-		logrus.WithError(err).WithField("categoryID", categoryID).Error("Querying category by ID failed")
+		logrs.WithError(err).WithField("categoryID", categoryID).Error("Querying category by ID failed")
 		return nil, util.ErrDatabase
 	}
 
@@ -168,13 +168,13 @@ func GetPagedCategories(page int, itemsPerPage int, userID int64) ([]Category, e
 		Offset(uint64(offset)).
 		ToSql()
 	if err != nil {
-		logrus.WithError(err).Error("Preparing paginated select statement for categories failed")
+		logrs.WithError(err).Error("Preparing paginated select statement for categories failed")
 		return nil, util.ErrDatabase
 	}
 
 	rows, err := GetDB().Query(query, args...)
 	if err != nil {
-		logrus.WithError(err).Error("Querying paginated categories failed")
+		logrs.WithError(err).Error("Querying paginated categories failed")
 		return nil, util.ErrDatabase
 	}
 	defer rows.Close()
@@ -183,7 +183,7 @@ func GetPagedCategories(page int, itemsPerPage int, userID int64) ([]Category, e
 	for rows.Next() {
 		var category Category
 		if err := rows.Scan(&category.ID, &category.UserID, &category.Name, &category.Description, &category.Icon, &category.CreatedAt, &category.UpdatedAt); err != nil {
-			logrus.WithError(err).Error("Scanning paginated category row failed")
+			logrs.WithError(err).Error("Scanning paginated category row failed")
 			return nil, util.ErrDatabase
 		}
 		categories = append(categories, category)
@@ -200,7 +200,7 @@ func CategoryIDExists(categoryID int64, userID int64) (bool, error) {
 		Limit(1).
 		ToSql()
 	if err != nil {
-		logrus.WithError(err).Error("Preparing statement to check category existence failed")
+		logrs.WithError(err).Error("Preparing statement to check category existence failed")
 		return false, util.ErrDatabase
 	}
 
@@ -210,7 +210,7 @@ func CategoryIDExists(categoryID int64, userID int64) (bool, error) {
 		if err == sql.ErrNoRows {
 			return false, nil
 		}
-		logrus.WithError(err).WithFields(logrus.Fields{
+		logrs.WithError(err).WithFields(logrus.Fields{
 			"categoryID": categoryID,
 			"userID":     userID,
 		}).Error("Checking category existence failed")

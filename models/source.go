@@ -7,7 +7,6 @@ import (
 	"xspends/util"
 
 	"github.com/Masterminds/squirrel"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -43,13 +42,13 @@ func InsertSource(source *Source) error {
 		ToSql()
 
 	if err != nil {
-		logrus.WithError(err).Error("Error preparing insert SQL for source")
+		logrs.WithError(err).Error("Error preparing insert SQL for source")
 		return util.ErrDatabase
 	}
 
 	_, err = GetDB().Exec(query, args...)
 	if err != nil {
-		logrus.WithError(err).Error("Error executing insert for source")
+		logrs.WithError(err).Error("Error executing insert for source")
 		return util.ErrDatabase
 	}
 
@@ -75,13 +74,13 @@ func UpdateSource(source *Source) error {
 		ToSql()
 
 	if err != nil {
-		logrus.WithError(err).Error("Error preparing update SQL for source")
+		logrs.WithError(err).Error("Error preparing update SQL for source")
 		return util.ErrDatabase
 	}
 
 	_, err = GetDB().Exec(query, args...)
 	if err != nil {
-		logrus.WithError(err).Error("Error executing update for source")
+		logrs.WithError(err).Error("Error executing update for source")
 		return util.ErrDatabase
 	}
 
@@ -94,13 +93,13 @@ func DeleteSource(sourceID int64, userID int64) error {
 		ToSql()
 
 	if err != nil {
-		logrus.WithError(err).Error("Error preparing delete SQL for source")
+		logrs.WithError(err).Error("Error preparing delete SQL for source")
 		return util.ErrDatabase
 	}
 
 	_, err = GetDB().Exec(query, args...)
 	if err != nil {
-		logrus.WithError(err).Error("Error executing delete for source")
+		logrs.WithError(err).Error("Error executing delete for source")
 		return util.ErrDatabase
 	}
 
@@ -114,7 +113,7 @@ func GetSourceByID(sourceID int64, userID int64) (*Source, error) {
 		ToSql()
 
 	if err != nil {
-		logrus.WithError(err).Error("Error preparing select SQL for source by ID")
+		logrs.WithError(err).Error("Error preparing select SQL for source by ID")
 		return nil, util.ErrDatabase
 	}
 
@@ -124,7 +123,7 @@ func GetSourceByID(sourceID int64, userID int64) (*Source, error) {
 		if err == sql.ErrNoRows {
 			return nil, util.ErrSourceNotFound
 		}
-		logrus.WithError(err).Error("Error querying source by ID")
+		logrs.WithError(err).Error("Error querying source by ID")
 		return nil, util.ErrDatabase
 	}
 
@@ -138,13 +137,13 @@ func GetSources(userID int64) ([]Source, error) {
 		ToSql()
 
 	if err != nil {
-		logrus.WithError(err).Error("Error preparing select SQL for sources by user ID")
+		logrs.WithError(err).Error("Error preparing select SQL for sources by user ID")
 		return nil, util.ErrDatabase
 	}
 
 	rows, err := GetDB().Query(query, args...)
 	if err != nil {
-		logrus.WithError(err).Error("Error querying sources by user ID")
+		logrs.WithError(err).Error("Error querying sources by user ID")
 		return nil, util.ErrDatabase
 	}
 	defer rows.Close()
@@ -153,14 +152,14 @@ func GetSources(userID int64) ([]Source, error) {
 	for rows.Next() {
 		var source Source
 		if err = rows.Scan(&source.ID, &source.UserID, &source.Name, &source.Type, &source.Balance, &source.CreatedAt, &source.UpdatedAt); err != nil {
-			logrus.WithError(err).Error("Error scanning source row")
+			logrs.WithError(err).Error("Error scanning source row")
 			return nil, util.ErrDatabase
 		}
 		sources = append(sources, source)
 	}
 
 	if err = rows.Err(); err != nil {
-		logrus.WithError(err).Error("Error during row processing for sources")
+		logrs.WithError(err).Error("Error during row processing for sources")
 		return nil, util.ErrDatabase
 	}
 
@@ -175,7 +174,7 @@ func SourceIDExists(sourceID int64, userID int64) (bool, error) {
 		ToSql()
 
 	if err != nil {
-		logrus.WithError(err).Error("Error preparing SQL to check if source exists by ID")
+		logrs.WithError(err).Error("Error preparing SQL to check if source exists by ID")
 		return false, util.ErrDatabase
 	}
 
@@ -185,7 +184,7 @@ func SourceIDExists(sourceID int64, userID int64) (bool, error) {
 		if err == sql.ErrNoRows {
 			return false, nil
 		}
-		logrus.WithError(err).Error("Error checking if source exists by ID")
+		logrs.WithError(err).Error("Error checking if source exists by ID")
 		return false, util.ErrDatabase
 	}
 

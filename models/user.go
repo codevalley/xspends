@@ -8,7 +8,6 @@ import (
 	"xspends/util"
 
 	"github.com/Masterminds/squirrel"
-	"github.com/sirupsen/logrus"
 )
 
 type User struct {
@@ -49,19 +48,19 @@ func InsertUser(user *User) error {
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate") {
 			if strings.Contains(err.Error(), "username") {
-				logrus.WithError(err).Error("Username taken")
+				logrs.WithError(err).Error("Username taken")
 				return ErrUsernameTaken
 			}
 			if strings.Contains(err.Error(), "email") {
-				logrus.WithError(err).Error("Email exists")
+				logrs.WithError(err).Error("Email exists")
 				return ErrEmailExists
 			}
 		}
-		logrus.WithError(err).Error("Inserting user failed")
+		logrs.WithError(err).Error("Inserting user failed")
 		return err
 	}
 
-	logrus.Infof("User %s inserted successfully", user.Username)
+	logrs.Infof("User %s inserted successfully", user.Username)
 	return nil
 }
 
@@ -72,10 +71,10 @@ func GetUserByID(id int64) (*User, error) {
 	err := query.RunWith(GetDB()).QueryRow().Scan(&user.ID, &user.Username, &user.Name, &user.Email, &user.Currency, &user.Password)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			logrus.WithError(err).Warn("User not found by ID")
+			logrs.WithError(err).Warn("User not found by ID")
 			return nil, ErrUserNotFound
 		}
-		logrus.WithError(err).Error("Retrieving user by ID failed")
+		logrs.WithError(err).Error("Retrieving user by ID failed")
 		return nil, err
 	}
 
@@ -91,10 +90,10 @@ func GetUserByUsername(username string) (*User, error) {
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			logrus.WithField("username", username).Warn("User not found by username")
+			logrs.WithField("username", username).Warn("User not found by username")
 			return nil, ErrUserNotFound
 		}
-		logrus.WithError(err).Error("Retrieving user by username failed")
+		logrs.WithError(err).Error("Retrieving user by username failed")
 		return nil, err
 	}
 
@@ -125,17 +124,17 @@ func UpdateUser(user *User) error {
 				return ErrEmailExists
 			}
 		}
-		logrus.WithError(err).Error("Updating user failed")
+		logrs.WithError(err).Error("Updating user failed")
 		return err
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		logrus.WithError(err).Error("Fetching rows affected after updating user failed")
+		logrs.WithError(err).Error("Fetching rows affected after updating user failed")
 		return err
 	}
 	if rowsAffected == 0 {
-		logrus.Warn("No user found to update")
+		logrs.Warn("No user found to update")
 		return ErrUserNotFound
 	}
 
@@ -148,18 +147,18 @@ func DeleteUser(id int64) error {
 	result, err := query.RunWith(GetDB()).Exec()
 
 	if err != nil {
-		logrus.WithError(err).Error("Deleting user failed")
+		logrs.WithError(err).Error("Deleting user failed")
 		return err
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		logrus.WithError(err).Error("Fetching rows affected after deleting user failed")
+		logrs.WithError(err).Error("Fetching rows affected after deleting user failed")
 		return err
 	}
 
 	if rowsAffected == 0 {
-		logrus.Warn("No user found to delete")
+		logrs.Warn("No user found to delete")
 		return ErrUserNotFound
 	}
 
@@ -180,7 +179,7 @@ func UserExists(username, email string) (bool, error) {
 		if err == sql.ErrNoRows {
 			return false, nil
 		}
-		logrus.WithError(err).Error("Checking if user exists failed")
+		logrs.WithError(err).Error("Checking if user exists failed")
 		return false, err
 	}
 
@@ -198,7 +197,7 @@ func UserIDExists(userID int64) (bool, error) {
 		if err == sql.ErrNoRows {
 			return false, nil
 		}
-		logrus.WithError(err).Error("Checking if user ID exists failed")
+		logrs.WithError(err).Error("Checking if user ID exists failed")
 		return false, err
 	}
 

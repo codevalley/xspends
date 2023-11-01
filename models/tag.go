@@ -43,13 +43,13 @@ func InsertTag(tag *Tag, tx ...*sql.Tx) error {
 		ToSql()
 
 	if err != nil {
-		logrus.WithError(err).Error("Failed to build insert query for tag")
+		logrs.WithError(err).Error("Failed to build insert query for tag")
 		return util.ErrDatabase
 	}
 
 	err = executeTxQuery(tx, sql, args...)
 	if err != nil {
-		logrus.WithError(err).WithField("tag", tag).Error("Failed to insert tag")
+		logrs.WithError(err).WithField("tag", tag).Error("Failed to insert tag")
 		return util.ErrDatabase
 	}
 
@@ -71,13 +71,13 @@ func UpdateTag(tag *Tag, tx ...*sql.Tx) error {
 		ToSql()
 
 	if err != nil {
-		logrus.WithError(err).Error("Failed to build update query for tag")
+		logrs.WithError(err).Error("Failed to build update query for tag")
 		return util.ErrDatabase
 	}
 
 	err = executeTxQuery(tx, sql, args...)
 	if err != nil {
-		logrus.WithError(err).WithField("tag", tag).Error("Failed to update tag")
+		logrs.WithError(err).WithField("tag", tag).Error("Failed to update tag")
 		return util.ErrDatabase
 	}
 
@@ -91,13 +91,13 @@ func DeleteTag(tagID int64, userID int64) error {
 		ToSql()
 
 	if err != nil {
-		logrus.WithError(err).Error("Failed to build delete query for tag")
+		logrs.WithError(err).Error("Failed to build delete query for tag")
 		return util.ErrDatabase
 	}
 
 	err = executeQuery(sql, args...)
 	if err != nil {
-		logrus.WithError(err).WithFields(logrus.Fields{
+		logrs.WithError(err).WithFields(logrus.Fields{
 			"tagID":  tagID,
 			"userID": userID,
 		}).Error("Failed to delete tag")
@@ -115,14 +115,14 @@ func GetTagByID(tagID int64, userID int64) (*Tag, error) {
 		ToSql()
 
 	if err != nil {
-		logrus.WithError(err).Error("Failed to build query for retrieving tag by ID")
+		logrs.WithError(err).Error("Failed to build query for retrieving tag by ID")
 		return nil, util.ErrDatabase
 	}
 
 	tag := &Tag{}
 	err = executeQueryRow(sql, tag, args...)
 	if err != nil {
-		logrus.WithError(err).WithField("tagID", tagID).Error("Failed to retrieve tag by ID")
+		logrs.WithError(err).WithField("tagID", tagID).Error("Failed to retrieve tag by ID")
 		return nil, err
 	}
 
@@ -139,14 +139,14 @@ func GetAllTags(userID int64, pagination PaginationParams) ([]Tag, error) {
 		ToSql()
 
 	if err != nil {
-		logrus.WithError(err).Error("Failed to build query for retrieving all tags")
+		logrs.WithError(err).Error("Failed to build query for retrieving all tags")
 		return nil, util.ErrDatabase
 	}
 
 	tags := []Tag{}
 	err = executeQueryRows(sql, &tags, args...)
 	if err != nil {
-		logrus.WithError(err).WithField("userID", userID).Error("Failed to retrieve all tags")
+		logrs.WithError(err).WithField("userID", userID).Error("Failed to retrieve all tags")
 		return nil, err
 	}
 
@@ -161,14 +161,14 @@ func GetTagByName(name string, userID int64, tx ...*sql.Tx) (*Tag, error) {
 		ToSql()
 
 	if err != nil {
-		logrus.WithError(err).Error("Failed to build query for retrieving tag by name")
+		logrs.WithError(err).Error("Failed to build query for retrieving tag by name")
 		return nil, util.ErrDatabase
 	}
 
 	tag := &Tag{}
 	err = executeTxQueryRow(tx, sql, tag, args...)
 	if err != nil {
-		logrus.WithError(err).WithFields(logrus.Fields{
+		logrs.WithError(err).WithFields(logrus.Fields{
 			"name":   name,
 			"userID": userID,
 		}).Error("Failed to retrieve tag by name")
