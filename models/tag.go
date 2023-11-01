@@ -2,9 +2,11 @@ package models
 
 import (
 	"database/sql"
-	"log"
 	"time"
 	"xspends/util" // Adjust this import to your project's structure
+
+	"github.com/Masterminds/squirrel"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -31,41 +33,24 @@ func InsertTag(tag *Tag, tx ...*sql.Tx) error {
 		return util.ErrInvalidInput
 	}
 
-	var err error
-	tag.ID, err = util.GenerateSnowflakeID()
-	if err != nil {
-		log.Printf("[ERROR] Generating Snowflake ID: %v", err)
-		return util.ErrDatabase
-	}
+	tag.ID, _ = util.GenerateSnowflakeID()
 	tag.CreatedAt = time.Now()
 	tag.UpdatedAt = time.Now()
 
-	isExternalTx, txInstance, err := GetTransaction(tx...)
-	if err != nil {
-		return err
-	}
+	sql, args, err := SQLBuilder.Insert("tags").
+		Columns("id", "user_id", "name", "created_at", "updated_at").
+		Values(tag.ID, tag.UserID, tag.Name, tag.CreatedAt, tag.UpdatedAt).
+		ToSql()
 
-	stmt, err := txInstance.Prepare("INSERT INTO tags (id, user_id, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
 	if err != nil {
-		log.Printf("[ERROR] Preparing statement: %v", err)
-		if !isExternalTx {
-			txInstance.Rollback()
-		}
-		return util.ErrDatabase
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(tag.ID, tag.UserID, tag.Name, tag.CreatedAt, tag.UpdatedAt)
-	if err != nil {
-		log.Printf("[ERROR] Executing statement with tag %v: %v", tag, err)
-		if !isExternalTx {
-			txInstance.Rollback()
-		}
+		logrus.WithError(err).Error("Failed to build insert query for tag")
 		return util.ErrDatabase
 	}
 
-	if !isExternalTx {
-		return txInstance.Commit()
+	err = executeTxQuery(tx, sql, args...)
+	if err != nil {
+		logrus.WithError(err).WithField("tag", tag).Error("Failed to insert tag")
+		return util.ErrDatabase
 	}
 
 	return nil
@@ -79,32 +64,21 @@ func UpdateTag(tag *Tag, tx ...*sql.Tx) error {
 
 	tag.UpdatedAt = time.Now()
 
-	isExternalTx, txInstance, err := GetTransaction(tx...)
-	if err != nil {
-		return err
-	}
+	sql, args, err := SQLBuilder.Update("tags").
+		Set("name", tag.Name).
+		Set("updated_at", tag.UpdatedAt).
+		Where(squirrel.Eq{"id": tag.ID, "user_id": tag.UserID}).
+		ToSql()
 
-	stmt, err := txInstance.Prepare("UPDATE tags SET name=?, updated_at=? WHERE id=? AND user_id=?")
 	if err != nil {
-		log.Printf("[ERROR] Preparing statement: %v", err)
-		if !isExternalTx {
-			txInstance.Rollback()
-		}
-		return util.ErrDatabase
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(tag.Name, tag.UpdatedAt, tag.ID, tag.UserID)
-	if err != nil {
-		log.Printf("[ERROR] Executing statement with tag %v: %v", tag, err)
-		if !isExternalTx {
-			txInstance.Rollback()
-		}
+		logrus.WithError(err).Error("Failed to build update query for tag")
 		return util.ErrDatabase
 	}
 
-	if !isExternalTx {
-		return txInstance.Commit()
+	err = executeTxQuery(tx, sql, args...)
+	if err != nil {
+		logrus.WithError(err).WithField("tag", tag).Error("Failed to update tag")
+		return util.ErrDatabase
 	}
 
 	return nil
@@ -112,16 +86,21 @@ func UpdateTag(tag *Tag, tx ...*sql.Tx) error {
 
 // DeleteTag removes a tag from the database.
 func DeleteTag(tagID int64, userID int64) error {
-	stmt, err := GetDB().Prepare("DELETE FROM tags WHERE id=? AND user_id=?")
+	sql, args, err := SQLBuilder.Delete("tags").
+		Where(squirrel.Eq{"id": tagID, "user_id": userID}).
+		ToSql()
+
 	if err != nil {
-		log.Printf("[ERROR] Preparing statement: %v", err)
+		logrus.WithError(err).Error("Failed to build delete query for tag")
 		return util.ErrDatabase
 	}
-	defer stmt.Close()
 
-	_, err = stmt.Exec(tagID, userID)
+	err = executeQuery(sql, args...)
 	if err != nil {
-		log.Printf("[ERROR] Executing statement with tagID %d: %v", tagID, err)
+		logrus.WithError(err).WithFields(logrus.Fields{
+			"tagID":  tagID,
+			"userID": userID,
+		}).Error("Failed to delete tag")
 		return util.ErrDatabase
 	}
 
@@ -130,54 +109,142 @@ func DeleteTag(tagID int64, userID int64) error {
 
 // GetTagByID retrieves a tag by its ID.
 func GetTagByID(tagID int64, userID int64) (*Tag, error) {
-	row := GetDB().QueryRow("SELECT id, user_id, name, created_at, updated_at FROM tags WHERE id=? AND user_id=?", tagID, userID)
-	var tag Tag
-	err := row.Scan(&tag.ID, &tag.UserID, &tag.Name, &tag.CreatedAt, &tag.UpdatedAt)
+	sql, args, err := SQLBuilder.Select("id", "user_id", "name", "created_at", "updated_at").
+		From("tags").
+		Where(squirrel.Eq{"id": tagID, "user_id": userID}).
+		ToSql()
+
 	if err != nil {
-		log.Printf("[ERROR] Retrieving tag by ID: %v", err)
+		logrus.WithError(err).Error("Failed to build query for retrieving tag by ID")
+		return nil, util.ErrDatabase
+	}
+
+	tag := &Tag{}
+	err = executeQueryRow(sql, tag, args...)
+	if err != nil {
+		logrus.WithError(err).WithField("tagID", tagID).Error("Failed to retrieve tag by ID")
 		return nil, err
 	}
-	return &tag, nil
+
+	return tag, nil
 }
 
 // GetAllTags retrieves all tags for a user with pagination.
 func GetAllTags(userID int64, pagination PaginationParams) ([]Tag, error) {
-	rows, err := GetDB().Query("SELECT id, user_id, name, created_at, updated_at FROM tags WHERE user_id=? LIMIT ? OFFSET ?", userID, pagination.Limit, pagination.Offset)
+	sql, args, err := SQLBuilder.Select("id", "user_id", "name", "created_at", "updated_at").
+		From("tags").
+		Where(squirrel.Eq{"user_id": userID}).
+		Limit(uint64(pagination.Limit)).
+		Offset(uint64(pagination.Offset)).
+		ToSql()
+
 	if err != nil {
-		log.Printf("[ERROR] Querying tags: %v", err)
+		logrus.WithError(err).Error("Failed to build query for retrieving all tags")
+		return nil, util.ErrDatabase
+	}
+
+	tags := []Tag{}
+	err = executeQueryRows(sql, &tags, args...)
+	if err != nil {
+		logrus.WithError(err).WithField("userID", userID).Error("Failed to retrieve all tags")
 		return nil, err
 	}
-	defer rows.Close()
 
-	var tags []Tag
-	for rows.Next() {
-		var tag Tag
-		if err := rows.Scan(&tag.ID, &tag.UserID, &tag.Name, &tag.CreatedAt, &tag.UpdatedAt); err != nil {
-			log.Printf("[ERROR] Scanning tag row: %v", err)
-			return nil, err
-		}
-		tags = append(tags, tag)
-	}
 	return tags, nil
 }
 
 // GetTagByName retrieves a tag by its name for a specific user.
 func GetTagByName(name string, userID int64, tx ...*sql.Tx) (*Tag, error) {
-	isExternalTx, txInstance, err := GetTransaction(tx...)
+	sql, args, err := SQLBuilder.Select("id", "user_id", "name", "created_at", "updated_at").
+		From("tags").
+		Where(squirrel.Eq{"name": name, "user_id": userID}).
+		ToSql()
+
 	if err != nil {
+		logrus.WithError(err).Error("Failed to build query for retrieving tag by name")
+		return nil, util.ErrDatabase
+	}
+
+	tag := &Tag{}
+	err = executeTxQueryRow(tx, sql, tag, args...)
+	if err != nil {
+		logrus.WithError(err).WithFields(logrus.Fields{
+			"name":   name,
+			"userID": userID,
+		}).Error("Failed to retrieve tag by name")
 		return nil, err
 	}
 
-	row := txInstance.QueryRow("SELECT id, user_id, name, created_at, updated_at FROM tags WHERE name=? AND user_id=?", name, userID)
-	var tag Tag
-	err = row.Scan(&tag.ID, &tag.UserID, &tag.Name, &tag.CreatedAt, &tag.UpdatedAt)
+	return tag, nil
+}
+
+// Helper functions for executing SQL queries with or without transactions.
+func executeTxQuery(tx []*sql.Tx, sqlStr string, args ...interface{}) error {
+	var err error
+	var res sql.Result
+
+	if len(tx) > 0 {
+		res, err = tx[0].Exec(sqlStr, args...)
+	} else {
+		db := GetDB()
+		res, err = db.Exec(sqlStr, args...)
+	}
+
 	if err != nil {
-		log.Printf("[ERROR] Retrieving tag by name %s: %v", name, err)
-		if !isExternalTx {
-			txInstance.Rollback()
+		return err
+	}
+
+	_, err = res.LastInsertId() // Optionally use the result
+	return err
+}
+
+func executeQuery(sql string, args ...interface{}) error {
+	db := GetDB()
+	res, err := db.Exec(sql, args...)
+	if err != nil {
+		return err
+	}
+
+	_, err = res.RowsAffected() // Optionally use the result
+	return err
+}
+
+func executeQueryRow(sql string, tag *Tag, args ...interface{}) error {
+	db := GetDB()
+	return db.QueryRow(sql, args...).Scan(&tag.ID, &tag.UserID, &tag.Name, &tag.CreatedAt, &tag.UpdatedAt)
+}
+
+func executeQueryRows(sql string, tags *[]Tag, args ...interface{}) error {
+	db := GetDB()
+	rows, err := db.Query(sql, args...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var tag Tag
+		if err := rows.Scan(&tag.ID, &tag.UserID, &tag.Name, &tag.CreatedAt, &tag.UpdatedAt); err != nil {
+			return err
 		}
-		return nil, err
+		*tags = append(*tags, tag)
+	}
+	return rows.Err()
+}
+
+func executeTxQueryRow(tx []*sql.Tx, sqlStr string, tag *Tag, args ...interface{}) error {
+	var row *sql.Row // This line needs to be changed.
+
+	if len(tx) > 0 {
+		// No need to declare a new variable. We can use := to get the row directly.
+		row = tx[0].QueryRow(sqlStr, args...)
+	} else {
+		db := GetDB()
+		// Same here, use := to get the row directly.
+		row = db.QueryRow(sqlStr, args...)
 	}
 
-	return &tag, nil
+	// row is already the correct type, so just call Scan on it.
+	err := row.Scan(&tag.ID, &tag.UserID, &tag.Name, &tag.CreatedAt, &tag.UpdatedAt)
+	return err
 }
