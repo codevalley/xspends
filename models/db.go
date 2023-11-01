@@ -7,10 +7,18 @@ import (
 	"os"
 	"time"
 
+	"github.com/Masterminds/squirrel"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/sirupsen/logrus"
 )
 
 var DB *sql.DB
+var SQLBuilder squirrel.StatementBuilderType
+var logrs = logrus.New()
+
+func GetQueryBuilder() *squirrel.StatementBuilderType {
+	return &SQLBuilder
+}
 
 func GetDB() *sql.DB {
 	return DB
@@ -37,6 +45,7 @@ func InitDB() {
 	DB.SetMaxOpenConns(25)
 	DB.SetMaxIdleConns(25)
 	DB.SetConnMaxLifetime(5 * time.Minute) // Adjusted to use the time package for clarity
+	SQLBuilder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Question)
 }
 
 // CloseDB safely closes the database connection.

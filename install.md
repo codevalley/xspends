@@ -131,3 +131,9 @@ If you make code changes and wish to redeploy:
    kubectl get pods # to get the pod name
    kubectl logs <POD_NAME> -c xspends-container
    ```
+7. Docker userful commands
+   ```
+   docker images | grep xspends-image
+   # Optionally, clean up old Docker images
+   docker image prune -a -f
+   ```

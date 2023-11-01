@@ -1,14 +1,14 @@
 package models
 
 import (
-	"bytes"
 	"database/sql"
 	"errors"
-	"fmt"
-	"log"
-	"strings"
 	"time"
+
 	"xspends/util"
+
+	"github.com/Masterminds/squirrel"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -46,17 +46,16 @@ type TransactionFilter struct {
 	ItemsPerPage int
 }
 
+// InsertTransaction inserts a new transaction into the database.
 func InsertTransaction(txn Transaction, otx ...*sql.Tx) error {
-
 	isExternalTx, tx, err := GetTransaction(otx...)
 	if err != nil {
 		return err
 	}
 
-	var err1 error
 	txn.ID, err = util.GenerateSnowflakeID()
-	if err1 != nil {
-		log.Printf("[ERROR] Generating Snowflake ID: %v", err)
+	if err != nil {
+		logrs.WithError(err).Error("Generating Snowflake ID failed")
 		return util.ErrDatabase // or a more specific error like ErrGeneratingID
 	}
 
@@ -66,79 +65,103 @@ func InsertTransaction(txn Transaction, otx ...*sql.Tx) error {
 		return err
 	}
 
-	stmt, err := tx.Prepare("INSERT INTO transactions (id, user_id, source_id, category_id, amount, type, description) VALUES (?,?, ?, ?, ?, ?,	?)")
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	defer stmt.Close()
+	query := SQLBuilder.Insert("transactions").
+		Columns("id", "user_id", "source_id", "category_id", "amount", "type", "description").
+		Values(txn.ID, txn.UserID, txn.SourceID, txn.CategoryID, txn.Amount, txn.Type, txn.Description)
 
-	_, err = stmt.Exec(txn.ID, txn.UserID, txn.SourceID, txn.CategoryID, txn.Amount, txn.Type, txn.Description)
+	_, err = query.RunWith(tx).Exec()
+	if err != nil {
+		tx.Rollback()
+		logrs.WithError(err).Error("Insert transaction failed")
+		return err
+	}
+
+	err = addMissingTags(txn.Tags, txn.UserID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	addMissingTags(txn.Tags, txn.UserID, tx)
-	// to be refactored
+
 	err = AddTagsToTransaction(txn.ID, txn.Tags, txn.UserID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
+
 	if !isExternalTx {
 		return tx.Commit()
 	}
 	return nil
 }
 
+// UpdateTransaction updates an existing transaction in the database.
 func UpdateTransaction(txn Transaction, otx ...*sql.Tx) error {
 	isExternalTx, tx, err := GetTransaction(otx...)
 	if err != nil {
 		return err
 	}
-	log.Println("Checking if this is actually building!!")
+
 	err = validateForeignKeyReferences(txn)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	stmt, err := tx.Prepare("UPDATE transactions SET source_id=?, category_id=?, amount=?, type=?, description=? WHERE id=? AND user_id=?")
+	query := SQLBuilder.Update("transactions").
+		Set("source_id", txn.SourceID).
+		Set("category_id", txn.CategoryID).
+		Set("amount", txn.Amount).
+		Set("type", txn.Type).
+		Set("description", txn.Description).
+		Where(squirrel.Eq{"id": txn.ID, "user_id": txn.UserID})
+
+	_, err = query.RunWith(tx).Exec()
+	if err != nil {
+		tx.Rollback()
+		logrs.WithError(err).WithField("transaction_id", txn.ID).Error("Update transaction failed")
+		return err
+	}
+
+	err = addMissingTags(txn.Tags, txn.UserID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	defer stmt.Close()
 
-	_, err = stmt.Exec(txn.SourceID, txn.CategoryID, txn.Amount, txn.Type, txn.Description, txn.ID, txn.UserID)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	addMissingTags(txn.Tags, txn.UserID, tx)
 	err = UpdateTagsForTransaction(txn.ID, txn.Tags, txn.UserID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
+
 	if !isExternalTx {
 		return tx.Commit()
 	}
 	return nil
 }
 
+// DeleteTransaction removes a transaction from the database.
 func DeleteTransaction(transactionID int64, userID int64) error {
-	_, err := GetDB().Exec("DELETE FROM transactions WHERE id=? AND user_id=?", transactionID, userID)
+	query := SQLBuilder.Delete("transactions").Where(squirrel.Eq{"id": transactionID, "user_id": userID})
+
+	_, err := query.RunWith(GetDB()).Exec()
 	if err != nil {
-		log.Println("Error deleting transaction:", err)
+		logrs.WithError(err).WithFields(logrus.Fields{
+			"transaction_id": transactionID,
+			"user_id":        userID,
+		}).Error("Delete transaction failed")
 		return err
 	}
 	return nil
 }
 
+// GetTransactionByID retrieves a single transaction from the database by its ID.
 func GetTransactionByID(transactionID int64, userID int64) (*Transaction, error) {
-	row := GetDB().QueryRow("SELECT id, user_id, source_id, category_id, timestamp, amount, type, description FROM transactions WHERE id=? AND user_id=?", transactionID, userID)
+	query := SQLBuilder.Select("id", "user_id", "source_id", "category_id", "timestamp", "amount", "type", "description").
+		From("transactions").
+		Where(squirrel.Eq{"id": transactionID, "user_id": userID})
+
+	row := query.RunWith(GetDB()).QueryRow()
 	var transaction Transaction
 	err := row.Scan(&transaction.ID, &transaction.UserID, &transaction.SourceID, &transaction.CategoryID, &transaction.Timestamp, &transaction.Amount, &transaction.Type, &transaction.Description)
 	if err != nil {
@@ -147,19 +170,73 @@ func GetTransactionByID(transactionID int64, userID int64) (*Transaction, error)
 	return &transaction, nil
 }
 
+// GetTransactionsByFilter retrieves a list of transactions from the database based on a set of filters.
 func GetTransactionsByFilter(filter TransactionFilter) ([]Transaction, error) {
-	query, args, err := ConstructQuery(filter)
+	query := SQLBuilder.Select("id", "user_id", "source_id", "category_id", "timestamp", "amount", "type", "description").
+		From("transactions").
+		Where(squirrel.Eq{"user_id": filter.UserID})
+
+	if filter.StartDate != "" {
+		query = query.Where("timestamp >= ?", filter.StartDate)
+	}
+
+	if filter.EndDate != "" {
+		query = query.Where("timestamp <= ?", filter.EndDate)
+	}
+
+	if filter.Category != "" {
+		query = query.Where("category_id = ?", filter.Category)
+	}
+
+	if filter.Type != "" {
+		query = query.Where("type = ?", filter.Type)
+	}
+
+	if filter.Description != "" {
+		query = query.Where("description LIKE ?", "%"+filter.Description+"%")
+	}
+
+	if len(filter.Tags) > 0 {
+		tagsSubQuery := SQLBuilder.Select("transaction_id").
+			From("transaction_tags").
+			Where("tag_id IN ?", filter.Tags)
+		query = query.Where("id IN ?", tagsSubQuery)
+	}
+
+	if filter.MinAmount > 0 {
+		query = query.Where("amount >= ?", filter.MinAmount)
+	}
+
+	if filter.MaxAmount > 0 {
+		query = query.Where("amount <= ?", filter.MaxAmount)
+	}
+
+	if filter.SortBy != "" {
+		order := "ASC"
+		if filter.SortOrder == SortOrderDesc {
+			order = "DESC"
+		}
+		query = query.OrderBy(filter.SortBy + " " + order)
+	}
+
+	if filter.Page > 0 && filter.ItemsPerPage > 0 {
+		offset := uint64((filter.Page - 1) * filter.ItemsPerPage)
+		query = query.Offset(offset).Limit(uint64(filter.ItemsPerPage))
+	}
+
+	sql, args, err := query.ToSql()
 	if err != nil {
+		logrs.WithError(err).Error("Constructing SQL query failed")
 		return nil, err
 	}
 
-	rows, err := GetDB().Query(query, args...)
+	rows, err := GetDB().Query(sql, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var transactions []Transaction
+	transactions := make([]Transaction, 0)
 	for rows.Next() {
 		var transaction Transaction
 		if err := rows.Scan(&transaction.ID, &transaction.UserID, &transaction.SourceID, &transaction.CategoryID, &transaction.Timestamp, &transaction.Amount, &transaction.Type, &transaction.Description); err != nil {
@@ -167,131 +244,68 @@ func GetTransactionsByFilter(filter TransactionFilter) ([]Transaction, error) {
 		}
 		transactions = append(transactions, transaction)
 	}
-
-	if len(transactions) == 0 {
-		return nil, util.ErrTransactionNotFound
+	if err = rows.Err(); err != nil {
+		return nil, err
 	}
 
-	return transactions, rows.Err()
-}
-func ConstructQuery(filter TransactionFilter) (string, []interface{}, error) {
-	var queryBuffer bytes.Buffer
-	var args []interface{}
-	var conditions []string
-
-	// Always filter by user ID
-	conditions = append(conditions, "user_id = ?")
-	args = append(args, filter.UserID)
-
-	if filter.StartDate != "" {
-		conditions = append(conditions, "timestamp >= ?")
-		args = append(args, filter.StartDate)
-	}
-
-	if filter.EndDate != "" {
-		conditions = append(conditions, "timestamp <= ?")
-		args = append(args, filter.EndDate)
-	}
-
-	if filter.Category != "" {
-		conditions = append(conditions, "category_id = ?")
-		args = append(args, filter.Category)
-	}
-
-	if filter.Type != "" {
-		conditions = append(conditions, "type = ?")
-		args = append(args, filter.Type)
-	}
-	if filter.Description != "" {
-		conditions = append(conditions, "description = ?")
-		args = append(args, filter.Type)
-	}
-
-	if len(filter.Tags) > 0 {
-		tagsPlaceholder := strings.Repeat("?,", len(filter.Tags)-1) + "?"
-		conditions = append(conditions, fmt.Sprintf("id IN (SELECT transaction_id FROM transaction_tags WHERE tag_id IN (%s))", tagsPlaceholder))
-		for _, tag := range filter.Tags {
-			args = append(args, tag)
-		}
-	}
-
-	if filter.MinAmount > 0 {
-		conditions = append(conditions, "amount >= ?")
-		args = append(args, filter.MinAmount)
-	}
-
-	if filter.MaxAmount > 0 {
-		conditions = append(conditions, "amount <= ?")
-		args = append(args, filter.MaxAmount)
-	}
-
-	// Combine all conditions with 'AND'
-	combinedConditions := strings.Join(conditions, " AND ")
-
-	// Base SQL query
-	queryBuffer.WriteString("SELECT id, user_id, source_id, category_id, timestamp, amount, type, description FROM transactions ")
-
-	if len(conditions) > 0 {
-		queryBuffer.WriteString(" WHERE ")
-		queryBuffer.WriteString(combinedConditions)
-	}
-
-	// Sort
-	if filter.SortBy != "" {
-		sortDirection := "ASC"
-		if filter.SortOrder == "DESC" {
-			sortDirection = "DESC"
-		}
-		queryBuffer.WriteString(fmt.Sprintf(" ORDER BY %s %s", filter.SortBy, sortDirection))
-	}
-
-	// Pagination
-	if filter.ItemsPerPage > 0 {
-		queryBuffer.WriteString(" LIMIT ?")
-		args = append(args, filter.ItemsPerPage)
-		if filter.Page > 1 {
-			offset := (filter.Page - 1) * filter.ItemsPerPage
-			queryBuffer.WriteString(" OFFSET ?")
-			args = append(args, offset)
-		}
-	}
-
-	return queryBuffer.String(), args, nil
+	return transactions, nil
 }
 
+// validateForeignKeyReferences checks if the foreign keys in the transaction exist.
 func validateForeignKeyReferences(transaction Transaction) error {
 	userExists, userErr := UserIDExists(transaction.UserID)
 	sourceExists, sourceErr := SourceIDExists(transaction.SourceID, transaction.UserID)
 	categoryExists, categoryErr := CategoryIDExists(transaction.CategoryID, transaction.UserID)
 
-	if userErr != nil || sourceErr != nil || categoryErr != nil {
-		return errors.New("error checking foreign key references")
+	// Log and return an error if there was a problem checking any reference
+	if userErr != nil {
+		logrs.WithError(userErr).WithField("user_id", transaction.UserID).Error("Error checking if user exists")
+		return userErr
+	}
+	if sourceErr != nil {
+		logrs.WithError(sourceErr).WithField("source_id", transaction.SourceID).Error("Error checking if source exists")
+		return sourceErr
+	}
+	if categoryErr != nil {
+		logrs.WithError(categoryErr).WithField("category_id", transaction.CategoryID).Error("Error checking if category exists")
+		return categoryErr
 	}
 
+	// If any of the references do not exist, log and return an error
 	if !userExists || !sourceExists || !categoryExists {
+		logrs.WithFields(logrus.Fields{
+			"user_exists":     userExists,
+			"source_exists":   sourceExists,
+			"category_exists": categoryExists,
+		}).Error("Invalid foreign key references")
 		return errors.New("invalid foreign key references")
 	}
 
 	return nil
 }
 
+// addMissingTags ensures that all tags are present in the database and associates them with the user.
 func addMissingTags(tags []string, userID int64, tx ...*sql.Tx) error {
 	isExternalTx, txInstance, err := GetTransaction(tx...)
 	if err != nil {
+		logrs.WithError(err).Error("Error obtaining transaction for adding tags")
 		return err
 	}
 
 	// Handle tags
 	for _, tagName := range tags {
-		// Check if the tag exists in the `tags` table
-		tag, err := GetTagByName(tagName, userID, txInstance)
-
+		tag, _ := GetTagByName(tagName, userID, txInstance)
 		if tag == nil {
+			// The tag does not exist, so create it
 			var nTag Tag
 			nTag.Name = tagName
 			nTag.UserID = userID
 			err = InsertTag(&nTag, txInstance)
 			if err != nil {
+				logrs.WithError(err).WithFields(logrus.Fields{
+					"tag":     tagName,
+					"user_id": userID,
+				}).Error("Error inserting new tag")
 				if !isExternalTx {
 					txInstance.Rollback()
 				}
@@ -300,8 +314,13 @@ func addMissingTags(tags []string, userID int64, tx ...*sql.Tx) error {
 		}
 	}
 
+	// Only commit if this function created the transaction
 	if !isExternalTx {
-		return txInstance.Commit()
+		err = txInstance.Commit()
+		if err != nil {
+			logrs.WithError(err).Error("Error committing transaction for adding tags")
+			return err
+		}
 	}
 
 	return nil

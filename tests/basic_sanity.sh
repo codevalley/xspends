@@ -56,10 +56,12 @@ if [ -z "$SKIP_SOURCES" ]; then
                "icon": "shopping-cart"
           }')
      categoryID=$(echo $response | jq -r .id)
+     echo $response
 fi
+
 # Create a transaction
 echo -e "\n\nCreating a transaction... source: $sourceID,category: $categoryID"
-curl -X POST "$MINIKUBE_URL/transactions" \
+response=$(curl -X POST "$MINIKUBE_URL/transactions" \
      -H "Content-Type: application/json" \
      -H "Authorization: Bearer $token" \
      -d '{
@@ -68,16 +70,20 @@ curl -X POST "$MINIKUBE_URL/transactions" \
           "description": "My transaction",
           "source_id": '"$sourceID"',
           "category_id": '"$categoryID"'
-         }'
-     txnID=$(echo $response | jq -r .id)
+         }')
+echo $response
+
 # Fetch transactions
 echo -e "\n\nFetching transactions..."
-curl -X GET "$MINIKUBE_URL/transactions" \
-     -H "Authorization: Bearer $token"
-
-# Update a transaction (assuming transaction ID is 1 for simplicity)
+response=$(curl -X GET "$MINIKUBE_URL/transactions" \
+     -H "Authorization: Bearer $token")
+txnID=$(echo $response | jq -r '.[0].id')
+echo $txnID
+# Update a transaction
 echo -e "\n\nUpdating a transaction..."
-curl -X PUT "$MINIKUBE_URL/transactions/484552817248305200" \
+
+
+curl -X PUT "$MINIKUBE_URL/transactions/$txnID" \
      -H "Content-Type: application/json" \
      -H "Authorization: Bearer $token" \
      -d '{
@@ -91,7 +97,7 @@ curl -X PUT "$MINIKUBE_URL/transactions/484552817248305200" \
 
 # Get transaction
 echo -e "\n\nFetching transactions..."
-curl -X GET "$MINIKUBE_URL/transactions/484552817248305200" \
+curl -X GET "$MINIKUBE_URL/transactions/$txnID" \
      -H "Authorization: Bearer $token"
 
 echo -e "\n\nDone testing."
