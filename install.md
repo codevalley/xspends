@@ -32,9 +32,29 @@ Ensure you have the following tools installed:
    kubectl create namespace tidb-cluster
    helm install tidb-operator pingcap/tidb-operator --version v1.5.1 --namespace tidb-cluster
    kubectl create -f https://raw.githubusercontent.com/pingcap/tidb-operator/v1.5.1/manifests/crd.yaml
-   helm install tidb-cluster pingcap/tidb-cluster --version v1.5.1 -f values-tidb.yaml --namespace tidb-cluster
+   helm install tidb-cluster pingcap/tidb-cluster --version v1.5.1 -f deployments\values-tidb.yaml --namespace tidb-cluster
    ```
-
+   **Make sure the clusters are running (it will take a few minutes)**:
+   
+   ```bash
+   kubectl get pods --namespace tidb-cluster -l app.kubernetes.io/instance=tidb-cluster
+   The output will look something like this in the beginning
+   ```bash
+   tidb-cluster-pd-0                         0/1     ContainerCreating
+   tidb-cluster-pd-1                         0/1     ContainerCreating
+   ...
+   ```
+   Should change to something like this...
+   ```bash
+   tidb-cluster-pd-0                         1/1     Running   0          27m
+   tidb-cluster-pd-1                         1/1     Running   0          27m
+   tidb-cluster-pd-2                         1/1     Running   0          27m
+   tidb-cluster-tidb-0                       2/2     Running   0          25m
+   tidb-cluster-tidb-1                       2/2     Running   0          25m
+   tidb-cluster-tikv-0                       1/1     Running   0          26m
+   tidb-cluster-tikv-1                       1/1     Running   0          26m
+   tidb-cluster-tikv-2                       1/1     Running   0          26m
+   ```
    **Check DB cluster status and troubleshoot if needed**:
    ```bash
    kubectl get pods --namespace tidb-cluster -l app.kubernetes.io/instance=tidb-cluster
