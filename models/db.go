@@ -9,13 +9,10 @@ import (
 	"time"
 
 	"github.com/Masterminds/squirrel"
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/sirupsen/logrus"
 )
 
 var DB *sql.DB
 var SQLBuilder squirrel.StatementBuilderType
-var logrs = logrus.New()
 
 func GetQueryBuilder() *squirrel.StatementBuilderType {
 	return &SQLBuilder
