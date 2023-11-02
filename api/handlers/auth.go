@@ -38,9 +38,9 @@ func Register(c *gin.Context) {
 	}
 
 	// Check if username or email already exists
-	exists, err := models.UserExists(newUser.Username, newUser.Email)
+	exists, err := models.UserExists(c, newUser.Username, newUser.Email)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error checking user existence"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	if exists {
@@ -57,7 +57,7 @@ func Register(c *gin.Context) {
 
 	// ID generation is now handled in the model, so we can safely remove the UUID generation here
 
-	err = models.InsertUser(&newUser)
+	err = models.InsertUser(c, &newUser)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error inserting user into database"})
 		return
@@ -73,7 +73,7 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	user, err := models.GetUserByUsername(creds.Username)
+	user, err := models.GetUserByUsername(c, creds.Username)
 	if err != nil {
 		if err == models.ErrUserNotFound {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user"})

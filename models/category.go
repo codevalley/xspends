@@ -1,12 +1,13 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"time"
 	"xspends/util"
 
 	"github.com/Masterminds/squirrel"
-	"github.com/sirupsen/logrus"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -25,16 +26,15 @@ type Category struct {
 }
 
 // InsertCategory inserts a new category into the database.
-func InsertCategory(category *Category) error {
+func InsertCategory(ctx context.Context, category *Category) error {
 	if category.UserID <= 0 || len(category.Name) == 0 || len(category.Name) > maxCategoryNameLength || len(category.Description) > maxCategoryDescriptionLength {
-		return util.ErrInvalidInput
+		return errors.New("invalid input: user ID must be positive, name must not be empty or exceed max length, description must not exceed max length")
 	}
 
 	var err error
 	category.ID, err = util.GenerateSnowflakeID()
 	if err != nil {
-		logrs.WithError(err).Error("Generating Snowflake ID failed")
-		return util.ErrDatabase
+		return errors.Wrap(err, "generating Snowflake ID failed")
 	}
 	category.CreatedAt = time.Now()
 	category.UpdatedAt = time.Now()
@@ -44,22 +44,20 @@ func InsertCategory(category *Category) error {
 		Values(category.ID, category.UserID, category.Name, category.Description, category.Icon, category.CreatedAt, category.UpdatedAt).
 		ToSql()
 	if err != nil {
-		logrs.WithError(err).Error("Preparing insert statement failed")
-		return util.ErrDatabase
+		return errors.Wrap(err, "preparing insert statement failed")
 	}
 
-	if _, err := GetDB().Exec(query, args...); err != nil {
-		logrs.WithError(err).WithField("category", category).Error("Executing insert statement failed")
-		return util.ErrDatabase
+	if _, err := GetDB().ExecContext(ctx, query, args...); err != nil {
+		return errors.Wrap(err, "executing insert statement failed")
 	}
 
 	return nil
 }
 
 // UpdateCategory updates an existing category in the database.
-func UpdateCategory(category *Category) error {
+func UpdateCategory(ctx context.Context, category *Category) error {
 	if category.UserID <= 0 || len(category.Name) == 0 || len(category.Name) > maxCategoryNameLength || len(category.Description) > maxCategoryDescriptionLength {
-		return util.ErrInvalidInput
+		return errors.New("invalid input: user ID must be positive, name must not be empty or exceed max length, description must not exceed max length")
 	}
 
 	category.UpdatedAt = time.Now()
@@ -72,51 +70,45 @@ func UpdateCategory(category *Category) error {
 		Where(squirrel.Eq{"id": category.ID, "user_id": category.UserID}).
 		ToSql()
 	if err != nil {
-		logrs.WithError(err).Error("Preparing update statement failed")
-		return util.ErrDatabase
+		return errors.Wrap(err, "preparing update statement failed")
 	}
 
-	if _, err := GetDB().Exec(query, args...); err != nil {
-		logrs.WithError(err).WithField("category", category).Error("Executing update statement failed")
-		return util.ErrDatabase
+	if _, err := GetDB().ExecContext(ctx, query, args...); err != nil {
+		return errors.Wrap(err, "executing update statement failed")
 	}
 
 	return nil
 }
 
 // DeleteCategory deletes a category from the database.
-func DeleteCategory(categoryID int64, userID int64) error {
+func DeleteCategory(ctx context.Context, categoryID int64, userID int64) error {
 	query, args, err := SQLBuilder.Delete("categories").
 		Where(squirrel.Eq{"id": categoryID, "user_id": userID}).
 		ToSql()
 	if err != nil {
-		logrs.WithError(err).Error("Preparing delete statement failed")
-		return util.ErrDatabase
+		return errors.Wrap(err, "preparing delete statement failed")
 	}
 
-	if _, err := GetDB().Exec(query, args...); err != nil {
-		logrs.WithError(err).WithField("categoryID", categoryID).Error("Executing delete statement failed")
-		return util.ErrDatabase
+	if _, err := GetDB().ExecContext(ctx, query, args...); err != nil {
+		return errors.Wrap(err, "executing delete statement failed")
 	}
 
 	return nil
 }
 
 // GetAllCategories retrieves all categories for a user from the database.
-func GetAllCategories(userID int64) ([]Category, error) {
+func GetAllCategories(ctx context.Context, userID int64) ([]Category, error) {
 	query, args, err := SQLBuilder.Select("id", "user_id", "name", "description", "icon", "created_at", "updated_at").
 		From("categories").
 		Where(squirrel.Eq{"user_id": userID}).
 		ToSql()
 	if err != nil {
-		logrs.WithError(err).Error("Preparing select statement for all categories failed")
-		return nil, util.ErrDatabase
+		return nil, errors.Wrap(err, "preparing select statement for all categories failed")
 	}
 
-	rows, err := GetDB().Query(query, args...)
+	rows, err := GetDB().QueryContext(ctx, query, args...)
 	if err != nil {
-		logrs.WithError(err).Error("Querying categories failed")
-		return nil, util.ErrDatabase
+		return nil, errors.Wrap(err, "querying categories failed")
 	}
 	defer rows.Close()
 
@@ -124,8 +116,7 @@ func GetAllCategories(userID int64) ([]Category, error) {
 	for rows.Next() {
 		var category Category
 		if err := rows.Scan(&category.ID, &category.UserID, &category.Name, &category.Description, &category.Icon, &category.CreatedAt, &category.UpdatedAt); err != nil {
-			logrs.WithError(err).Error("Scanning category row failed")
-			return nil, util.ErrDatabase
+			return nil, errors.Wrap(err, "scanning category row failed")
 		}
 		categories = append(categories, category)
 	}
@@ -134,31 +125,29 @@ func GetAllCategories(userID int64) ([]Category, error) {
 }
 
 // GetCategoryByID retrieves a category by its ID for a user from the database.
-func GetCategoryByID(categoryID int64, userID int64) (*Category, error) {
+func GetCategoryByID(ctx context.Context, categoryID int64, userID int64) (*Category, error) {
 	query, args, err := SQLBuilder.Select("id", "user_id", "name", "description", "icon", "created_at", "updated_at").
 		From("categories").
 		Where(squirrel.Eq{"id": categoryID, "user_id": userID}).
 		ToSql()
 	if err != nil {
-		logrs.WithError(err).Error("Preparing select statement for a category by ID failed")
-		return nil, util.ErrDatabase
+		return nil, errors.Wrap(err, "preparing select statement for a category by ID failed")
 	}
 
 	var category Category
-	err = GetDB().QueryRow(query, args...).Scan(&category.ID, &category.UserID, &category.Name, &category.Description, &category.Icon, &category.CreatedAt, &category.UpdatedAt)
+	err = GetDB().QueryRowContext(ctx, query, args...).Scan(&category.ID, &category.UserID, &category.Name, &category.Description, &category.Icon, &category.CreatedAt, &category.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-		logrs.WithError(err).WithField("categoryID", categoryID).Error("Querying category by ID failed")
-		return nil, util.ErrDatabase
+		return nil, errors.Wrap(err, "querying category by ID failed")
 	}
 
 	return &category, nil
 }
 
 // GetPagedCategories retrieves a paginated list of categories for a user from the database.
-func GetPagedCategories(page int, itemsPerPage int, userID int64) ([]Category, error) {
+func GetPagedCategories(ctx context.Context, page int, itemsPerPage int, userID int64) ([]Category, error) {
 	offset := (page - 1) * itemsPerPage
 
 	query, args, err := SQLBuilder.Select("id", "user_id", "name", "description", "icon", "created_at", "updated_at").
@@ -168,14 +157,12 @@ func GetPagedCategories(page int, itemsPerPage int, userID int64) ([]Category, e
 		Offset(uint64(offset)).
 		ToSql()
 	if err != nil {
-		logrs.WithError(err).Error("Preparing paginated select statement for categories failed")
-		return nil, util.ErrDatabase
+		return nil, errors.Wrap(err, "preparing paginated select statement for categories failed")
 	}
 
-	rows, err := GetDB().Query(query, args...)
+	rows, err := GetDB().QueryContext(ctx, query, args...)
 	if err != nil {
-		logrs.WithError(err).Error("Querying paginated categories failed")
-		return nil, util.ErrDatabase
+		return nil, errors.Wrap(err, "querying paginated categories failed")
 	}
 	defer rows.Close()
 
@@ -183,8 +170,7 @@ func GetPagedCategories(page int, itemsPerPage int, userID int64) ([]Category, e
 	for rows.Next() {
 		var category Category
 		if err := rows.Scan(&category.ID, &category.UserID, &category.Name, &category.Description, &category.Icon, &category.CreatedAt, &category.UpdatedAt); err != nil {
-			logrs.WithError(err).Error("Scanning paginated category row failed")
-			return nil, util.ErrDatabase
+			return nil, errors.Wrap(err, "scanning paginated category row failed")
 		}
 		categories = append(categories, category)
 	}
@@ -193,28 +179,23 @@ func GetPagedCategories(page int, itemsPerPage int, userID int64) ([]Category, e
 }
 
 // CategoryIDExists checks if a category with the given ID exists in the database.
-func CategoryIDExists(categoryID int64, userID int64) (bool, error) {
+func CategoryIDExists(ctx context.Context, categoryID int64, userID int64) (bool, error) {
 	query, args, err := SQLBuilder.Select("1").
 		From("categories").
 		Where(squirrel.Eq{"id": categoryID, "user_id": userID}).
 		Limit(1).
 		ToSql()
 	if err != nil {
-		logrs.WithError(err).Error("Preparing statement to check category existence failed")
-		return false, util.ErrDatabase
+		return false, errors.Wrap(err, "preparing statement to check category existence failed")
 	}
 
 	var exists int
-	err = GetDB().QueryRow(query, args...).Scan(&exists)
+	err = GetDB().QueryRowContext(ctx, query, args...).Scan(&exists)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return false, nil
 		}
-		logrs.WithError(err).WithFields(logrus.Fields{
-			"categoryID": categoryID,
-			"userID":     userID,
-		}).Error("Checking category existence failed")
-		return false, util.ErrDatabase
+		return false, errors.Wrap(err, "checking category existence failed")
 	}
 	return exists == 1, nil
 }

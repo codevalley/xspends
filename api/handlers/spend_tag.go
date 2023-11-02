@@ -18,7 +18,7 @@ func ListTags(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", strconv.Itoa(defaultLimit)))
 	offset, _ := strconv.Atoi(c.Query("offset"))
 
-	tags, err := models.GetAllTags(userID, models.PaginationParams{Limit: limit, Offset: offset})
+	tags, err := models.GetAllTags(c, userID, models.PaginationParams{Limit: limit, Offset: offset})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch tags"})
 		return
@@ -42,7 +42,7 @@ func GetTag(c *gin.Context) {
 		return
 	}
 
-	tag, err := models.GetTagByID(tagID, userID)
+	tag, err := models.GetTagByID(c, tagID, userID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "tag not found"})
 		return
@@ -59,7 +59,7 @@ func CreateTag(c *gin.Context) {
 		return
 	}
 	newTag.UserID = userID
-	if err := models.InsertTag(&newTag); err != nil {
+	if err := models.InsertTag(c, &newTag); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create tag"})
 		return
 	}
@@ -75,7 +75,7 @@ func UpdateTag(c *gin.Context) {
 		return
 	}
 	updatedTag.UserID = userID
-	if err := models.UpdateTag(&updatedTag); err != nil {
+	if err := models.UpdateTag(c, &updatedTag); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update tag"})
 		return
 	}
@@ -92,7 +92,7 @@ func DeleteTag(c *gin.Context) {
 		return
 	}
 
-	if err := models.DeleteTag(tagID, userID); err != nil {
+	if err := models.DeleteTag(c, tagID, userID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete tag"})
 		return
 	}

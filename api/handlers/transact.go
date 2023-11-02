@@ -21,7 +21,7 @@ func CreateTransaction(c *gin.Context) {
 		return
 	}
 	newTransaction.UserID = userID
-	if err := models.InsertTransaction(newTransaction); err != nil {
+	if err := models.InsertTransaction(c, newTransaction); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create transaction"})
 		log.Println(err.Error())
 		return
@@ -39,7 +39,7 @@ func GetTransaction(c *gin.Context) {
 	}
 	userID := c.MustGet("userID").(int64)
 
-	transaction, err := models.GetTransactionByID(transactionID, userID)
+	transaction, err := models.GetTransactionByID(c, transactionID, userID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "transaction not found"})
 		return
@@ -70,7 +70,7 @@ func UpdateTransaction(c *gin.Context) {
 	}
 	uTxn.UserID = userID
 	uTxn.ID = transactionID
-	oTxn, err := models.GetTransactionByID(transactionID, userID)
+	oTxn, err := models.GetTransactionByID(c, transactionID, userID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "unable to find transaction:"})
 		return
@@ -93,7 +93,7 @@ func UpdateTransaction(c *gin.Context) {
 	if uTxn.CategoryID != 0 {
 		oTxn.CategoryID = uTxn.CategoryID
 	}
-	if err := models.UpdateTransaction(*oTxn); err != nil {
+	if err := models.UpdateTransaction(c, *oTxn); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update transaction:" + err.Error()})
 		log.Print(uTxn)
 		return
@@ -109,7 +109,7 @@ func DeleteTransaction(c *gin.Context) {
 		return
 	}
 	userID := c.MustGet("userID").(int64)
-	if err := models.DeleteTransaction(transactionID, userID); err != nil {
+	if err := models.DeleteTransaction(c, transactionID, userID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "user not authenticated"})
 		return
 	}
@@ -137,7 +137,7 @@ func ListTransactions(c *gin.Context) {
 		ItemsPerPage: util.GetIntFromQuery(c, "items_per_page", 10), // defaulting to 10 items per page
 	}
 
-	transactions, err := models.GetTransactionsByFilter(filter)
+	transactions, err := models.GetTransactionsByFilter(c, filter)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch transactions"})
 		return

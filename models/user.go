@@ -1,13 +1,15 @@
 package models
 
 import (
+	"context"
 	"database/sql"
-	"errors"
+
 	"strings"
 	"time"
 	"xspends/util"
 
 	"github.com/Masterminds/squirrel"
+	"github.com/pkg/errors"
 )
 
 type User struct {
@@ -27,83 +29,128 @@ var (
 	ErrUsernameTaken = errors.New("username already exists")
 )
 
-func InsertUser(user *User) error {
+func InsertUser(ctx context.Context, user *User, otx ...*sql.Tx) error {
+	isExternalTx, tx, err := GetTransaction(otx...)
+	if err != nil {
+		return errors.Wrap(err, "error getting transaction")
+	}
+
 	if user.Username == "" || user.Email == "" || user.Password == "" {
 		return errors.New("mandatory fields missing")
 	}
 
-	var err error
 	user.ID, err = util.GenerateSnowflakeID()
 	if err != nil {
-		logrs.WithError(err).Error("Generating Snowflake ID failed")
-		return util.ErrDatabase // or a more specific error like ErrGeneratingID
+		return errors.Wrap(err, "generating Snowflake ID failed")
 	}
 	user.CreatedAt, user.UpdatedAt = time.Now(), time.Now()
 
-	query := SQLBuilder.Insert("users").
+	sqlquery, args, err := squirrel.Insert("users").
 		Columns("id", "username", "name", "email", "currency", "password", "created_at", "updated_at").
-		Values(user.ID, user.Username, user.Name, user.Email, user.Currency, user.Password, user.CreatedAt, user.UpdatedAt)
+		Values(user.ID, user.Username, user.Name, user.Email, user.Currency, user.Password, user.CreatedAt, user.UpdatedAt).
+		RunWith(tx).PlaceholderFormat(squirrel.Question).
+		ToSql()
 
-	_, err = query.RunWith(GetDB()).Exec()
+	if err != nil {
+		return errors.Wrap(err, "building SQL query for InsertUser failed")
+	}
+
+	_, err = tx.ExecContext(ctx, sqlquery, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate") {
 			if strings.Contains(err.Error(), "username") {
-				logrs.WithError(err).Error("Username taken")
 				return ErrUsernameTaken
 			}
 			if strings.Contains(err.Error(), "email") {
-				logrs.WithError(err).Error("Email exists")
 				return ErrEmailExists
 			}
 		}
-		logrs.WithError(err).Error("Inserting user failed")
-		return err
+		return errors.Wrap(err, "inserting user failed")
 	}
-
-	logrs.Infof("User %s inserted successfully", user.Username)
+	if !isExternalTx {
+		err = tx.Commit()
+		if err != nil {
+			return errors.Wrap(err, "committing transaction failed")
+		}
+	}
 	return nil
 }
 
-func GetUserByID(id int64) (*User, error) {
-	user := &User{}
-	query := SQLBuilder.Select("id", "username", "name", "email", "currency", "password").From("users").Where(squirrel.Eq{"id": id})
-
-	err := query.RunWith(GetDB()).QueryRow().Scan(&user.ID, &user.Username, &user.Name, &user.Email, &user.Currency, &user.Password)
+func GetUserByID(ctx context.Context, id int64, otx ...*sql.Tx) (*User, error) {
+	isExternalTx, tx, err := GetTransaction(otx...)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			logrs.WithError(err).Warn("User not found by ID")
-			return nil, ErrUserNotFound
-		}
-		logrs.WithError(err).Error("Retrieving user by ID failed")
-		return nil, err
+		return nil, errors.Wrap(err, "error getting transaction")
+	}
+	sqlquery, args, err := squirrel.Select("id", "username", "name", "email", "currency", "password").
+		From("users").
+		Where(squirrel.Eq{"id": id}).
+		RunWith(tx).PlaceholderFormat(squirrel.Question).
+		ToSql()
+
+	if err != nil {
+		return nil, errors.Wrap(err, "building SQL query for GetUserByID failed")
 	}
 
+	row := tx.QueryRowContext(ctx, sqlquery, args...)
+	user := &User{}
+	err = row.Scan(&user.ID, &user.Username, &user.Name, &user.Email, &user.Currency, &user.Password)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrUserNotFound
+		}
+		return nil, errors.Wrap(err, "retrieving user by ID failed")
+	}
+	if !isExternalTx {
+		err = tx.Commit()
+		if err != nil {
+			return nil, errors.Wrap(err, "committing transaction failed")
+		}
+	}
 	return user, nil
 }
 
-// GetUserByUsername retrieves a user by their username.
-func GetUserByUsername(username string) (*User, error) {
-	user := &User{}
-
-	query := SQLBuilder.Select("id", "username", "name", "email", "currency", "password").From("users").Where(squirrel.Eq{"username": username})
-	err := query.RunWith(GetDB()).QueryRow().Scan(&user.ID, &user.Username, &user.Name, &user.Email, &user.Currency, &user.Password)
+func GetUserByUsername(ctx context.Context, username string, otx ...*sql.Tx) (*User, error) {
+	isExternalTx, tx, err := GetTransaction(otx...)
+	if err != nil {
+		return nil, errors.Wrap(err, "error getting transaction")
+	}
+	sqlquery, args, err := squirrel.Select("id", "username", "name", "email", "currency", "password").
+		From("users").
+		Where(squirrel.Eq{"username": username}).
+		RunWith(tx).PlaceholderFormat(squirrel.Question).
+		ToSql()
 
 	if err != nil {
-		if err == sql.ErrNoRows {
-			logrs.WithField("username", username).Warn("User not found by username")
-			return nil, ErrUserNotFound
-		}
-		logrs.WithError(err).Error("Retrieving user by username failed")
-		return nil, err
+		return nil, errors.Wrap(err, "building SQL query for GetUserByUsername failed")
 	}
 
+	row := tx.QueryRowContext(ctx, sqlquery, args...)
+	user := &User{}
+	err = row.Scan(&user.ID, &user.Username, &user.Name, &user.Email, &user.Currency, &user.Password)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrUserNotFound
+		}
+		return nil, errors.Wrap(err, "retrieving user by username failed")
+	}
+	if !isExternalTx {
+		err = tx.Commit()
+		if err != nil {
+			return nil, errors.Wrap(err, "committing transaction failed")
+		}
+	}
 	return user, nil
 }
 
-func UpdateUser(user *User) error {
+func UpdateUser(ctx context.Context, user *User, otx ...*sql.Tx) error {
+	isExternalTx, tx, err := GetTransaction(otx...)
+	if err != nil {
+		return errors.Wrap(err, "error getting transaction")
+	}
+
 	user.UpdatedAt = time.Now()
 
-	query := SQLBuilder.Update("users").
+	sql, args, err := squirrel.Update("users").
 		SetMap(map[string]interface{}{
 			"username":   user.Username,
 			"name":       user.Name,
@@ -112,9 +159,15 @@ func UpdateUser(user *User) error {
 			"password":   user.Password,
 			"updated_at": user.UpdatedAt,
 		}).
-		Where(squirrel.Eq{"id": user.ID})
+		Where(squirrel.Eq{"id": user.ID}).
+		RunWith(tx).PlaceholderFormat(squirrel.Question).
+		ToSql()
 
-	result, err := query.RunWith(GetDB()).Exec()
+	if err != nil {
+		return errors.Wrap(err, "building SQL query for UpdateUser failed")
+	}
+
+	_, err = tx.ExecContext(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate") {
 			if strings.Contains(err.Error(), "username") {
@@ -124,81 +177,107 @@ func UpdateUser(user *User) error {
 				return ErrEmailExists
 			}
 		}
-		logrs.WithError(err).Error("Updating user failed")
-		return err
+		return errors.Wrap(err, "updating user failed")
 	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		logrs.WithError(err).Error("Fetching rows affected after updating user failed")
-		return err
+	if !isExternalTx {
+		err = tx.Commit()
+		if err != nil {
+			return errors.Wrap(err, "committing transaction failed")
+		}
 	}
-	if rowsAffected == 0 {
-		logrs.Warn("No user found to update")
-		return ErrUserNotFound
-	}
-
 	return nil
 }
 
-// DeleteUser deletes a user with the specified ID.
-func DeleteUser(id int64) error {
-	query := SQLBuilder.Delete("users").Where(squirrel.Eq{"id": id})
-	result, err := query.RunWith(GetDB()).Exec()
+func DeleteUser(ctx context.Context, id int64, otx ...*sql.Tx) error {
+
+	isExternalTx, tx, err := GetTransaction(otx...)
+	if err != nil {
+		return errors.Wrap(err, "error getting transaction")
+	}
+
+	sql, args, err := squirrel.Delete("users").
+		Where(squirrel.Eq{"id": id}).
+		RunWith(tx).PlaceholderFormat(squirrel.Question).
+		ToSql()
 
 	if err != nil {
-		logrs.WithError(err).Error("Deleting user failed")
-		return err
+		return errors.Wrap(err, "building SQL query for DeleteUser failed")
 	}
 
-	rowsAffected, err := result.RowsAffected()
+	_, err = tx.ExecContext(ctx, sql, args...)
 	if err != nil {
-		logrs.WithError(err).Error("Fetching rows affected after deleting user failed")
-		return err
+		return errors.Wrap(err, "deleting user failed")
 	}
-
-	if rowsAffected == 0 {
-		logrs.Warn("No user found to delete")
-		return ErrUserNotFound
+	if !isExternalTx {
+		err = tx.Commit()
+		if err != nil {
+			return errors.Wrap(err, "committing transaction failed")
+		}
 	}
-
 	return nil
 }
 
-// UserExists checks if a user with the given username or email exists.
-func UserExists(username, email string) (bool, error) {
+func UserExists(ctx context.Context, username, email string, otx ...*sql.Tx) (bool, error) {
+	isExternalTx, tx, err := GetTransaction(otx...)
+	if err != nil {
+		return false, errors.Wrap(err, "error getting transaction")
+	}
+
 	var exists bool
 
-	query := SQLBuilder.Select("1").From("users").Where(squirrel.Or{
+	sqlquery, args, err := squirrel.Select("1").From("users").Where(squirrel.Or{
 		squirrel.Eq{"username": username},
 		squirrel.Eq{"email": email},
-	})
-	err := query.RunWith(GetDB()).QueryRow().Scan(&exists)
+	}).RunWith(tx).PlaceholderFormat(squirrel.Question).ToSql()
 
+	if err != nil {
+		return false, errors.Wrap(err, "building SQL query for UserExists failed")
+	}
+
+	err = tx.QueryRowContext(ctx, sqlquery, args...).Scan(&exists)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return false, nil
 		}
-		logrs.WithError(err).Error("Checking if user exists failed")
-		return false, err
+		return false, errors.Wrap(err, "checking if user exists failed")
 	}
-
+	if !isExternalTx {
+		err = tx.Commit()
+		if err != nil {
+			return false, errors.Wrap(err, "committing transaction failed")
+		}
+	}
 	return exists, nil
 }
 
-// UserIDExists checks if a user with the given userID exists.
-func UserIDExists(userID int64) (bool, error) {
+func UserIDExists(ctx context.Context, id int64, otx ...*sql.Tx) (bool, error) {
+
+	isExternalTx, tx, err := GetTransaction(otx...)
+	if err != nil {
+		return false, errors.Wrap(err, "error getting transaction")
+	}
 	var exists bool
 
-	query := SQLBuilder.Select("1").From("users").Where(squirrel.Eq{"id": userID})
-	err := query.RunWith(GetDB()).QueryRow().Scan(&exists)
+	sqlquery, args, err := squirrel.Select("1").From("users").Where(squirrel.Eq{"id": id}).
+		RunWith(tx).PlaceholderFormat(squirrel.Question).ToSql()
 
+	if err != nil {
+		return false, errors.Wrap(err, "building SQL query for UserIDExists failed")
+	}
+
+	err = tx.QueryRowContext(ctx, sqlquery, args...).Scan(&exists)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return false, nil
 		}
-		logrs.WithError(err).Error("Checking if user ID exists failed")
-		return false, err
+		return false, errors.Wrap(err, "checking if user ID exists failed")
+	}
+
+	if !isExternalTx {
+		err = tx.Commit()
+		if err != nil {
+			return false, errors.Wrap(err, "committing transaction failed")
+		}
 	}
 
 	return exists, nil

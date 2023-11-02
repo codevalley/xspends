@@ -1,14 +1,15 @@
 package models
 
 import (
+	"context"
 	"database/sql"
-	"errors"
+
 	"time"
 
 	"xspends/util"
 
 	"github.com/Masterminds/squirrel"
-	"github.com/sirupsen/logrus"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -47,64 +48,65 @@ type TransactionFilter struct {
 }
 
 // InsertTransaction inserts a new transaction into the database.
-func InsertTransaction(txn Transaction, otx ...*sql.Tx) error {
+func InsertTransaction(ctx context.Context, txn Transaction, otx ...*sql.Tx) error {
 	isExternalTx, tx, err := GetTransaction(otx...)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error getting transaction")
 	}
 
 	txn.ID, err = util.GenerateSnowflakeID()
 	if err != nil {
-		logrs.WithError(err).Error("Generating Snowflake ID failed")
-		return util.ErrDatabase // or a more specific error like ErrGeneratingID
+		return errors.Wrap(err, "generating Snowflake ID failed")
 	}
 
-	err = validateForeignKeyReferences(txn)
+	err = validateForeignKeyReferences(ctx, txn, tx)
 	if err != nil {
 		tx.Rollback()
-		return err
+		return errors.Wrap(err, "validating foreign key references failed")
 	}
 
 	query := SQLBuilder.Insert("transactions").
 		Columns("id", "user_id", "source_id", "category_id", "amount", "type", "description").
 		Values(txn.ID, txn.UserID, txn.SourceID, txn.CategoryID, txn.Amount, txn.Type, txn.Description)
 
-	_, err = query.RunWith(tx).Exec()
+	_, err = query.RunWith(tx).ExecContext(ctx)
 	if err != nil {
 		tx.Rollback()
-		logrs.WithError(err).Error("Insert transaction failed")
-		return err
+		return errors.Wrap(err, "insert transaction failed")
 	}
 
-	err = addMissingTags(txn.Tags, txn.UserID, tx)
+	err = addMissingTags(ctx, txn.Tags, txn.UserID, tx)
 	if err != nil {
 		tx.Rollback()
-		return err
+		return errors.Wrap(err, "adding missing tags failed")
 	}
 
-	err = AddTagsToTransaction(txn.ID, txn.Tags, txn.UserID, tx)
+	err = AddTagsToTransaction(ctx, txn.ID, txn.Tags, txn.UserID, tx)
 	if err != nil {
 		tx.Rollback()
-		return err
+		return errors.Wrap(err, "adding tags to transaction failed")
 	}
 
 	if !isExternalTx {
-		return tx.Commit()
+		err = tx.Commit()
+		if err != nil {
+			return errors.Wrap(err, "committing transaction failed")
+		}
 	}
 	return nil
 }
 
 // UpdateTransaction updates an existing transaction in the database.
-func UpdateTransaction(txn Transaction, otx ...*sql.Tx) error {
+func UpdateTransaction(ctx context.Context, txn Transaction, otx ...*sql.Tx) error {
 	isExternalTx, tx, err := GetTransaction(otx...)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error getting transaction")
 	}
 
-	err = validateForeignKeyReferences(txn)
+	err = validateForeignKeyReferences(ctx, txn, tx)
 	if err != nil {
 		tx.Rollback()
-		return err
+		return errors.Wrap(err, "validating foreign key references failed")
 	}
 
 	query := SQLBuilder.Update("transactions").
@@ -115,63 +117,61 @@ func UpdateTransaction(txn Transaction, otx ...*sql.Tx) error {
 		Set("description", txn.Description).
 		Where(squirrel.Eq{"id": txn.ID, "user_id": txn.UserID})
 
-	_, err = query.RunWith(tx).Exec()
+	_, err = query.RunWith(tx).ExecContext(ctx)
 	if err != nil {
 		tx.Rollback()
-		logrs.WithError(err).WithField("transaction_id", txn.ID).Error("Update transaction failed")
-		return err
+		return errors.Wrap(err, "update transaction failed")
 	}
 
-	err = addMissingTags(txn.Tags, txn.UserID, tx)
+	err = addMissingTags(ctx, txn.Tags, txn.UserID, tx)
 	if err != nil {
 		tx.Rollback()
-		return err
+		return errors.Wrap(err, "adding missing tags failed")
 	}
 
-	err = UpdateTagsForTransaction(txn.ID, txn.Tags, txn.UserID, tx)
+	err = UpdateTagsForTransaction(ctx, txn.ID, txn.Tags, txn.UserID, tx)
 	if err != nil {
 		tx.Rollback()
-		return err
+		return errors.Wrap(err, "updating tags for transaction failed")
 	}
 
 	if !isExternalTx {
-		return tx.Commit()
+		err = tx.Commit()
+		if err != nil {
+			return errors.Wrap(err, "committing transaction failed")
+		}
 	}
 	return nil
 }
 
 // DeleteTransaction removes a transaction from the database.
-func DeleteTransaction(transactionID int64, userID int64) error {
+func DeleteTransaction(ctx context.Context, transactionID int64, userID int64) error {
 	query := SQLBuilder.Delete("transactions").Where(squirrel.Eq{"id": transactionID, "user_id": userID})
 
-	_, err := query.RunWith(GetDB()).Exec()
+	_, err := query.RunWith(GetDB()).ExecContext(ctx)
 	if err != nil {
-		logrs.WithError(err).WithFields(logrus.Fields{
-			"transaction_id": transactionID,
-			"user_id":        userID,
-		}).Error("Delete transaction failed")
-		return err
+		return errors.Wrap(err, "delete transaction failed")
 	}
 	return nil
 }
 
 // GetTransactionByID retrieves a single transaction from the database by its ID.
-func GetTransactionByID(transactionID int64, userID int64) (*Transaction, error) {
+func GetTransactionByID(ctx context.Context, transactionID int64, userID int64) (*Transaction, error) {
 	query := SQLBuilder.Select("id", "user_id", "source_id", "category_id", "timestamp", "amount", "type", "description").
 		From("transactions").
 		Where(squirrel.Eq{"id": transactionID, "user_id": userID})
 
-	row := query.RunWith(GetDB()).QueryRow()
+	row := query.RunWith(GetDB()).QueryRowContext(ctx)
 	var transaction Transaction
 	err := row.Scan(&transaction.ID, &transaction.UserID, &transaction.SourceID, &transaction.CategoryID, &transaction.Timestamp, &transaction.Amount, &transaction.Type, &transaction.Description)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "get transaction by ID failed")
 	}
 	return &transaction, nil
 }
 
 // GetTransactionsByFilter retrieves a list of transactions from the database based on a set of filters.
-func GetTransactionsByFilter(filter TransactionFilter) ([]Transaction, error) {
+func GetTransactionsByFilter(ctx context.Context, filter TransactionFilter) ([]Transaction, error) {
 	query := SQLBuilder.Select("id", "user_id", "source_id", "category_id", "timestamp", "amount", "type", "description").
 		From("transactions").
 		Where(squirrel.Eq{"user_id": filter.UserID})
@@ -226,13 +226,12 @@ func GetTransactionsByFilter(filter TransactionFilter) ([]Transaction, error) {
 
 	sql, args, err := query.ToSql()
 	if err != nil {
-		logrs.WithError(err).Error("Constructing SQL query failed")
-		return nil, err
+		return nil, errors.Wrap(err, "constructing SQL query failed")
 	}
 
-	rows, err := GetDB().Query(sql, args...)
+	rows, err := GetDB().QueryContext(ctx, sql, args...)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "querying transactions by filter failed")
 	}
 	defer rows.Close()
 
@@ -240,44 +239,36 @@ func GetTransactionsByFilter(filter TransactionFilter) ([]Transaction, error) {
 	for rows.Next() {
 		var transaction Transaction
 		if err := rows.Scan(&transaction.ID, &transaction.UserID, &transaction.SourceID, &transaction.CategoryID, &transaction.Timestamp, &transaction.Amount, &transaction.Type, &transaction.Description); err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "scanning transaction failed")
 		}
 		transactions = append(transactions, transaction)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "processing rows failed")
 	}
 
 	return transactions, nil
 }
 
 // validateForeignKeyReferences checks if the foreign keys in the transaction exist.
-func validateForeignKeyReferences(transaction Transaction) error {
-	userExists, userErr := UserIDExists(transaction.UserID)
-	sourceExists, sourceErr := SourceIDExists(transaction.SourceID, transaction.UserID)
-	categoryExists, categoryErr := CategoryIDExists(transaction.CategoryID, transaction.UserID)
+func validateForeignKeyReferences(ctx context.Context, transaction Transaction, tx *sql.Tx) error {
+	userExists, userErr := UserIDExists(ctx, transaction.UserID, tx)
+	sourceExists, sourceErr := SourceIDExists(ctx, transaction.SourceID, transaction.UserID)
+	categoryExists, categoryErr := CategoryIDExists(ctx, transaction.CategoryID, transaction.UserID)
 
-	// Log and return an error if there was a problem checking any reference
+	// Return an error if there was a problem checking any reference
 	if userErr != nil {
-		logrs.WithError(userErr).WithField("user_id", transaction.UserID).Error("Error checking if user exists")
-		return userErr
+		return errors.Wrap(userErr, "error checking if user exists")
 	}
 	if sourceErr != nil {
-		logrs.WithError(sourceErr).WithField("source_id", transaction.SourceID).Error("Error checking if source exists")
-		return sourceErr
+		return errors.Wrap(sourceErr, "error checking if source exists")
 	}
 	if categoryErr != nil {
-		logrs.WithError(categoryErr).WithField("category_id", transaction.CategoryID).Error("Error checking if category exists")
-		return categoryErr
+		return errors.Wrap(categoryErr, "error checking if category exists")
 	}
 
-	// If any of the references do not exist, log and return an error
+	// If any of the references do not exist, return an error
 	if !userExists || !sourceExists || !categoryExists {
-		logrs.WithFields(logrus.Fields{
-			"user_exists":     userExists,
-			"source_exists":   sourceExists,
-			"category_exists": categoryExists,
-		}).Error("Invalid foreign key references")
 		return errors.New("invalid foreign key references")
 	}
 
@@ -285,31 +276,26 @@ func validateForeignKeyReferences(transaction Transaction) error {
 }
 
 // addMissingTags ensures that all tags are present in the database and associates them with the user.
-func addMissingTags(tags []string, userID int64, tx ...*sql.Tx) error {
+func addMissingTags(ctx context.Context, tags []string, userID int64, tx ...*sql.Tx) error {
 	isExternalTx, txInstance, err := GetTransaction(tx...)
 	if err != nil {
-		logrs.WithError(err).Error("Error obtaining transaction for adding tags")
-		return err
+		return errors.Wrap(err, "error obtaining transaction for adding tags")
 	}
 
 	// Handle tags
 	for _, tagName := range tags {
-		tag, _ := GetTagByName(tagName, userID, txInstance)
+		tag, _ := GetTagByName(ctx, tagName, userID, txInstance)
 		if tag == nil {
 			// The tag does not exist, so create it
 			var nTag Tag
 			nTag.Name = tagName
 			nTag.UserID = userID
-			err = InsertTag(&nTag, txInstance)
+			err = InsertTag(ctx, &nTag, txInstance)
 			if err != nil {
-				logrs.WithError(err).WithFields(logrus.Fields{
-					"tag":     tagName,
-					"user_id": userID,
-				}).Error("Error inserting new tag")
 				if !isExternalTx {
 					txInstance.Rollback()
 				}
-				return err
+				return errors.Wrap(err, "error inserting new tag")
 			}
 		}
 	}
@@ -318,8 +304,7 @@ func addMissingTags(tags []string, userID int64, tx ...*sql.Tx) error {
 	if !isExternalTx {
 		err = txInstance.Commit()
 		if err != nil {
-			logrs.WithError(err).Error("Error committing transaction for adding tags")
-			return err
+			return errors.Wrap(err, "error committing transaction for adding tags")
 		}
 	}
 

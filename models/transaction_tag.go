@@ -1,12 +1,12 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"time"
-	"xspends/util"
 
 	"github.com/Masterminds/squirrel"
-	"github.com/sirupsen/logrus"
+	"github.com/pkg/errors"
 )
 
 type TransactionTag struct {
@@ -16,29 +16,25 @@ type TransactionTag struct {
 	UpdatedAt     time.Time `json:"updated_at"`
 }
 
-// GetTagsByTransactionID retrieves all tags for a specific transaction.
-func GetTagsByTransactionID(transactionID int64) ([]Tag, error) {
-	queryBuilder := squirrel.Select("t.id", "t.name").
+func GetTagsByTransactionID(ctx context.Context, transactionID int64, otx ...*sql.Tx) ([]Tag, error) {
+	isExternalTx, tx, err := GetTransaction(otx...)
+	if err != nil {
+		return nil, errors.Wrap(err, "error getting transaction")
+	}
+	sql, args, err := squirrel.Select("t.id", "t.name").
 		From("tags t").
 		Join("transaction_tags tt ON t.id = tt.tag_id").
-		Where(squirrel.Eq{"tt.transaction_id": transactionID})
+		Where(squirrel.Eq{"tt.transaction_id": transactionID}).
+		RunWith(tx).PlaceholderFormat(squirrel.Question).
+		ToSql()
 
-	sql, args, err := queryBuilder.ToSql()
 	if err != nil {
-		logrs.WithFields(logrus.Fields{
-			"transactionID": transactionID,
-			"error":         err,
-		}).Error("Failed to build SQL query for GetTagsByTransactionID")
-		return nil, util.ErrDatabase
+		return nil, errors.Wrap(err, "failed to build SQL query for GetTagsByTransactionID")
 	}
 
-	rows, err := GetDB().Query(sql, args...)
+	rows, err := tx.QueryContext(ctx, sql, args...)
 	if err != nil {
-		logrs.WithFields(logrus.Fields{
-			"transactionID": transactionID,
-			"error":         err,
-		}).Error("Error querying tags for transaction")
-		return nil, util.ErrDatabase
+		return nil, errors.Wrap(err, "error querying tags for transaction")
 	}
 	defer rows.Close()
 
@@ -46,197 +42,150 @@ func GetTagsByTransactionID(transactionID int64) ([]Tag, error) {
 	for rows.Next() {
 		var tag Tag
 		if err := rows.Scan(&tag.ID, &tag.Name); err != nil {
-			logrs.WithFields(logrus.Fields{
-				"error": err,
-			}).Error("Error scanning tag row")
-			return nil, util.ErrDatabase
+			return nil, errors.Wrap(err, "error scanning tag row")
 		}
 		tags = append(tags, tag)
+	}
+	if !isExternalTx {
+		err = tx.Commit()
+		if err != nil {
+			return nil, errors.Wrap(err, "committing transaction failed")
+		}
 	}
 	return tags, nil
 }
 
-// InsertTransactionTag adds a new tag to a specific transaction.
-func InsertTransactionTag(transactionID, tagID int64, tx ...*sql.Tx) error {
-	queryBuilder := squirrel.Insert("transaction_tags").
+func InsertTransactionTag(ctx context.Context, transactionID, tagID int64, otx ...*sql.Tx) error {
+	isExternalTx, tx, err := GetTransaction(otx...)
+	if err != nil {
+		return errors.Wrap(err, "error getting transaction")
+	}
+	sql, args, err := squirrel.Insert("transaction_tags").
 		Columns("transaction_id", "tag_id", "created_at", "updated_at").
-		Values(transactionID, tagID, time.Now(), time.Now())
+		Values(transactionID, tagID, time.Now(), time.Now()).
+		RunWith(tx).PlaceholderFormat(squirrel.Question).
+		ToSql()
 
-	isExternalTx, txInstance, err := GetTransaction(tx...)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to build SQL query for InsertTransactionTag")
 	}
 
-	sql, args, err := queryBuilder.ToSql()
+	_, err = tx.ExecContext(ctx, sql, args...)
 	if err != nil {
-		logrs.WithFields(logrus.Fields{
-			"transactionID": transactionID,
-			"tagID":         tagID,
-			"error":         err,
-		}).Error("Failed to build SQL query for InsertTransactionTag")
-		return util.ErrDatabase
+		return errors.Wrap(err, "error inserting transaction tag")
 	}
-
-	_, err = txInstance.Exec(sql, args...)
-	if err != nil {
-		logrs.WithFields(logrus.Fields{
-			"transactionID": transactionID,
-			"tagID":         tagID,
-			"error":         err,
-		}).Error("Error inserting transaction tag")
-		if !isExternalTx {
-			txInstance.Rollback()
-		}
-		return util.ErrDatabase
-	}
-
 	if !isExternalTx {
-		return txInstance.Commit()
+		err = tx.Commit()
+		if err != nil {
+			return errors.Wrap(err, "committing transaction failed")
+		}
 	}
 	return nil
 }
 
-// DeleteTransactionTag removes a specific tag from a specific transaction.
-func DeleteTransactionTag(transactionID, tagID int64, tx ...*sql.Tx) error {
-	queryBuilder := squirrel.Delete("transaction_tags").
-		Where(squirrel.Eq{"transaction_id": transactionID, "tag_id": tagID})
-
-	isExternalTx, txInstance, err := GetTransaction(tx...)
+func DeleteTransactionTag(ctx context.Context, transactionID, tagID int64, otx ...*sql.Tx) error {
+	isExternalTx, tx, err := GetTransaction(otx...)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error getting transaction")
 	}
 
-	sql, args, err := queryBuilder.ToSql()
+	sql, args, err := squirrel.Delete("transaction_tags").
+		Where(squirrel.Eq{"transaction_id": transactionID, "tag_id": tagID}).
+		RunWith(tx).PlaceholderFormat(squirrel.Question).
+		ToSql()
+
 	if err != nil {
-		logrs.WithFields(logrus.Fields{
-			"transactionID": transactionID,
-			"tagID":         tagID,
-			"error":         err,
-		}).Error("Failed to build SQL query for DeleteTransactionTag")
-		return util.ErrDatabase
+		return errors.Wrap(err, "failed to build SQL query for DeleteTransactionTag")
 	}
 
-	_, err = txInstance.Exec(sql, args...)
+	_, err = tx.ExecContext(ctx, sql, args...)
 	if err != nil {
-		logrs.WithFields(logrus.Fields{
-			"transactionID": transactionID,
-			"tagID":         tagID,
-			"error":         err,
-		}).Error("Error deleting transaction tag")
-		if !isExternalTx {
-			txInstance.Rollback()
-		}
-		return util.ErrDatabase
+		return errors.Wrap(err, "error deleting transaction tag")
 	}
 
 	if !isExternalTx {
-		return txInstance.Commit()
+		err = tx.Commit()
+		if err != nil {
+			return errors.Wrap(err, "committing transaction failed")
+		}
 	}
+
 	return nil
 }
 
-// AddTagsToTransaction adds multiple tags to a specific transaction.
-func AddTagsToTransaction(transactionID int64, tags []string, userID int64, tx ...*sql.Tx) error {
-	isExternalTx, txInstance, err := GetTransaction(tx...)
+func AddTagsToTransaction(ctx context.Context, transactionID int64, tags []string, userID int64, otx ...*sql.Tx) error {
+
+	isExternalTx, tx, err := GetTransaction(otx...)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error getting transaction")
 	}
 
 	for _, tagName := range tags {
-		tag, err := GetTagByName(tagName, userID, txInstance)
+		tag, err := GetTagByName(ctx, tagName, userID, tx)
 		if err != nil {
-			logrs.WithFields(logrus.Fields{
-				"tagName": tagName,
-				"userID":  userID,
-				"error":   err,
-			}).Error("Error getting tag by name")
-			if !isExternalTx {
-				txInstance.Rollback()
-			}
-			return err
+			return errors.Wrap(err, "error getting tag by name")
 		}
-		err = InsertTransactionTag(transactionID, tag.ID, txInstance)
+		err = InsertTransactionTag(ctx, transactionID, tag.ID, tx)
 		if err != nil {
-			logrs.WithFields(logrus.Fields{
-				"tagName":       tagName,
-				"transactionID": transactionID,
-				"error":         err,
-			}).Error("Error associating tag with transaction")
-			if !isExternalTx {
-				txInstance.Rollback()
-			}
-			return err
+			return errors.Wrap(err, "error associating tag with transaction")
 		}
 	}
-
 	if !isExternalTx {
-		return txInstance.Commit()
+		err = tx.Commit()
+		if err != nil {
+			return errors.Wrap(err, "committing transaction failed")
+		}
 	}
 	return nil
 }
 
-// UpdateTagsForTransaction updates the tag associations for a specific transaction.
-func UpdateTagsForTransaction(transactionID int64, tags []string, userID int64, tx ...*sql.Tx) error {
-	isExternalTx, txInstance, err := GetTransaction(tx...)
+func UpdateTagsForTransaction(ctx context.Context, transactionID int64, tags []string, userID int64, otx ...*sql.Tx) error {
+	isExternalTx, tx, err := GetTransaction(otx...)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error getting transaction")
 	}
 
-	// Delete existing tags
-	err = DeleteTagsFromTransaction(transactionID, txInstance)
+	err = DeleteTagsFromTransaction(ctx, transactionID, tx)
 	if err != nil {
-		logrs.WithFields(logrus.Fields{
-			"transactionID": transactionID,
-			"error":         err,
-		}).Error("Error removing existing tags from transaction")
-		if !isExternalTx {
-			txInstance.Rollback()
-		}
-		return err
+		return errors.Wrap(err, "error removing existing tags from transaction")
 	}
 
-	// Add new tags
-	err = AddTagsToTransaction(transactionID, tags, userID, txInstance)
+	err = AddTagsToTransaction(ctx, transactionID, tags, userID, tx)
 	if err != nil {
-		logrs.WithFields(logrus.Fields{
-			"transactionID": transactionID,
-			"tags":          tags,
-			"error":         err,
-		}).Error("Error adding new tags to transaction")
-		if !isExternalTx {
-			txInstance.Rollback()
-		}
-		return err
+		return errors.Wrap(err, "error adding new tags to transaction")
 	}
-
 	if !isExternalTx {
-		return txInstance.Commit()
+		err = tx.Commit()
+		if err != nil {
+			return errors.Wrap(err, "committing transaction failed")
+		}
 	}
 	return nil
 }
 
-// RemoveTagsFromTransaction removes all tag associations from a specific transaction.
-func DeleteTagsFromTransaction(transactionID int64, tx *sql.Tx) error {
-	queryBuilder := squirrel.Delete("transaction_tags").
-		Where(squirrel.Eq{"transaction_id": transactionID})
-
-	sql, args, err := queryBuilder.ToSql()
+func DeleteTagsFromTransaction(ctx context.Context, transactionID int64, otx ...*sql.Tx) error {
+	isExternalTx, tx, err := GetTransaction(otx...)
 	if err != nil {
-		logrs.WithFields(logrus.Fields{
-			"transactionID": transactionID,
-			"error":         err,
-		}).Error("Failed to build SQL query for DeleteTagsFromTransaction")
-		return util.ErrDatabase
+		return errors.Wrap(err, "error getting transaction")
+	}
+	sql, args, err := squirrel.Delete("transaction_tags").
+		Where(squirrel.Eq{"transaction_id": transactionID}).
+		RunWith(tx).PlaceholderFormat(squirrel.Question).
+		ToSql()
+
+	if err != nil {
+		return errors.Wrap(err, "failed to build SQL query for DeleteTagsFromTransaction")
 	}
 
-	_, err = tx.Exec(sql, args...)
+	_, err = tx.ExecContext(ctx, sql, args...)
 	if err != nil {
-		logrs.WithFields(logrus.Fields{
-			"transactionID": transactionID,
-			"error":         err,
-		}).Error("Error deleting tags from transaction")
-		return util.ErrDatabase
+		return errors.Wrap(err, "error deleting tags from transaction")
 	}
-
+	if !isExternalTx {
+		err = tx.Commit()
+		if err != nil {
+			return errors.Wrap(err, "committing transaction failed")
+		}
+	}
 	return nil
 }

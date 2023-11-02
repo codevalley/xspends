@@ -17,7 +17,7 @@ func ListCategories(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	itemsPerPage, _ := strconv.Atoi(c.DefaultQuery("items_per_page", strconv.Itoa(defaultItemsPerPage)))
 
-	categories, err := models.GetPagedCategories(page, itemsPerPage, userID)
+	categories, err := models.GetPagedCategories(c, page, itemsPerPage, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch categories"})
 		return
@@ -48,7 +48,7 @@ func GetCategory(c *gin.Context) {
 		return
 	}
 
-	category, err := models.GetCategoryByID(categoryID, userID)
+	category, err := models.GetCategoryByID(c, categoryID, userID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "category not found"})
 		return
@@ -66,7 +66,7 @@ func CreateCategory(c *gin.Context) {
 		return
 	}
 	newCategory.UserID = userID
-	if err := models.InsertCategory(&newCategory); err != nil {
+	if err := models.InsertCategory(c, &newCategory); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create category"})
 		return
 	}
@@ -84,7 +84,7 @@ func UpdateCategory(c *gin.Context) {
 	}
 	updatedCategory.UserID = userID
 	// Ensure the category exists before updating
-	if err := models.UpdateCategory(&updatedCategory); err != nil {
+	if err := models.UpdateCategory(c, &updatedCategory); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update category"})
 		return
 	}
@@ -108,7 +108,7 @@ func DeleteCategory(c *gin.Context) {
 		return
 	}
 
-	if err := models.DeleteCategory(categoryID, userID); err != nil {
+	if err := models.DeleteCategory(c, categoryID, userID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete category"})
 		return
 	}

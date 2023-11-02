@@ -29,7 +29,7 @@ func GetUserProfile(c *gin.Context) {
 	}
 
 	// Use the userID to fetch the user's details from the database using the `GetUserByID` function from the models package.
-	user, err := models.GetUserByID(intUserID)
+	user, err := models.GetUserByID(c, intUserID)
 
 	// If there's an error fetching the user, it's assumed the user does not exist in the database.
 	// Therefore, a not found error is returned.
@@ -56,7 +56,7 @@ func UpdateUserProfile(c *gin.Context) {
 	// Set the ID of the updatedUser to the userID we retrieved from the context.
 	updatedUser.ID = userID
 
-	if err := models.UpdateUser(&updatedUser); err != nil {
+	if err := models.UpdateUser(c, &updatedUser); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update user"})
 		return
 	}
@@ -67,7 +67,7 @@ func UpdateUserProfile(c *gin.Context) {
 func DeleteUser(c *gin.Context) {
 	userID := c.MustGet("userID").(int64)
 
-	if err := models.DeleteUser(userID); err != nil {
+	if err := models.DeleteUser(c, userID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete user"})
 		return
 	}

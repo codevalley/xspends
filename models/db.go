@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -22,6 +23,11 @@ func GetQueryBuilder() *squirrel.StatementBuilderType {
 
 func GetDB() *sql.DB {
 	return DB
+}
+
+func GetContext() *context.Context {
+	ctx := context.Background()
+	return &ctx
 }
 
 func InitDB() {
