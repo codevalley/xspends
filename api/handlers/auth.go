@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -51,29 +52,34 @@ func generateToken(userID int64) (string, error) {
 func Register(c *gin.Context) {
 	var newUser models.User
 	if err := c.ShouldBindJSON(&newUser); err != nil {
+		log.Printf("[Register] Error binding JSON: %v", err)
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": ErrInvalidInputData.Error()})
 		return
 	}
 
 	exists, err := models.UserExists(c, newUser.Username, newUser.Email)
 	if err != nil {
+		log.Printf("[Register] Error checking user existence: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	if exists {
+		log.Printf("[Register] User already exists: %v", err)
 		c.JSON(http.StatusConflict, gin.H{"error": ErrUserExists.Error()})
 		return
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newUser.Password), 12)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": ErrHashingPassword.Error()})
-		return
-	}
-	newUser.Password = string(hashedPassword)
+	// hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newUser.Password), 12)
+	// if err != nil {
+	// 	log.Printf("[Register] Error hashing password: %v", err)
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": ErrHashingPassword.Error()})
+	// 	return
+	// }
+	// newUser.Password = string(hashedPassword)
 
 	err = models.InsertUser(c, &newUser)
 	if err != nil {
+		log.Printf("[Register] Error inserting user into database: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": ErrInsertingUser.Error()})
 		return
 	}
@@ -84,12 +90,14 @@ func Register(c *gin.Context) {
 func Login(c *gin.Context) {
 	var creds models.User
 	if err := c.ShouldBindJSON(&creds); err != nil {
+		log.Printf("[Login] Error binding JSON: %v", err)
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": ErrInvalidInputData.Error()})
 		return
 	}
 
 	user, err := models.GetUserByUsername(c, creds.Username)
 	if err != nil {
+		log.Printf("[Login] Error retrieving user: %v", err)
 		if err == models.ErrUserNotFound {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user"})
 			return
@@ -99,12 +107,14 @@ func Login(c *gin.Context) {
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(creds.Password)); err != nil {
+		log.Printf("[Login] Invalid credentials: %v", err)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
 
 	token, err := generateToken(user.ID)
 	if err != nil {
+		log.Printf("[Login] Error generating token: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": ErrGeneratingToken.Error()})
 		return
 	}
