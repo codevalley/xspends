@@ -15,43 +15,60 @@ func SetupRoutes(r *gin.Engine) {
 			"status": "UP",
 		})
 	})
+
 	// Authentication routes
-	r.POST("/register", handlers.Register)
-	r.POST("/login", handlers.Login)
+	auth := r.Group("/auth")
+	{
+		auth.POST("/register", handlers.Register)
+		auth.POST("/login", handlers.Login)
+	}
 
 	// Middleware to authenticate JWT token and fetch user details.
 	r.Use(middleware.AuthMiddleware())
 	r.Use(middleware.EnsureUserID())
+
 	// Source routes
-	r.GET("/sources", handlers.ListSources)
-	r.POST("/sources", handlers.CreateSource)
-	r.GET("/sources/:id", handlers.GetSource)
-	r.PUT("/sources/:id", handlers.UpdateSource)
-	r.DELETE("/sources/:id", handlers.DeleteSource)
+	sources := r.Group("/sources")
+	{
+		sources.GET("/", handlers.ListSources)
+		sources.POST("/", handlers.CreateSource)
+		sources.GET("/:id", handlers.GetSource)
+		sources.PUT("/:id", handlers.UpdateSource)
+		sources.DELETE("/:id", handlers.DeleteSource)
+	}
+
 	// Category routes
-	r.GET("/categories", handlers.ListCategories)
-	r.POST("/categories", handlers.CreateCategory)
-	r.GET("/categories/:id", handlers.GetCategory)
-	r.PUT("/categories/:id", handlers.UpdateCategory)
-	r.DELETE("/categories/:id", handlers.DeleteCategory)
+	categories := r.Group("/categories")
+	{
+		categories.GET("/", handlers.ListCategories)
+		categories.POST("/", handlers.CreateCategory)
+		categories.GET("/:id", handlers.GetCategory)
+		categories.PUT("/:id", handlers.UpdateCategory)
+		categories.DELETE("/:id", handlers.DeleteCategory)
+	}
 
 	// Tag routes
-	r.GET("/tags", handlers.ListTags)
-	r.POST("/tags", handlers.CreateTag)
-	r.GET("/tags/:id", handlers.GetTag)
-	r.PUT("/tags/:id", handlers.UpdateTag)
-	r.DELETE("/tags/:id", handlers.DeleteTag)
+	tags := r.Group("/tags")
+	{
+		tags.GET("/", handlers.ListTags)
+		tags.POST("/", handlers.CreateTag)
+		tags.GET("/:id", handlers.GetTag)
+		tags.PUT("/:id", handlers.UpdateTag)
+		tags.DELETE("/:id", handlers.DeleteTag)
+	}
 
 	// Transaction routes
-	r.GET("/transactions", handlers.ListTransactions)
-	r.POST("/transactions", handlers.CreateTransaction)
-	r.GET("/transactions/:id", handlers.GetTransaction)
-	r.PUT("/transactions/:id", handlers.UpdateTransaction)
-	r.DELETE("/transactions/:id", handlers.DeleteTransaction)
+	transactions := r.Group("/transactions")
+	{
+		transactions.GET("/", handlers.ListTransactions)
+		transactions.POST("/", handlers.CreateTransaction)
+		transactions.GET("/:id", handlers.GetTransaction)
+		transactions.PUT("/:id", handlers.UpdateTransaction)
+		transactions.DELETE("/:id", handlers.DeleteTransaction)
 
-	// Transaction Tags routes
-	r.GET("/transactions/:id/tags", handlers.ListTransactionTags)
-	r.POST("/transactions/:id/tags", handlers.AddTagToTransaction)
-	r.DELETE("/transactions/:id/tags/:tagID", handlers.RemoveTagFromTransaction)
-
+		// Transaction Tags routes
+		transactions.GET("/:id/tags", handlers.ListTransactionTags)
+		transactions.POST("/:id/tags", handlers.AddTagToTransaction)
+		transactions.DELETE("/:id/tags/:tagID", handlers.RemoveTagFromTransaction)
+	}
 }

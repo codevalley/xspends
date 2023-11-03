@@ -9,21 +9,25 @@ if [ -z "$MINIKUBE_URL" ]; then
   exit 1
 fi
 
+# Register a user
 if [ -z "$SKIP_REGISTER" ]; then
-  # Register a user
   echo "Registering a new user..."
-  curl -X POST "$MINIKUBE_URL/register" \
+  response=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$MINIKUBE_URL/auth/register" \
        -H "Content-Type: application/json" \
        -d '{
             "username": "testuser",
             "password": "testpass",
             "email": "test@example.com"
-           }'
+           }')
+  if [ "$response" -ne 200 ]; then
+    echo "User registration failed with HTTP status $response"
+    exit 1
+  fi
 fi
 
 # Login and get token
 echo -e "\n\nLogging in..."
-response=$(curl -s -X POST "$MINIKUBE_URL/login" \
+response=$(curl -s -X POST "$MINIKUBE_URL/auth/login" \
              -H "Content-Type: application/json" \
              -d '{
                   "username": "testuser",
@@ -31,8 +35,8 @@ response=$(curl -s -X POST "$MINIKUBE_URL/login" \
                  }')
 token=$(echo $response | jq -r .token)
 
+# Create a source
 if [ -z "$SKIP_SOURCES" ]; then
-     # Create a source
      echo -e "\n\nCreating a source..."
      response=$(curl -s -X POST "$MINIKUBE_URL/sources" \
           -H "Content-Type: application/json" \
@@ -61,7 +65,7 @@ fi
 
 # Create a transaction
 echo -e "\n\nCreating a transaction... source: $sourceID,category: $categoryID"
-response=$(curl -X POST "$MINIKUBE_URL/transactions" \
+response=$(curl -s -X POST "$MINIKUBE_URL/transactions" \
      -H "Content-Type: application/json" \
      -H "Authorization: Bearer $token" \
      -d '{
@@ -75,15 +79,14 @@ echo $response
 
 # Fetch transactions
 echo -e "\n\nFetching transactions..."
-response=$(curl -X GET "$MINIKUBE_URL/transactions" \
+response=$(curl -s -X GET "$MINIKUBE_URL/transactions" \
      -H "Authorization: Bearer $token")
 txnID=$(echo $response | jq -r '.[0].id')
 echo $txnID
+
 # Update a transaction
 echo -e "\n\nUpdating a transaction..."
-
-
-curl -X PUT "$MINIKUBE_URL/transactions/$txnID" \
+response=$(curl -s -X PUT "$MINIKUBE_URL/transactions/$txnID" \
      -H "Content-Type: application/json" \
      -H "Authorization: Bearer $token" \
      -d '{
@@ -93,11 +96,13 @@ curl -X PUT "$MINIKUBE_URL/transactions/$txnID" \
           "source_id": '"$sourceID"',
           "category_id": '"$categoryID"',
           "tags": ["movie", "night"]
-         }'
+         }')
+echo $response
 
 # Get transaction
 echo -e "\n\nFetching transactions..."
-curl -X GET "$MINIKUBE_URL/transactions/$txnID" \
-     -H "Authorization: Bearer $token"
+response=$(curl -s -X GET "$MINIKUBE_URL/transactions/$txnID" \
+     -H "Authorization: Bearer $token")
+echo $response
 
 echo -e "\n\nDone testing."
