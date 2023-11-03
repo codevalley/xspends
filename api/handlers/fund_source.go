@@ -11,19 +11,12 @@ import (
 
 // ListSources retrieves all sources for the authenticated user.
 func ListSources(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
-		return
-	}
-
-	intUserID, ok := userID.(int64)
+	userID, ok := getUserID(c)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
-	sources, err := models.GetSources(c, intUserID)
+	sources, err := models.GetSources(c, userID)
 	if err != nil {
 		log.Printf("[ListSources] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to fetch sources"})
@@ -34,7 +27,10 @@ func ListSources(c *gin.Context) {
 }
 
 func GetSource(c *gin.Context) {
-	userID := c.MustGet("userID").(int64)
+	userID, ok := getUserID(c)
+	if !ok {
+		return
+	}
 
 	sourceIDStr := c.Param("id")
 	sourceID, err := strconv.ParseInt(sourceIDStr, 10, 64)
@@ -55,7 +51,10 @@ func GetSource(c *gin.Context) {
 }
 
 func CreateSource(c *gin.Context) {
-	userID := c.MustGet("userID").(int64)
+	userID, ok := getUserID(c)
+	if !ok {
+		return
+	}
 	var newSource models.Source
 	if err := c.ShouldBindJSON(&newSource); err != nil {
 		log.Printf("[CreateSource] Error: %v", err)
@@ -73,7 +72,10 @@ func CreateSource(c *gin.Context) {
 }
 
 func UpdateSource(c *gin.Context) {
-	userID := c.MustGet("userID").(int64)
+	userID, ok := getUserID(c)
+	if !ok {
+		return
+	}
 	var updatedSource models.Source
 	if err := c.ShouldBindJSON(&updatedSource); err != nil {
 		log.Printf("[UpdateSource] Error: %v", err)
@@ -91,9 +93,8 @@ func UpdateSource(c *gin.Context) {
 }
 
 func DeleteSource(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+	userID, ok := getUserID(c)
+	if !ok {
 		return
 	}
 	sourceIDStr := c.Param("id")
@@ -104,7 +105,7 @@ func DeleteSource(c *gin.Context) {
 		return
 	}
 
-	if err := models.DeleteSource(c, sourceID, userID.(int64)); err != nil {
+	if err := models.DeleteSource(c, sourceID, userID); err != nil {
 		log.Printf("[DeleteSource] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete source"})
 		return

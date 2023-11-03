@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 	"xspends/models"
@@ -8,62 +9,73 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// ListTransactionTags retrieves all tags for a specific transaction.
-func ListTransactionTags(c *gin.Context) {
+func getTransactionID(c *gin.Context) (int64, bool) {
 	transactionIDStr := c.Param("transaction_id")
+	if transactionIDStr == "" {
+		log.Printf("[getTransactionID] Error: transaction ID is required")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "transaction ID is required"})
+		return 0, false
+	}
+
 	transactionID, err := strconv.ParseInt(transactionIDStr, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid transaction ID"})
+		log.Printf("[getTransactionID] Error: invalid transaction ID format")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid transaction ID format"})
+		return 0, false
+	}
+
+	return transactionID, true
+}
+
+func ListTransactionTags(c *gin.Context) {
+	transactionID, ok := getTransactionID(c)
+	if !ok {
 		return
 	}
 
 	tags, err := models.GetTagsByTransactionID(c, transactionID)
 	if err != nil {
+		log.Printf("[ListTransactionTags] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch tags for the transaction"})
 		return
 	}
 	c.JSON(http.StatusOK, tags)
 }
 
-// AddTagToTransaction adds a new tag to a specific transaction.
 func AddTagToTransaction(c *gin.Context) {
-	transactionIDStr := c.Param("transaction_id")
-	transactionID, err := strconv.ParseInt(transactionIDStr, 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid transaction ID"})
+	transactionID, ok := getTransactionID(c)
+	if !ok {
 		return
 	}
 
 	var tag models.Tag
 	if err := c.ShouldBindJSON(&tag); err != nil {
+		log.Printf("[AddTagToTransaction] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	if err := models.InsertTransactionTag(c, transactionID, tag.ID); err != nil {
+		log.Printf("[AddTagToTransaction] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to add tag to the transaction"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "tag added successfully to the transaction"})
 }
 
-// RemoveTagFromTransaction removes a specific tag from a specific transaction.
 func RemoveTagFromTransaction(c *gin.Context) {
-	transactionIDStr := c.Param("transaction_id")
-	transactionID, err := strconv.ParseInt(transactionIDStr, 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid transaction ID"})
+	transactionID, ok := getTransactionID(c)
+	if !ok {
 		return
 	}
 
-	tagIDStr := c.Param("tag_id")
-	tagID, err := strconv.ParseInt(tagIDStr, 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tag ID"})
+	tagID, ok := getTagID(c)
+	if !ok {
 		return
 	}
 
 	if err := models.DeleteTransactionTag(c, transactionID, tagID); err != nil {
+		log.Printf("[RemoveTagFromTransaction] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to remove tag from the transaction"})
 		return
 	}

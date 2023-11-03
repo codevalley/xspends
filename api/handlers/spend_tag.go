@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 	"xspends/models"
@@ -10,16 +11,36 @@ import (
 
 const defaultLimit = 10
 
-// ListTags retrieves all available tags with pagination.
+func getTagID(c *gin.Context) (int64, bool) {
+	tagIDStr := c.Param("id")
+	if tagIDStr == "" {
+		log.Printf("[getTagID] Error: tag ID is required")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "tag ID is required"})
+		return 0, false
+	}
+
+	tagID, err := strconv.ParseInt(tagIDStr, 10, 64)
+	if err != nil {
+		log.Printf("[getTagID] Error: invalid tag ID format")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tag ID format"})
+		return 0, false
+	}
+
+	return tagID, true
+}
+
 func ListTags(c *gin.Context) {
-	// Retrieve the user ID from JWT (set in a middleware).
-	userID := c.MustGet("userID").(int64)
+	userID, ok := getUserID(c)
+	if !ok {
+		return
+	}
 
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", strconv.Itoa(defaultLimit)))
 	offset, _ := strconv.Atoi(c.Query("offset"))
 
 	tags, err := models.GetAllTags(c, userID, models.PaginationParams{Limit: limit, Offset: offset})
 	if err != nil {
+		log.Printf("[ListTags] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch tags"})
 		return
 	}
@@ -32,67 +53,81 @@ func ListTags(c *gin.Context) {
 	c.JSON(http.StatusOK, tags)
 }
 
-// GetTag fetches details of a specific tag by its ID.
 func GetTag(c *gin.Context) {
-	userID := c.MustGet("userID").(int64)
-	tagIDStr := c.Param("id")
-	tagID, err := strconv.ParseInt(tagIDStr, 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tag ID"})
+	userID, ok := getUserID(c)
+	if !ok {
+		return
+	}
+
+	tagID, ok := getTagID(c)
+	if !ok {
 		return
 	}
 
 	tag, err := models.GetTagByID(c, tagID, userID)
 	if err != nil {
+		log.Printf("[GetTag] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "tag not found"})
 		return
 	}
 	c.JSON(http.StatusOK, tag)
 }
 
-// CreateTag adds a new tag.
 func CreateTag(c *gin.Context) {
-	userID := c.MustGet("userID").(int64)
+	userID, ok := getUserID(c)
+	if !ok {
+		return
+	}
+
 	var newTag models.Tag
 	if err := c.ShouldBindJSON(&newTag); err != nil {
+		log.Printf("[CreateTag] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	newTag.UserID = userID
 	if err := models.InsertTag(c, &newTag); err != nil {
+		log.Printf("[CreateTag] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create tag"})
 		return
 	}
 	c.JSON(http.StatusOK, newTag)
 }
 
-// UpdateTag modifies details of an existing tag.
 func UpdateTag(c *gin.Context) {
-	userID := c.MustGet("userID").(int64)
+	userID, ok := getUserID(c)
+	if !ok {
+		return
+	}
+
 	var updatedTag models.Tag
 	if err := c.ShouldBindJSON(&updatedTag); err != nil {
+		log.Printf("[UpdateTag] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	updatedTag.UserID = userID
 	if err := models.UpdateTag(c, &updatedTag); err != nil {
+		log.Printf("[UpdateTag] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update tag"})
 		return
 	}
 	c.JSON(http.StatusOK, updatedTag)
 }
 
-// DeleteTag removes a specific tag by its ID.
 func DeleteTag(c *gin.Context) {
-	userID := c.MustGet("userID").(int64)
-	tagIDStr := c.Param("id")
-	tagID, err := strconv.ParseInt(tagIDStr, 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tag ID"})
+	userID, ok := getUserID(c)
+	if !ok {
+		return
+	}
+
+	tagID, ok := getTagID(c)
+	if !ok {
 		return
 	}
 
 	if err := models.DeleteTag(c, tagID, userID); err != nil {
+		log.Printf("[DeleteTag] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete tag"})
 		return
 	}
