@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"os"
 	"time"
@@ -16,7 +17,24 @@ type Claims struct {
 	jwt.StandardClaims
 }
 
-var JwtKey = []byte(os.Getenv("JWT_KEY"))
+var (
+	ErrInvalidInputData = errors.New("invalid input data")
+	ErrUserExists       = errors.New("username or email already exists")
+	ErrHashingPassword  = errors.New("error hashing password")
+	ErrInsertingUser    = errors.New("error inserting user into database")
+	ErrGeneratingToken  = errors.New("error generating token")
+)
+
+var JwtKey = getJwtKey()
+
+func getJwtKey() []byte {
+	key := os.Getenv("JWT_KEY")
+	if key == "" {
+		// Fallback to a default key
+		key = "uNauz8OMH3UzF6wum99OD6dsm1wSdMquDGkWznT6JrQ="
+	}
+	return []byte(key)
+}
 
 func generateToken(userID int64) (string, error) {
 	expirationTime := time.Now().Add(24 * time.Hour)
@@ -33,33 +51,30 @@ func generateToken(userID int64) (string, error) {
 func Register(c *gin.Context) {
 	var newUser models.User
 	if err := c.ShouldBindJSON(&newUser); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input data"})
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": ErrInvalidInputData.Error()})
 		return
 	}
 
-	// Check if username or email already exists
 	exists, err := models.UserExists(c, newUser.Username, newUser.Email)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	if exists {
-		c.JSON(http.StatusConflict, gin.H{"error": "Username or email already exists"})
+		c.JSON(http.StatusConflict, gin.H{"error": ErrUserExists.Error()})
 		return
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newUser.Password), 12)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error hashing password"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": ErrHashingPassword.Error()})
 		return
 	}
 	newUser.Password = string(hashedPassword)
 
-	// ID generation is now handled in the model, so we can safely remove the UUID generation here
-
 	err = models.InsertUser(c, &newUser)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error inserting user into database"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": ErrInsertingUser.Error()})
 		return
 	}
 
@@ -69,7 +84,7 @@ func Register(c *gin.Context) {
 func Login(c *gin.Context) {
 	var creds models.User
 	if err := c.ShouldBindJSON(&creds); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input data"})
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": ErrInvalidInputData.Error()})
 		return
 	}
 
@@ -83,14 +98,14 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(creds.Password)); err != nil {
-	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
-	// 	return
-	// }
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(creds.Password)); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		return
+	}
 
 	token, err := generateToken(user.ID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error generating token"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": ErrGeneratingToken.Error()})
 		return
 	}
 
