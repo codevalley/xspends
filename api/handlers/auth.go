@@ -69,13 +69,13 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	// hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newUser.Password), 12)
-	// if err != nil {
-	// 	log.Printf("[Register] Error hashing password: %v", err)
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": ErrHashingPassword.Error()})
-	// 	return
-	// }
-	// newUser.Password = string(hashedPassword)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newUser.Password), 12)
+	if err != nil {
+		log.Printf("[Register] Error hashing password: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": ErrHashingPassword.Error()})
+		return
+	}
+	newUser.Password = string(hashedPassword)
 
 	err = models.InsertUser(c, &newUser)
 	if err != nil {

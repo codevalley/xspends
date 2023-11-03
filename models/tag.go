@@ -28,7 +28,7 @@ type PaginationParams struct {
 }
 
 func InsertTag(ctx context.Context, tag *Tag, otx ...*sql.Tx) error {
-	isExternalTx, tx, err := GetTransaction(otx...)
+	isExternalTx, tx, err := GetTransaction(ctx, otx...)
 	if err != nil {
 		return errors.Wrap(err, "error getting transaction")
 	}
@@ -66,7 +66,7 @@ func InsertTag(ctx context.Context, tag *Tag, otx ...*sql.Tx) error {
 }
 
 func UpdateTag(ctx context.Context, tag *Tag, otx ...*sql.Tx) error {
-	isExternalTx, tx, err := GetTransaction(otx...)
+	isExternalTx, tx, err := GetTransaction(ctx, otx...)
 	if err != nil {
 		return errors.Wrap(err, "error getting transaction")
 	}
@@ -104,7 +104,7 @@ func UpdateTag(ctx context.Context, tag *Tag, otx ...*sql.Tx) error {
 }
 
 func DeleteTag(ctx context.Context, tagID int64, userID int64, otx ...*sql.Tx) error {
-	isExternalTx, tx, err := GetTransaction(otx...)
+	isExternalTx, tx, err := GetTransaction(ctx, otx...)
 	if err != nil {
 		return errors.Wrap(err, "error getting transaction")
 	}
@@ -135,7 +135,7 @@ func DeleteTag(ctx context.Context, tagID int64, userID int64, otx ...*sql.Tx) e
 
 func GetTagByID(ctx context.Context, tagID int64, userID int64, otx ...*sql.Tx) (*Tag, error) {
 
-	isExternalTx, tx, err := GetTransaction(otx...)
+	isExternalTx, tx, err := GetTransaction(ctx, otx...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting transaction")
 	}
@@ -167,7 +167,7 @@ func GetTagByID(ctx context.Context, tagID int64, userID int64, otx ...*sql.Tx) 
 }
 
 func GetAllTags(ctx context.Context, userID int64, pagination PaginationParams, otx ...*sql.Tx) ([]Tag, error) {
-	isExternalTx, tx, err := GetTransaction(otx...)
+	isExternalTx, tx, err := GetTransaction(ctx, otx...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting transaction")
 	}
@@ -213,7 +213,7 @@ func GetAllTags(ctx context.Context, userID int64, pagination PaginationParams, 
 }
 
 func GetTagByName(ctx context.Context, name string, userID int64, otx ...*sql.Tx) (*Tag, error) {
-	isExternalTx, tx, err := GetTransaction(otx...)
+	isExternalTx, tx, err := GetTransaction(ctx, otx...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting transaction")
 	}

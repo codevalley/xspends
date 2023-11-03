@@ -49,7 +49,7 @@ type TransactionFilter struct {
 
 // InsertTransaction inserts a new transaction into the database.
 func InsertTransaction(ctx context.Context, txn Transaction, otx ...*sql.Tx) error {
-	isExternalTx, tx, err := GetTransaction(otx...)
+	isExternalTx, tx, err := GetTransaction(ctx, otx...)
 	if err != nil {
 		return errors.Wrap(err, "error getting transaction")
 	}
@@ -98,7 +98,7 @@ func InsertTransaction(ctx context.Context, txn Transaction, otx ...*sql.Tx) err
 
 // UpdateTransaction updates an existing transaction in the database.
 func UpdateTransaction(ctx context.Context, txn Transaction, otx ...*sql.Tx) error {
-	isExternalTx, tx, err := GetTransaction(otx...)
+	isExternalTx, tx, err := GetTransaction(ctx, otx...)
 	if err != nil {
 		return errors.Wrap(err, "error getting transaction")
 	}
@@ -277,7 +277,7 @@ func validateForeignKeyReferences(ctx context.Context, transaction Transaction, 
 
 // addMissingTags ensures that all tags are present in the database and associates them with the user.
 func addMissingTags(ctx context.Context, tags []string, userID int64, tx ...*sql.Tx) error {
-	isExternalTx, txInstance, err := GetTransaction(tx...)
+	isExternalTx, txInstance, err := GetTransaction(ctx, tx...)
 	if err != nil {
 		return errors.Wrap(err, "error obtaining transaction for adding tags")
 	}

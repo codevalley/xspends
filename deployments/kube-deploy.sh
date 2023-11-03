@@ -15,6 +15,8 @@ if [ -z "$TAG" ]; then
     echo -e "\nUse the command < ./deploy.sh custom-tag > to specify a custom tag for the build image\n"
 fi
 
+echo -e "D\n Removing older images"
+docker image prune -a -f
 # Build and tag the Docker image with the timestamp or provided tag
 echo -e "\n Set the tag $TAG..."
 docker build -t ${IMAGE_BASE_NAME}:${TAG} .

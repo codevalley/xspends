@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/Masterminds/squirrel"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/pkg/errors"
 )
 
 var DB *sql.DB
@@ -32,15 +34,22 @@ func InitDB() {
 	dsn := os.Getenv("DB_DSN")
 	fmt.Println(dsn)
 	if dsn == "" {
-		log.Fatal("DB_DSN environment variable not set.")
+		err = errors.New("DB_DSN environment variable not set.")
+		log.Fatal(err)
 	}
 
 	DB, err = sql.Open("mysql", dsn)
 	if err != nil {
-		log.Fatalf("Error initializing database: %v", err)
+		err = errors.Wrap(err, "Error initializing database")
+		log.Fatal(err)
 	}
-	if err = DB.Ping(); err != nil {
-		log.Fatalf("Error connecting to the database: %v", err)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	err = DB.PingContext(ctx)
+	if err != nil {
+		err = errors.Wrap(err, "Error connecting to the database")
+		log.Fatal(err)
 	}
 	log.Println("Successfully connected to the database")
 
@@ -58,14 +67,18 @@ func CloseDB() {
 	}
 }
 
-func GetTransaction(tx ...*sql.Tx) (isExternalTx bool, newTx *sql.Tx, err error) {
+func GetTransaction(ctx context.Context, tx ...*sql.Tx) (isExternalTx bool, newTx *sql.Tx, err error) {
 	db := GetDB()
 
 	if len(tx) > 0 && tx[0] != nil {
 		isExternalTx = true
 		newTx = tx[0]
 	} else {
-		newTx, err = db.Begin()
+		newTx, err = db.BeginTx(ctx, nil)
+		if err != nil {
+			err = errors.Wrap(err, "Error starting a new transaction")
+			return
+		}
 	}
 
 	return

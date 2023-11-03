@@ -30,13 +30,19 @@ var (
 )
 
 func InsertUser(ctx context.Context, user *User, otx ...*sql.Tx) error {
-	isExternalTx, tx, err := GetTransaction(otx...)
+	isExternalTx, tx, err := GetTransaction(ctx, otx...)
 	if err != nil {
 		return errors.Wrap(err, "error getting transaction")
 	}
 
-	if user.Username == "" || user.Email == "" || user.Password == "" {
-		return errors.New("mandatory fields missing")
+	if user.Username == "" {
+		return errors.New("mandatory field missing: Username")
+	}
+	if user.Email == "" {
+		return errors.New("mandatory field missing: Email")
+	}
+	if user.Password == "" {
+		return errors.New("mandatory field missing: Password")
 	}
 
 	user.ID, err = util.GenerateSnowflakeID()
@@ -77,7 +83,7 @@ func InsertUser(ctx context.Context, user *User, otx ...*sql.Tx) error {
 }
 
 func GetUserByID(ctx context.Context, id int64, otx ...*sql.Tx) (*User, error) {
-	isExternalTx, tx, err := GetTransaction(otx...)
+	isExternalTx, tx, err := GetTransaction(ctx, otx...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting transaction")
 	}
@@ -110,7 +116,7 @@ func GetUserByID(ctx context.Context, id int64, otx ...*sql.Tx) (*User, error) {
 }
 
 func GetUserByUsername(ctx context.Context, username string, otx ...*sql.Tx) (*User, error) {
-	isExternalTx, tx, err := GetTransaction(otx...)
+	isExternalTx, tx, err := GetTransaction(ctx, otx...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting transaction")
 	}
@@ -143,7 +149,7 @@ func GetUserByUsername(ctx context.Context, username string, otx ...*sql.Tx) (*U
 }
 
 func UpdateUser(ctx context.Context, user *User, otx ...*sql.Tx) error {
-	isExternalTx, tx, err := GetTransaction(otx...)
+	isExternalTx, tx, err := GetTransaction(ctx, otx...)
 	if err != nil {
 		return errors.Wrap(err, "error getting transaction")
 	}
@@ -190,7 +196,7 @@ func UpdateUser(ctx context.Context, user *User, otx ...*sql.Tx) error {
 
 func DeleteUser(ctx context.Context, id int64, otx ...*sql.Tx) error {
 
-	isExternalTx, tx, err := GetTransaction(otx...)
+	isExternalTx, tx, err := GetTransaction(ctx, otx...)
 	if err != nil {
 		return errors.Wrap(err, "error getting transaction")
 	}
@@ -218,7 +224,7 @@ func DeleteUser(ctx context.Context, id int64, otx ...*sql.Tx) error {
 }
 
 func UserExists(ctx context.Context, username, email string, otx ...*sql.Tx) (bool, error) {
-	isExternalTx, tx, err := GetTransaction(otx...)
+	isExternalTx, tx, err := GetTransaction(ctx, otx...)
 	if err != nil {
 		return false, errors.Wrap(err, "error getting transaction")
 	}
@@ -252,7 +258,7 @@ func UserExists(ctx context.Context, username, email string, otx ...*sql.Tx) (bo
 
 func UserIDExists(ctx context.Context, id int64, otx ...*sql.Tx) (bool, error) {
 
-	isExternalTx, tx, err := GetTransaction(otx...)
+	isExternalTx, tx, err := GetTransaction(ctx, otx...)
 	if err != nil {
 		return false, errors.Wrap(err, "error getting transaction")
 	}
