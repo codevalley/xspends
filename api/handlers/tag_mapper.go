@@ -9,17 +9,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func getTransactionID(c *gin.Context) (int64, bool) {
+func getTxnTagID(c *gin.Context) (int64, bool) {
 	transactionIDStr := c.Param("transaction_id")
 	if transactionIDStr == "" {
-		log.Printf("[getTransactionID] Error: transaction ID is required")
+		log.Printf("[getTagTransactionID] Error: transaction ID is required")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "transaction ID is required"})
 		return 0, false
 	}
 
 	transactionID, err := strconv.ParseInt(transactionIDStr, 10, 64)
 	if err != nil {
-		log.Printf("[getTransactionID] Error: invalid transaction ID format")
+		log.Printf("[getTagTransactionID] Error: invalid transaction ID format")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid transaction ID format"})
 		return 0, false
 	}
@@ -28,7 +28,7 @@ func getTransactionID(c *gin.Context) (int64, bool) {
 }
 
 func ListTransactionTags(c *gin.Context) {
-	transactionID, ok := getTransactionID(c)
+	transactionID, ok := getTxnTagID(c)
 	if !ok {
 		return
 	}
@@ -43,7 +43,7 @@ func ListTransactionTags(c *gin.Context) {
 }
 
 func AddTagToTransaction(c *gin.Context) {
-	transactionID, ok := getTransactionID(c)
+	transactionID, ok := getTxnTagID(c)
 	if !ok {
 		return
 	}
@@ -64,7 +64,7 @@ func AddTagToTransaction(c *gin.Context) {
 }
 
 func RemoveTagFromTransaction(c *gin.Context) {
-	transactionID, ok := getTransactionID(c)
+	transactionID, ok := getTxnTagID(c)
 	if !ok {
 		return
 	}

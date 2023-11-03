@@ -10,20 +10,41 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func getTransactionID(c *gin.Context) (int64, bool) {
+	transactionIDStr := c.Param("id")
+	if transactionIDStr == "" {
+		log.Printf("[getTransactionID] Error: transaction ID is required")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "transaction ID is required"})
+		return 0, false
+	}
+
+	transactionID, err := strconv.ParseInt(transactionIDStr, 10, 64)
+	if err != nil {
+		log.Printf("[getTransactionID] Error: invalid transaction ID format")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid transaction ID format"})
+		return 0, false
+	}
+
+	return transactionID, true
+}
+
 // CreateTransaction creates a new transaction for the authenticated user.
 func CreateTransaction(c *gin.Context) {
-	userID := c.MustGet("userID").(int64)
+	userID, ok := getUserID(c)
+	if !ok {
+		return
+	}
 
 	var newTransaction models.Transaction
 	if err := c.ShouldBindJSON(&newTransaction); err != nil {
-
+		log.Printf("[CreateTransaction] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	newTransaction.UserID = userID
 	if err := models.InsertTransaction(c, newTransaction); err != nil {
+		log.Printf("[CreateTransaction] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create transaction"})
-		log.Println(err.Error())
 		return
 	}
 
@@ -32,15 +53,18 @@ func CreateTransaction(c *gin.Context) {
 
 // GetTransaction fetches a specific transaction by its ID.
 func GetTransaction(c *gin.Context) {
-	transactionID, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid transaction ID"})
+	transactionID, ok := getTransactionID(c)
+	if !ok {
 		return
 	}
-	userID := c.MustGet("userID").(int64)
+	userID, ok := getUserID(c)
+	if !ok {
+		return
+	}
 
 	transaction, err := models.GetTransactionByID(c, transactionID, userID)
 	if err != nil {
+		log.Printf("[GetTransaction] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "transaction not found"})
 		return
 	}
@@ -50,21 +74,18 @@ func GetTransaction(c *gin.Context) {
 
 // UpdateTransaction modifies the details of an existing transaction.
 func UpdateTransaction(c *gin.Context) {
-	userID := c.MustGet("userID").(int64)
-	// bodyBytes, err := c.GetRawData()
-	// if err != nil {
-	// 	c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to retrieve request body"})
-	// 	return
-	// }
-	// bodyString := string(bodyBytes)
-	// log.Println(bodyString)
-	transactionID, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid transaction ID"})
+	userID, ok := getUserID(c)
+	if !ok {
 		return
 	}
+	transactionID, ok := getTransactionID(c)
+	if !ok {
+		return
+	}
+
 	var uTxn models.Transaction
 	if err := c.ShouldBindJSON(&uTxn); err != nil {
+		log.Printf("[UpdateTransaction] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -72,7 +93,8 @@ func UpdateTransaction(c *gin.Context) {
 	uTxn.ID = transactionID
 	oTxn, err := models.GetTransactionByID(c, transactionID, userID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "unable to find transaction:"})
+		log.Printf("[UpdateTransaction] Error: %v", err)
+		c.JSON(http.StatusNotFound, gin.H{"error": "unable to find transaction"})
 		return
 	}
 	if uTxn.Amount != 0 {
@@ -94,8 +116,8 @@ func UpdateTransaction(c *gin.Context) {
 		oTxn.CategoryID = uTxn.CategoryID
 	}
 	if err := models.UpdateTransaction(c, *oTxn); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update transaction:" + err.Error()})
-		log.Print(uTxn)
+		log.Printf("[UpdateTransaction] Error: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update transaction"})
 		return
 	}
 
@@ -103,14 +125,18 @@ func UpdateTransaction(c *gin.Context) {
 }
 
 func DeleteTransaction(c *gin.Context) {
-	transactionID, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid transaction ID"})
+	transactionID, ok := getTransactionID(c)
+	if !ok {
 		return
 	}
-	userID := c.MustGet("userID").(int64)
+	userID, ok := getUserID(c)
+	if !ok {
+		return
+	}
+
 	if err := models.DeleteTransaction(c, transactionID, userID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "user not authenticated"})
+		log.Printf("[DeleteTransaction] Error: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete transaction"})
 		return
 	}
 
@@ -119,7 +145,10 @@ func DeleteTransaction(c *gin.Context) {
 
 // ListTransactions fetches all transactions for the authenticated user, with optional filters.
 func ListTransactions(c *gin.Context) {
-	userID := c.MustGet("userID").(int64)
+	userID, ok := getUserID(c)
+	if !ok {
+		return
+	}
 
 	// Create a filter from the query parameters.
 	filter := models.TransactionFilter{
@@ -139,6 +168,7 @@ func ListTransactions(c *gin.Context) {
 
 	transactions, err := models.GetTransactionsByFilter(c, filter)
 	if err != nil {
+		log.Printf("[ListTransactions] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch transactions"})
 		return
 	}
