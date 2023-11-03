@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 	"xspends/models"
@@ -10,15 +11,36 @@ import (
 
 const defaultItemsPerPage = 10
 
-// ListCategories retrieves all available categories with pagination.
+func getCategoryID(c *gin.Context) (int64, bool) {
+	categoryIDStr := c.Param("id")
+	if categoryIDStr == "" {
+		log.Printf("[getCategoryID] Error: category ID is required")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "category ID is required"})
+		return 0, false
+	}
+
+	categoryID, err := strconv.ParseInt(categoryIDStr, 10, 64)
+	if err != nil {
+		log.Printf("[getCategoryID] Error: invalid category ID format")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid category ID format"})
+		return 0, false
+	}
+
+	return categoryID, true
+}
+
 func ListCategories(c *gin.Context) {
-	userID := c.MustGet("userID").(int64)
+	userID, ok := getUserID(c)
+	if !ok {
+		return
+	}
 
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	itemsPerPage, _ := strconv.Atoi(c.DefaultQuery("items_per_page", strconv.Itoa(defaultItemsPerPage)))
 
 	categories, err := models.GetPagedCategories(c, page, itemsPerPage, userID)
 	if err != nil {
+		log.Printf("[ListCategories] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch categories"})
 		return
 	}
@@ -31,25 +53,20 @@ func ListCategories(c *gin.Context) {
 	c.JSON(http.StatusOK, categories)
 }
 
-// GetCategory fetches details of a specific category by its ID.import "strconv"
 func GetCategory(c *gin.Context) {
-	userID := c.MustGet("userID").(int64)
-
-	categoryIDStr := c.Param("id")
-	if categoryIDStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "category ID is required"})
+	userID, ok := getUserID(c)
+	if !ok {
 		return
 	}
 
-	// Convert string to int64
-	categoryID, err := strconv.ParseInt(categoryIDStr, 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid category ID format"})
+	categoryID, ok := getCategoryID(c)
+	if !ok {
 		return
 	}
 
 	category, err := models.GetCategoryByID(c, categoryID, userID)
 	if err != nil {
+		log.Printf("[GetCategory] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "category not found"})
 		return
 	}
@@ -57,16 +74,22 @@ func GetCategory(c *gin.Context) {
 	c.JSON(http.StatusOK, category)
 }
 
-// CreateCategory adds a new category.
 func CreateCategory(c *gin.Context) {
-	userID := c.MustGet("userID").(int64)
+	userID, ok := getUserID(c)
+	if !ok {
+		return
+	}
+
 	var newCategory models.Category
 	if err := c.ShouldBindJSON(&newCategory); err != nil {
+		log.Printf("[CreateCategory] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
 	newCategory.UserID = userID
 	if err := models.InsertCategory(c, &newCategory); err != nil {
+		log.Printf("[CreateCategory] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create category"})
 		return
 	}
@@ -74,17 +97,22 @@ func CreateCategory(c *gin.Context) {
 	c.JSON(http.StatusCreated, newCategory)
 }
 
-// UpdateCategory modifies details of an existing category.
 func UpdateCategory(c *gin.Context) {
-	userID := c.MustGet("userID").(int64)
+	userID, ok := getUserID(c)
+	if !ok {
+		return
+	}
+
 	var updatedCategory models.Category
 	if err := c.ShouldBindJSON(&updatedCategory); err != nil {
+		log.Printf("[UpdateCategory] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
 	updatedCategory.UserID = userID
-	// Ensure the category exists before updating
 	if err := models.UpdateCategory(c, &updatedCategory); err != nil {
+		log.Printf("[UpdateCategory] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update category"})
 		return
 	}
@@ -92,23 +120,19 @@ func UpdateCategory(c *gin.Context) {
 	c.JSON(http.StatusOK, updatedCategory)
 }
 
-// DeleteCategory removes a specific category by its ID.
 func DeleteCategory(c *gin.Context) {
-	userID := c.MustGet("userID").(int64)
-	categoryIDStr := c.Param("id")
-	if categoryIDStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "category ID is required"})
+	userID, ok := getUserID(c)
+	if !ok {
 		return
 	}
 
-	// Convert string to int64
-	categoryID, err := strconv.ParseInt(categoryIDStr, 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid category ID format"})
+	categoryID, ok := getCategoryID(c)
+	if !ok {
 		return
 	}
 
 	if err := models.DeleteCategory(c, categoryID, userID); err != nil {
+		log.Printf("[DeleteCategory] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete category"})
 		return
 	}
