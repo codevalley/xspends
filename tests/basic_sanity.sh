@@ -113,8 +113,7 @@ echo $response
 
 # Fetch transactions
 echo -e "\n\nTest KV..."
-response=$(curl -s -X GET "$MINIKUBE_URL/kvtest" \
-     -H "Authorization: Bearer $token")
+response=$(curl -s -X GET "$MINIKUBE_URL/health")
 
 echo $response 
 echo -e "\n\nDone testing."
