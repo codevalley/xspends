@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	"strconv"
 	"strings"
 	"time"
 	"xspends/util"
@@ -12,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// User struct mirrors the users table and satisfies the AuthBoss User interface.
 type User struct {
 	ID        int64     `json:"id"`
 	Username  string    `json:"username"`
@@ -28,6 +30,23 @@ var (
 	ErrEmailExists   = errors.New("email already exists")
 	ErrUsernameTaken = errors.New("username already exists")
 )
+
+// Authboss methods
+func (u *User) PutPID(pid string) {
+	u.ID, _ = strconv.ParseInt(pid, 10, 64)
+}
+
+func (u User) GetPID() string {
+	return strconv.FormatInt(u.ID, 10)
+}
+
+func (u *User) PutPassword(password string) {
+	u.Password = password
+}
+
+func (u User) GetPassword() string {
+	return u.Password
+}
 
 func InsertUser(ctx context.Context, user *User, otx ...*sql.Tx) error {
 	isExternalTx, tx, err := GetTransaction(ctx, otx...)

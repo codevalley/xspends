@@ -1,10 +1,6 @@
 
 ## General Improvements
 
-### Error Handling
-- Provide detailed error messages for database operations.
-- Handle JWT token expiry gracefully.
-- Implement more specific error handling for different database error types.
 
 ### Logging & Monitoring
 - Implement structured logging with different log levels (info, error, debug, etc.).

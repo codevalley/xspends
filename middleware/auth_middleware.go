@@ -1,15 +1,21 @@
 package middleware
 
 import (
+	"database/sql"
 	"net/http"
 	"strings"
 	"xspends/api/handlers"
+	"xspends/kvstore"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/volatiletech/authboss/v3"
 )
 
-func AuthMiddleware() gin.HandlerFunc {
+// Initialize AuthBoss.
+var ab *authboss.Authboss
+
+func AuthMiddleware(ab *authboss.Authboss) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Get token from the Authorization header
 		authorizationHeader := c.GetHeader("Authorization")
@@ -46,14 +52,27 @@ func AuthMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
 func EnsureUserID() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		_, exists := c.Get("userID")
 		if !exists {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 			c.Abort() // This prevents the handler from being executed if the check fails
 			return
 		}
 		c.Next()
 	}
+}
+
+func SetupAuthBoss(router *gin.Engine, db *sql.DB, kvClient kvstore.RawKVClientInterface) *authboss.Authboss {
+	// ... other setup
+	ab = authboss.New()
+	// Set up AuthBoss storage with your custom implementations
+	ab.Config.Storage.Server = NewUserStorer(db)
+	ab.Config.Storage.SessionState = NewSessionStorer(kvClient)
+	ab.Config.Storage.CookieState = NewCookieStorer(kvClient)
+
+	// ... finish setup
+	return ab
 }

@@ -1,19 +1,21 @@
 package api
 
 import (
+	"database/sql"
 	"xspends/api/handlers"
+	"xspends/kvstore"
 	"xspends/middleware"
 
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRoutes(r *gin.Engine) {
+func SetupRoutes(r *gin.Engine, db *sql.DB, kvClient kvstore.RawKVClientInterface) {
+	// Initialize AuthBoss
+	ab := middleware.SetupAuthBoss(r, db, kvClient)
 
 	// Health check endpoint
 	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"status": "UP",
-		})
+		c.JSON(200, gin.H{"status": "UP"})
 	})
 
 	// Authentication routes
@@ -23,12 +25,12 @@ func SetupRoutes(r *gin.Engine) {
 		auth.POST("/login", handlers.Login)
 	}
 
-	// Middleware to authenticate JWT token and fetch user details.
-	r.Use(middleware.AuthMiddleware())
-	r.Use(middleware.EnsureUserID())
+	// All other routes should be protected by the AuthMiddleware
+	apiRoutes := r.Group("/")
+	apiRoutes.Use(middleware.AuthMiddleware(ab), middleware.EnsureUserID())
 
 	// Source routes
-	sources := r.Group("/sources")
+	sources := apiRoutes.Group("/sources")
 	{
 		sources.GET("", handlers.ListSources)
 		sources.POST("", handlers.CreateSource)
@@ -38,7 +40,7 @@ func SetupRoutes(r *gin.Engine) {
 	}
 
 	// Category routes
-	categories := r.Group("/categories")
+	categories := apiRoutes.Group("/categories")
 	{
 		categories.GET("", handlers.ListCategories)
 		categories.POST("", handlers.CreateCategory)
@@ -48,7 +50,7 @@ func SetupRoutes(r *gin.Engine) {
 	}
 
 	// Tag routes
-	tags := r.Group("/tags")
+	tags := apiRoutes.Group("/tags")
 	{
 		tags.GET("", handlers.ListTags)
 		tags.POST("", handlers.CreateTag)
@@ -58,7 +60,7 @@ func SetupRoutes(r *gin.Engine) {
 	}
 
 	// Transaction routes
-	transactions := r.Group("/transactions")
+	transactions := apiRoutes.Group("/transactions")
 	{
 		transactions.GET("", handlers.ListTransactions)
 		transactions.POST("", handlers.CreateTransaction)

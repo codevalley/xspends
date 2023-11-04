@@ -1,8 +1,8 @@
 package main
 
 import (
-	"log"
 	"xspends/api"
+	"xspends/kvstore"
 	"xspends/models"
 	"xspends/util"
 
@@ -13,7 +13,9 @@ func main() {
 	r := gin.Default()
 	util.InitializeSnowflake()
 	models.InitDB()
-	api.SetupRoutes(r)
-	log.Println("MATERIAL!@!!!!")
+	kvstore.SetupKV(false)
+	kv := kvstore.GetClientFromPool()
+	api.SetupRoutes(r, models.GetDB(), kv)
+
 	r.Run() // Defaults to :8080
 }

@@ -35,6 +35,11 @@ response=$(curl -s -X POST "$MINIKUBE_URL/auth/login" \
                  }')
 token=$(echo $response | jq -r .token)
 
+if [ -z "$token" ]; then
+  echo "Failed to get a token from login response"
+  exit 1
+fi
+
 # Create a source
 if [ -z "$SKIP_SOURCES" ]; then
      echo -e "\n\nCreating a source..."
@@ -105,4 +110,11 @@ response=$(curl -s -X GET "$MINIKUBE_URL/transactions/$txnID" \
      -H "Authorization: Bearer $token")
 echo $response
 
+
+# Fetch transactions
+echo -e "\n\nTest KV..."
+response=$(curl -s -X GET "$MINIKUBE_URL/kvtest" \
+     -H "Authorization: Bearer $token")
+
+echo $response 
 echo -e "\n\nDone testing."
