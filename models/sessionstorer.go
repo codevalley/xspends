@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"time"
 	"xspends/kvstore"
 
 	"github.com/volatiletech/authboss/v3"
@@ -53,8 +54,9 @@ func (s *SessionStorer) Load(sid string) (string, error) {
 }
 
 // Save associates the session data with the session token in the store.
-func (s *SessionStorer) Save(sid string, state string) error {
-	return s.kvClient.Put(context.Background(), []byte(sid), []byte(state))
+func (s *SessionStorer) Save(sid string, state string, ttl time.Duration) error {
+	// return s.kvClient.Put(context.Background(), []byte(sid), []byte(state))
+	return s.kvClient.PutWithTTL(context.Background(), []byte(sid), []byte(state), uint64(ttl.Seconds()))
 }
 
 // Delete removes the session data associated with the session token from the store.

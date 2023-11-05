@@ -11,6 +11,7 @@ import (
 type RawKVClientInterface interface {
 	Get(ctx context.Context, key []byte, options ...rawkv.RawOption) ([]byte, error)
 	Put(ctx context.Context, key []byte, value []byte, options ...rawkv.RawOption) error
+	PutWithTTL(ctx context.Context, key []byte, value []byte, ttl uint64, options ...rawkv.RawOption) error
 	Delete(ctx context.Context, key []byte, options ...rawkv.RawOption) error
 	Scan(ctx context.Context, startKey []byte, endKey []byte, limit int, options ...rawkv.RawOption) ([][]byte, [][]byte, error)
 }
@@ -34,6 +35,14 @@ func (r *RawKVClientWrapper) Put(ctx context.Context, key []byte, value []byte, 
 		return ctx.Err()
 	}
 	return r.client.Put(ctx, key, value, options...)
+}
+
+// Put is a method of the RawKVClientWrapper struct that calls the Put method on the underlying rawkv.Client object
+func (r *RawKVClientWrapper) PutWithTTL(ctx context.Context, key []byte, value []byte, ttl uint64, options ...rawkv.RawOption) error {
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	return r.client.PutWithTTL(ctx, key, value, ttl, options...)
 }
 
 // Delete is a method of the RawKVClientWrapper struct that calls the Delete method on the underlying rawkv.Client object

@@ -3,3 +3,5 @@ pd:
 
 tikv:
   storageClassName: standard
+storage:
+  enable-ttl: true
