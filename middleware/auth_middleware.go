@@ -6,6 +6,7 @@ import (
 	"strings"
 	"xspends/api/handlers"
 	"xspends/kvstore"
+	"xspends/models"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
@@ -69,9 +70,9 @@ func SetupAuthBoss(router *gin.Engine, db *sql.DB, kvClient kvstore.RawKVClientI
 	// ... other setup
 	ab = authboss.New()
 	// Set up AuthBoss storage with your custom implementations
-	ab.Config.Storage.Server = NewUserStorer(db)
-	ab.Config.Storage.SessionState = NewSessionStorer(kvClient)
-	ab.Config.Storage.CookieState = NewCookieStorer(kvClient)
+	ab.Config.Storage.Server = models.NewUserStorer(db)
+	ab.Config.Storage.SessionState = models.NewSessionStorer(kvClient)
+	ab.Config.Storage.CookieState = models.NewCookieStorer(kvClient)
 
 	// ... finish setup
 	return ab

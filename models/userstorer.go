@@ -1,11 +1,10 @@
-package middleware
+package models
 
 import (
 	"context"
 	"database/sql"
 	"errors"
 	"log"
-	"xspends/models"
 
 	"github.com/volatiletech/authboss/v3"
 )
@@ -19,10 +18,10 @@ func NewUserStorer(db *sql.DB) *UserStorer {
 }
 
 func (s *UserStorer) Load(ctx context.Context, key string) (authboss.User, error) {
-	user, err := models.GetUserByUsername(ctx, key)
+	user, err := GetUserByUsername(ctx, key)
 	if err != nil {
 		log.Printf("[UserStorer Load] Error: %v", err)
-		if errors.Is(err, models.ErrUserNotFound) {
+		if errors.Is(err, ErrUserNotFound) {
 			return nil, authboss.ErrUserNotFound
 		}
 		return nil, err
@@ -31,12 +30,12 @@ func (s *UserStorer) Load(ctx context.Context, key string) (authboss.User, error
 }
 
 func (s *UserStorer) Save(ctx context.Context, user authboss.User) error {
-	u, ok := user.(*models.User)
+	u, ok := user.(*User)
 	if !ok {
-		log.Printf("[UserStorer Save] Error: user is not of type *models.User")
-		return errors.New("user is not of type *models.User")
+		log.Printf("[UserStorer Save] Error: user is not of type * User")
+		return errors.New("user is not of type * User")
 	}
-	err := models.UpdateUser(ctx, u)
+	err := UpdateUser(ctx, u)
 	if err != nil {
 		log.Printf("[UserStorer Save] Error: %v", err)
 	}
@@ -44,12 +43,12 @@ func (s *UserStorer) Save(ctx context.Context, user authboss.User) error {
 }
 
 func (s *UserStorer) Create(ctx context.Context, user authboss.User) error {
-	u, ok := user.(*models.User)
+	u, ok := user.(*User)
 	if !ok {
-		log.Printf("[UserStorer Create] Error: user is not of type *models.User")
-		return errors.New("user is not of type *models.User")
+		log.Printf("[UserStorer Create] Error: user is not of type * User")
+		return errors.New("user is not of type * User")
 	}
-	err := models.InsertUser(ctx, u)
+	err := InsertUser(ctx, u)
 	if err != nil {
 		log.Printf("[UserStorer Create] Error: %v", err)
 	}

@@ -10,7 +10,6 @@ import (
 )
 
 func SetupRoutes(r *gin.Engine, db *sql.DB, kvClient kvstore.RawKVClientInterface) {
-	// Initialize AuthBoss
 	ab := middleware.SetupAuthBoss(r, db, kvClient)
 
 	// Health check endpoint
@@ -18,11 +17,15 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, kvClient kvstore.RawKVClientInterfac
 		c.JSON(200, gin.H{"status": "UP"})
 	})
 
-	// Authentication routes
+	// Authentication routes using custom JWT handlers
 	auth := r.Group("/auth")
 	{
-		auth.POST("/register", handlers.Register)
-		auth.POST("/login", handlers.Login)
+		// Use your custom JWTRegisterHandler and JWTLoginHandler here
+		auth.POST("/register", handlers.JWTRegisterHandler(ab))
+		auth.POST("/login", handlers.JWTLoginHandler(ab))
+		// If you have logout and refresh token routes, you can add them here as well
+		// auth.POST("/logout", handlers.JWTLogoutHandler(ab))
+		// auth.POST("/refresh", handlers.JWTRefreshHandler(ab))
 	}
 
 	// All other routes should be protected by the AuthMiddleware

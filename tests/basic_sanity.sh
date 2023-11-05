@@ -23,6 +23,7 @@ if [ -z "$SKIP_REGISTER" ]; then
     echo "User registration failed with HTTP status $response"
     exit 1
   fi
+  echo $response
 fi
 
 # Login and get token
@@ -39,6 +40,7 @@ if [ -z "$token" ]; then
   echo "Failed to get a token from login response"
   exit 1
 fi
+echo $response
 
 # Create a source
 if [ -z "$SKIP_SOURCES" ]; then
