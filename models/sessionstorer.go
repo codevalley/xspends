@@ -45,8 +45,8 @@ func (s *SessionStorer) WriteState(w http.ResponseWriter, state authboss.ClientS
 }
 
 // Load retrieves the session data (if any) associated with the session token.
-func (s *SessionStorer) Load(sid string) (string, error) {
-	data, err := s.kvClient.Get(context.Background(), []byte(sid))
+func (s *SessionStorer) Load(ctx context.Context, sid string) (string, error) {
+	data, err := s.kvClient.Get(ctx, []byte(sid))
 	if err != nil {
 		return "", err
 	}
@@ -54,14 +54,14 @@ func (s *SessionStorer) Load(sid string) (string, error) {
 }
 
 // Save associates the session data with the session token in the store.
-func (s *SessionStorer) Save(sid string, state string, ttl time.Duration) error {
+func (s *SessionStorer) Save(ctx context.Context, sid string, state string, ttl time.Duration) error {
 	// return s.kvClient.Put(context.Background(), []byte(sid), []byte(state))
-	return s.kvClient.PutWithTTL(context.Background(), []byte(sid), []byte(state), uint64(ttl.Seconds()))
+	return s.kvClient.PutWithTTL(ctx, []byte(sid), []byte(state), uint64(ttl.Seconds()))
 }
 
 // Delete removes the session data associated with the session token from the store.
-func (s *SessionStorer) Delete(sid string) error {
-	return s.kvClient.Delete(context.Background(), []byte(sid))
+func (s *SessionStorer) Delete(ctx context.Context, sid string) error {
+	return s.kvClient.Delete(ctx, []byte(sid))
 }
 
 // Add any other methods necessary for session management here...
