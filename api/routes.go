@@ -25,7 +25,8 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, kvClient kvstore.RawKVClientInterfac
 		auth.POST("/login", handlers.JWTLoginHandler(ab))
 		// If you have logout and refresh token routes, you can add them here as well
 		// auth.POST("/logout", handlers.JWTLogoutHandler(ab))
-		// auth.POST("/refresh", handlers.JWTRefreshHandler(ab))
+		auth.POST("/refresh", handlers.JWTRefreshHandler(ab))
+
 	}
 
 	// All other routes should be protected by the AuthMiddleware

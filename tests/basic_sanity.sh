@@ -12,15 +12,18 @@ fi
 # Register a user
 if [ -z "$SKIP_REGISTER" ]; then
   echo "Registering a new user..."
-  response=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$MINIKUBE_URL/auth/register" \
+  response=$(curl -s -X POST "$MINIKUBE_URL/auth/register" \
        -H "Content-Type: application/json" \
        -d '{
             "username": "testuser",
             "password": "testpass",
             "email": "test@example.com"
            }')
-  if [ "$response" -ne 200 ]; then
-    echo "User registration failed with HTTP status $response"
+  accessToken=$(echo $response | jq -r .access_token)
+  refreshToken=$(echo $response | jq -r .refresh_token)
+
+  if [ -z "$accessToken" ] || [ -z "$refreshToken" ]; then
+    echo "User registration failed with response $response"
     exit 1
   fi
   echo $response
@@ -34,12 +37,31 @@ response=$(curl -s -X POST "$MINIKUBE_URL/auth/login" \
                   "username": "testuser",
                   "password": "testpass"
                  }')
-token=$(echo $response | jq -r .token)
+accessToken=$(echo $response | jq -r .access_token)
+refreshToken=$(echo $response | jq -r .refresh_token)
 
-if [ -z "$token" ]; then
-  echo "Failed to get a token from login response"
+if [ -z "$accessToken" ] || [ -z "$refreshToken" ]; then
+  echo "Failed to get tokens from login response"
   exit 1
 fi
+echo $response
+
+# Refresh token
+echo -e "\n\nRefreshing token..."
+response=$(curl -s -X POST "$MINIKUBE_URL/auth/refresh" \
+             -H "Content-Type: application/json" \
+             -d '{
+                  "refresh_token": "'"$refreshToken"'"
+                 }')
+newAccessToken=$(echo $response | jq -r .access_token)
+newRefreshToken=$(echo $response | jq -r .refresh_token)
+
+if [ -z "$newAccessToken" ] || [ -z "$newRefreshToken" ]; then
+  echo "Failed to get tokens from refresh response"
+  exit 1
+fi
+accessToken=$newAccessToken
+refreshToken=$newRefreshToken
 echo $response
 
 # Create a source
@@ -47,7 +69,7 @@ if [ -z "$SKIP_SOURCES" ]; then
      echo -e "\n\nCreating a source..."
      response=$(curl -s -X POST "$MINIKUBE_URL/sources" \
           -H "Content-Type: application/json" \
-          -H "Authorization: Bearer $token" \
+          -H "Authorization: Bearer $accessToken" \
           -d '{
                "name": "Bank Savings",
                "type": "SAVINGS",
@@ -60,7 +82,7 @@ if [ -z "$SKIP_SOURCES" ]; then
      echo -e "\n\nCreating a category..."
      response=$(curl -s -X POST "$MINIKUBE_URL/categories" \
           -H "Content-Type: application/json" \
-          -H "Authorization: Bearer $token" \
+          -H "Authorization: Bearer $accessToken" \
           -d '{
                "name": "Groceries",
                "description": "Grocery related transactions",
@@ -74,7 +96,7 @@ fi
 echo -e "\n\nCreating a transaction... source: $sourceID,category: $categoryID"
 response=$(curl -s -X POST "$MINIKUBE_URL/transactions" \
      -H "Content-Type: application/json" \
-     -H "Authorization: Bearer $token" \
+     -H "Authorization: Bearer $accessToken" \
      -d '{
           "amount": 100.50,
           "type": "expense",
@@ -87,7 +109,7 @@ echo $response
 # Fetch transactions
 echo -e "\n\nFetching transactions..."
 response=$(curl -s -X GET "$MINIKUBE_URL/transactions" \
-     -H "Authorization: Bearer $token")
+     -H "Authorization: Bearer $accessToken")
 txnID=$(echo $response | jq -r '.[0].id')
 echo $txnID
 
@@ -95,7 +117,7 @@ echo $txnID
 echo -e "\n\nUpdating a transaction..."
 response=$(curl -s -X PUT "$MINIKUBE_URL/transactions/$txnID" \
      -H "Content-Type: application/json" \
-     -H "Authorization: Bearer $token" \
+     -H "Authorization: Bearer $accessToken" \
      -d '{
           "amount": 110.75,
           "type": "expense",
@@ -109,7 +131,7 @@ echo $response
 # Get transaction
 echo -e "\n\nFetching transactions..."
 response=$(curl -s -X GET "$MINIKUBE_URL/transactions/$txnID" \
-     -H "Authorization: Bearer $token")
+     -H "Authorization: Bearer $accessToken")
 echo $response
 
 
