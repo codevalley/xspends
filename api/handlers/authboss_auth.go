@@ -59,6 +59,7 @@ func generateRefreshToken(userID int64, sessionID string) (string, error) {
 
 func RefreshTokenHandler(ctx context.Context, oldRefreshToken string, ab *authboss.Authboss) (string, string, error) {
 	claims := &ABClaims{}
+	fmt.Println("Token:", oldRefreshToken)
 	tkn, err := jwt.ParseWithClaims(oldRefreshToken, claims, func(token *jwt.Token) (interface{}, error) {
 		return JwtKey, nil
 	})
@@ -67,7 +68,7 @@ func RefreshTokenHandler(ctx context.Context, oldRefreshToken string, ab *authbo
 		if err == jwt.ErrSignatureInvalid {
 			return "", "", fmt.Errorf("invalid refresh token signature")
 		}
-		return "", "", fmt.Errorf("could not parse refresh token")
+		return "", "", fmt.Errorf("could not parse refresh token: %v", err)
 	}
 
 	if !tkn.Valid {
@@ -92,7 +93,7 @@ func RefreshTokenHandler(ctx context.Context, oldRefreshToken string, ab *authbo
 	}
 	err = sessionStorer.Save(ctx, strconv.FormatInt(newSessionID, 10), strconv.FormatInt(claims.UserID, 10), 24*time.Hour)
 	if err != nil {
-		return "", "", fmt.Errorf("could not save new session")
+		return "", "", fmt.Errorf("could not save new session: %v", err)
 	}
 
 	// Generate new access token
@@ -241,7 +242,12 @@ func JWTLoginHandler(ab *authboss.Authboss) gin.HandlerFunc {
 
 func JWTRefreshHandler(ab *authboss.Authboss) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		oldRefreshToken := c.PostForm("refresh_token")
+		var body map[string]string
+		if err := c.BindJSON(&body); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+			return
+		}
+		oldRefreshToken := body["refresh_token"]
 		newAccessToken, newRefreshToken, err := RefreshTokenHandler(c.Request.Context(), oldRefreshToken, ab)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

@@ -46,6 +46,8 @@ if [ -z "$accessToken" ] || [ -z "$refreshToken" ]; then
 fi
 echo $response
 
+echo "Refresh token:"
+echo $refreshToken
 # Refresh token
 echo -e "\n\nRefreshing token..."
 response=$(curl -s -X POST "$MINIKUBE_URL/auth/refresh" \

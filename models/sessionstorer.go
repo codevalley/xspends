@@ -55,8 +55,9 @@ func (s *SessionStorer) Load(ctx context.Context, sid string) (string, error) {
 
 // Save associates the session data with the session token in the store.
 func (s *SessionStorer) Save(ctx context.Context, sid string, state string, ttl time.Duration) error {
-	// return s.kvClient.Put(context.Background(), []byte(sid), []byte(state))
-	return s.kvClient.PutWithTTL(ctx, []byte(sid), []byte(state), uint64(ttl.Seconds()))
+	return s.kvClient.Put(context.Background(), []byte(sid), []byte(state))
+	//TODO: not been able to enabled ttl on tikv store.
+	//return s.kvClient.PutWithTTL(ctx, []byte(sid), []byte(state), uint64(ttl.Seconds()))
 }
 
 // Delete removes the session data associated with the session token from the store.
