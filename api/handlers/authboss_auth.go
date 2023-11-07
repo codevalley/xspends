@@ -79,6 +79,16 @@ func RefreshTokenHandler(ctx context.Context, oldRefreshToken string, ab *authbo
 	if !ok {
 		return "", "", fmt.Errorf("session storage configuration error")
 	}
+	// Fetch the old refresh token from the session store
+	storedRefreshToken, err := sessionStorer.Load(ctx, claims.SessionID)
+	if err != nil {
+		return "", "", fmt.Errorf("could not fetch old refresh token: %v", err)
+	}
+
+	// Verify the old refresh token
+	if storedRefreshToken != oldRefreshToken {
+		return "", "", fmt.Errorf("provided refresh token does not match stored refresh token")
+	}
 
 	// Delete old session
 	err = sessionStorer.Delete(ctx, claims.SessionID)
@@ -171,6 +181,17 @@ func JWTRegisterHandler(ab *authboss.Authboss) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error generating refresh token"})
 			return
 		}
+		// Store the refresh token in the session storage
+		sessionStorer, ok := ab.Config.Storage.SessionState.(*models.SessionStorer)
+		if !ok {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Session storage configuration error"})
+			return
+		}
+		err = sessionStorer.Save(c.Request.Context(), strconv.FormatInt(newSessionID, 10), refreshToken, refreshTokenExpiryMins*time.Minute)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error storing refresh token"})
+			return
+		}
 
 		// Return the JWT access token and refresh token to the client
 		c.JSON(http.StatusOK, gin.H{"access_token": accessToken, "refresh_token": refreshToken})
@@ -234,7 +255,17 @@ func JWTLoginHandler(ab *authboss.Authboss) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error generating refresh token"})
 			return
 		}
-
+		// Store the refresh token in the session storage
+		sessionStorer, ok := ab.Config.Storage.SessionState.(*models.SessionStorer)
+		if !ok {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Session storage configuration error"})
+			return
+		}
+		err = sessionStorer.Save(c.Request.Context(), strconv.FormatInt(newSessionID, 10), refreshToken, refreshTokenExpiryMins*time.Minute)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error storing refresh token"})
+			return
+		}
 		// Return the JWT access token and refresh token to the client
 		c.JSON(http.StatusOK, gin.H{"access_token": accessToken, "refresh_token": refreshToken})
 	}
