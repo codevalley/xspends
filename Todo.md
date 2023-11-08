@@ -1,31 +1,20 @@
-
-## General Improvements
-
-
 ### Logging & Monitoring
 - Implement structured logging with different log levels (info, error, debug, etc.).
 - Integrate with monitoring tools for database metrics.
 - Use monitoring tools for database performance metrics and set up alerts for unusual activities.
 
 ### Security
-- Improve JWT key security. (Use some sort of vault).
-- Use prepared statements everywhere to prevent SQL injection attacks.
 - Review database security settings, ensure limited open ports, and consider encryption for sensitive data.
 
-### Token Management
-- Handle JWT token expiry. Consider shorter-lived access tokens and a refresh token mechanism.
 
 ### API & Middleware
 - Consider rate limiting on API endpoints.
-- Implement middleware for tasks like logging, CORS handling, and authentication.
+- Implement middleware for tasks like logging, CORS handling.
 
 ### Configuration & Deployment
 - Ensure that database configurations are optimized for each environment (development, staging, production).
 
 ### Database
-
-#### General
-- Move to an ORM for maintainability and security.
 - Plan/scripts for regular backups of the database and test the restoration process.
 
 #### Performance & Scalability
@@ -50,43 +39,16 @@
 - Implement comprehensive error handling in DB operations.
 - Define and monitor SLAs for database performance and uptime.
 
----
-
-### Authentication Refactoring with Authboss
-
-1. **Research & Setup**:
-    - Familiarize yourself with the Authboss documentation and its features.
-    - Set up Authboss in the project: Install the necessary packages and dependencies.
-    
-2. **Refactor `auth.go`**:
-    - Remove the custom JWT implementation and any other custom authentication logic.
-    - Implement Authboss's authentication mechanisms, including:
-        - Registration
-        - Login
-        - Logout
-        - Session management
-        - Optional: Refresh tokens (if deemed necessary)
-        
-3. **Database Integration**:
-    - Modify the database models and queries to align with Authboss's expected structures and interfaces.
-    
-4. **Middlewares & Routes**:
-    - Integrate Authboss middlewares into the Gin routing system to handle authentication checks and redirections.
-    - Ensure that existing routes are protected by the Authboss authentication middleware where needed.
-    
-5. **Testing**:
+### Testing
+    - Unit test coverage, mock methods
     - Update or create new tests to ensure the Authboss implementation works as expected.
     - Test edge cases, such as failed logins, expired sessions, etc.
-6. **Deployment Considerations**:
-    - If deploying, ensure any Authboss configurations, especially secrets or keys, are securely managed in the production environment.
 
 ---
 ### High priority items
 
 ### Must Have:
 1. **Validation Middleware:** Validate request payloads to ensure data integrity.
-2. **Authentication & Authorization Middleware:** Ensure secure access to your API.
-3. **Error Handling:** Implement a consistent error handler for your API responses.
 4. **Config Management:** Fetch sensitive information from environment variables or a secure configuration system.
 5. **Database Migrations Tool:** Manage database schema changes and migrations.
 6. **Health Check Endpoint:** Ensure your service's health can be monitored.
