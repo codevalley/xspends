@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
 	"github.com/volatiletech/authboss/v3"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -23,28 +23,14 @@ type ABClaims struct {
 }
 
 const (
-	accessTokenExpiryMins  = 30
+	tokenExpiryMins        = 30
 	refreshTokenExpiryMins = 1440
 )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-func generateAccessToken(userID int64, sessionID string) (string, error) {
-	expirationTime := time.Now().Add(accessTokenExpiryMins * time.Minute)
-	claims := &ABClaims{
-		UserID:    userID,
-		SessionID: sessionID,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expirationTime.Unix(),
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(JwtKey)
-}
-
-func generateRefreshToken(userID int64, sessionID string) (string, error) {
-	expirationTime := time.Now().Add(refreshTokenExpiryMins * time.Minute)
+func generateTokenWithTTL(userID int64, sessionID string, expiryMins int) (string, error) {
+	expirationTime := time.Now().Add(time.Duration(expiryMins) * time.Minute)
 	claims := &ABClaims{
 		UserID:    userID,
 		SessionID: sessionID,
@@ -66,134 +52,127 @@ func RefreshTokenHandler(ctx context.Context, oldRefreshToken string, ab *authbo
 
 	if err != nil {
 		if err == jwt.ErrSignatureInvalid {
-			return "", "", fmt.Errorf("invalid refresh token signature")
+			return "", "", errors.Wrap(err, "[RefreshTokenHandler] invalid refresh token signature")
 		}
-		return "", "", fmt.Errorf("could not parse refresh token: %v", err)
+		return "", "", errors.Wrap(err, "[RefreshTokenHandler] could not parse refresh token")
 	}
 
 	if !tkn.Valid {
-		return "", "", fmt.Errorf("invalid refresh token")
+		return "", "", errors.New("[RefreshTokenHandler] invalid refresh token")
 	}
 
 	sessionStorer, ok := ab.Config.Storage.SessionState.(*models.SessionStorer)
 	if !ok {
-		return "", "", fmt.Errorf("session storage configuration error")
+		return "", "", errors.New("[RefreshTokenHandler] session storage configuration error")
 	}
 	// Fetch the old refresh token from the session store
 	storedRefreshToken, err := sessionStorer.Load(ctx, claims.SessionID)
 	if err != nil {
-		return "", "", fmt.Errorf("could not fetch old refresh token: %v", err)
+		return "", "", errors.Wrap(err, "[RefreshTokenHandler] could not fetch old refresh token")
 	}
 
 	// Verify the old refresh token
 	if storedRefreshToken != oldRefreshToken {
-		return "", "", fmt.Errorf("provided refresh token does not match stored refresh token")
+		return "", "", errors.New("[RefreshTokenHandler] provided refresh token does not match stored refresh token")
 	}
 
 	// Delete old session
 	err = sessionStorer.Delete(ctx, claims.SessionID)
 	if err != nil {
-		return "", "", fmt.Errorf("could not delete old session")
+		return "", "", errors.Wrap(err, "[RefreshTokenHandler] could not delete old session")
 	}
 
 	// Create new session
 	newSessionID, err := util.GenerateSnowflakeID()
 	if err != nil {
-		return "", "", fmt.Errorf("could not generate new session ID")
+		return "", "", errors.Wrap(err, "[RefreshTokenHandler] could not generate new session ID")
 	}
 	err = sessionStorer.Save(ctx, strconv.FormatInt(newSessionID, 10), strconv.FormatInt(claims.UserID, 10), 24*time.Hour)
 	if err != nil {
-		return "", "", fmt.Errorf("could not save new session: %v", err)
+		return "", "", errors.Wrap(err, "[RefreshTokenHandler] could not save new session")
 	}
 
 	// Generate new access token
-	newAccessToken, err := generateAccessToken(claims.UserID, strconv.FormatInt(newSessionID, 10))
+	newAccessToken, err := generateTokenWithTTL(claims.UserID, strconv.FormatInt(newSessionID, 10), tokenExpiryMins)
 	if err != nil {
-		return "", "", fmt.Errorf("could not generate new access token")
+		return "", "", errors.Wrap(err, "[RefreshTokenHandler] could not generate new access token")
 	}
 
 	// Generate new refresh token
-	newRefreshToken, err := generateRefreshToken(claims.UserID, strconv.FormatInt(newSessionID, 10))
+	newRefreshToken, err := generateTokenWithTTL(claims.UserID, strconv.FormatInt(newSessionID, 10), refreshTokenExpiryMins)
 	if err != nil {
-		return "", "", fmt.Errorf("could not generate new refresh token")
+		return "", "", errors.Wrap(err, "[RefreshTokenHandler] could not generate new refresh token")
 	}
 
 	return newAccessToken, newRefreshToken, nil
 }
 func JWTRegisterHandler(ab *authboss.Authboss) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Binding the incoming JSON to the newUser struct
 		var newUser models.User
 		if err := c.ShouldBindJSON(&newUser); err != nil {
 			c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "Invalid input data"})
 			return
 		}
-		//TODO: Here you should validate the newUser fields as per your application's requirements
+
 		exists, err := models.UserExists(c, newUser.Username, newUser.Email)
 		if err != nil {
-			log.Printf("[JWTRegisterHandler] Error checking user existence: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTRegisterHandler] Error checking user existence").Error()})
 			return
 		}
 		if exists {
-			log.Printf("[JWTRegisterHandler] User already exists: %v", err)
 			c.JSON(http.StatusConflict, gin.H{"error": ErrUserExists.Error()})
 			return
 		}
+
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newUser.Password), 12)
 		if err != nil {
-			log.Printf("[JWTRegisterHandler] Error hashing password: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": ErrHashingPassword.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTRegisterHandler] Error hashing password").Error()})
 			return
 		}
 		newUser.Password = string(hashedPassword)
-		// You must assert the type of the storer to the concrete type (*UserStorer) to access the Create method
+
 		userStorer, ok := ab.Config.Storage.Server.(*models.UserStorer)
 		if !ok {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "User storage configuration error"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "[JWTRegisterHandler] User storage configuration error"})
 			return
 		}
 
-		// Create the user using the UserStorer which is part of AuthBoss's user creation
 		err = userStorer.Create(c.Request.Context(), &newUser)
 		if err != nil {
-			// Handle the error which may include user already exists etc.
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTRegisterHandler] Error creating user").Error()})
 			return
 		}
+
 		newSessionID, err := util.GenerateSnowflakeID()
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error generating session ID"})
-			return
-		}
-		// Generate the JWT access token for the new user
-		accessToken, err := generateAccessToken(newUser.ID, strconv.FormatInt(newSessionID, 10))
-		if err != nil {
-			// Handle the error in token generation
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error generating access token"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTRegisterHandler] Error generating session ID").Error()})
 			return
 		}
 
-		// Generate the JWT refresh token for the new user
-		refreshToken, err := generateRefreshToken(newUser.ID, strconv.FormatInt(newSessionID, 10))
+		accessToken, err := generateTokenWithTTL(newUser.ID, strconv.FormatInt(newSessionID, 10), tokenExpiryMins)
 		if err != nil {
-			// Handle the error in token generation
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error generating refresh token"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTRegisterHandler] Error generating access token").Error()})
 			return
 		}
-		// Store the refresh token in the session storage
+
+		refreshToken, err := generateTokenWithTTL(newUser.ID, strconv.FormatInt(newSessionID, 10), refreshTokenExpiryMins)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTRegisterHandler] Error generating refresh token").Error()})
+			return
+		}
+
 		sessionStorer, ok := ab.Config.Storage.SessionState.(*models.SessionStorer)
 		if !ok {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Session storage configuration error"})
-			return
-		}
-		err = sessionStorer.Save(c.Request.Context(), strconv.FormatInt(newSessionID, 10), refreshToken, refreshTokenExpiryMins*time.Minute)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error storing refresh token"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "[JWTRegisterHandler] Session storage configuration error"})
 			return
 		}
 
-		// Return the JWT access token and refresh token to the client
+		err = sessionStorer.Save(c.Request.Context(), strconv.FormatInt(newSessionID, 10), refreshToken, refreshTokenExpiryMins*time.Minute)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTRegisterHandler] Error storing refresh token").Error()})
+			return
+		}
+
 		c.JSON(http.StatusOK, gin.H{"access_token": accessToken, "refresh_token": refreshToken})
 	}
 }
@@ -205,32 +184,28 @@ func JWTLoginHandler(ab *authboss.Authboss) gin.HandlerFunc {
 			return
 		}
 
-		// You need to assert the type of the storer to the concrete type (*UserStorer) to access the Load method
 		userStorer, ok := ab.Config.Storage.Server.(*models.UserStorer)
 		if !ok {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "User storage configuration error"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "[JWTLoginHandler] User storage configuration error"})
 			return
 		}
 
-		// Use the userStorer to load the user
 		userInterface, err := userStorer.Load(c.Request.Context(), creds.Username)
 		if err != nil {
 			if err == authboss.ErrUserNotFound {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username"})
 			} else {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTLoginHandler] Error loading user").Error()})
 			}
 			return
 		}
 
-		// Assert the type of the user to the concrete type (*models.User)
 		user, ok := userInterface.(*models.User)
 		if !ok {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "User retrieval error"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "[JWTLoginHandler] User retrieval error"})
 			return
 		}
 
-		// Validate the password
 		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(creds.Password)); err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 			return
@@ -238,35 +213,34 @@ func JWTLoginHandler(ab *authboss.Authboss) gin.HandlerFunc {
 
 		newSessionID, err := util.GenerateSnowflakeID()
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTLoginHandler] Error generating session ID").Error()})
 			return
 		}
 
-		// Generate the JWT access token for the logged-in user
-		accessToken, err := generateAccessToken(user.ID, strconv.FormatInt(newSessionID, 10))
+		accessToken, err := generateTokenWithTTL(user.ID, strconv.FormatInt(newSessionID, 10), tokenExpiryMins)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error generating access token"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTLoginHandler] Error generating access token").Error()})
 			return
 		}
 
-		// Generate the JWT refresh token for the logged-in user
-		refreshToken, err := generateRefreshToken(user.ID, strconv.FormatInt(newSessionID, 10))
+		refreshToken, err := generateTokenWithTTL(user.ID, strconv.FormatInt(newSessionID, 10), refreshTokenExpiryMins)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error generating refresh token"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTLoginHandler] Error generating refresh token").Error()})
 			return
 		}
-		// Store the refresh token in the session storage
+
 		sessionStorer, ok := ab.Config.Storage.SessionState.(*models.SessionStorer)
 		if !ok {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Session storage configuration error"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "[JWTLoginHandler] Session storage configuration error"})
 			return
 		}
+
 		err = sessionStorer.Save(c.Request.Context(), strconv.FormatInt(newSessionID, 10), refreshToken, refreshTokenExpiryMins*time.Minute)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error storing refresh token"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTLoginHandler] Error storing refresh token").Error()})
 			return
 		}
-		// Return the JWT access token and refresh token to the client
+
 		c.JSON(http.StatusOK, gin.H{"access_token": accessToken, "refresh_token": refreshToken})
 	}
 }
@@ -281,7 +255,7 @@ func JWTRefreshHandler(ab *authboss.Authboss) gin.HandlerFunc {
 		oldRefreshToken := body["refresh_token"]
 		newAccessToken, newRefreshToken, err := RefreshTokenHandler(c.Request.Context(), oldRefreshToken, ab)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTRefreshHandler] Error refreshing token").Error()})
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"access_token": newAccessToken, "refresh_token": newRefreshToken})
