@@ -1,3 +1,31 @@
+/*
+MIT License
+
+Copyright (c) 2023 Narayan Babu
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
+// Package handlers contains the HTTP handler functions for the application.
+// This file specifically contains the handlers related to user authentication.
+// Deprecated: This file is deprecated and will be removed in a future version.
+
 package handlers
 
 import (
@@ -13,11 +41,13 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// Claims struct is used for JWT claims
 type Claims struct {
 	UserID int64 `json:"user_id"`
 	jwt.StandardClaims
 }
 
+// Error variables for common error messages
 var (
 	ErrInvalidInputData = errors.New("invalid input data")
 	ErrUserExists       = errors.New("username or email already exists")
@@ -26,8 +56,10 @@ var (
 	ErrGeneratingToken  = errors.New("error generating token")
 )
 
+// JwtKey is the key used for signing JWTs
 var JwtKey = getJwtKey()
 
+// getJwtKey retrieves the JWT key from environment variables or uses a default key
 func getJwtKey() []byte {
 	key := os.Getenv("JWT_KEY")
 	if key == "" {
@@ -37,6 +69,7 @@ func getJwtKey() []byte {
 	return []byte(key)
 }
 
+// generateToken generates a JWT for a given user ID
 func generateToken(userID int64) (string, error) {
 	expirationTime := time.Now().Add(24 * time.Hour)
 	claims := &Claims{
@@ -49,6 +82,7 @@ func generateToken(userID int64) (string, error) {
 	return token.SignedString(JwtKey)
 }
 
+// Register is the handler for user registration
 func Register(c *gin.Context) {
 	var newUser models.User
 	if err := c.ShouldBindJSON(&newUser); err != nil {
@@ -87,6 +121,7 @@ func Register(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "User registered successfully"})
 }
 
+// Login is the handler for user login
 func Login(c *gin.Context) {
 	var creds models.User
 	if err := c.ShouldBindJSON(&creds); err != nil {

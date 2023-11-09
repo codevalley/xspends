@@ -1,3 +1,30 @@
+/*
+MIT License
+
+Copyright (c) 2022 Narayan Babu
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
+// Package handlers contains the HTTP handler functions for the application.
+// This file specifically contains the handlers related to user authentication using JWT.
+
 package handlers
 
 import (
@@ -16,7 +43,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type ABClaims struct {
+// JWTClaims struct is used for JWT claims
+type JWTClaims struct {
 	UserID    int64  `json:"user_id"`
 	SessionID string `json:"session_id"`
 	jwt.StandardClaims
@@ -27,11 +55,10 @@ const (
 	refreshTokenExpiryMins = 1440
 )
 
-///////////////////////////////////////////////////////////////////////////////
-
+// generateTokenWithTTL generates a JWT with a specific time-to-live (TTL)
 func generateTokenWithTTL(userID int64, sessionID string, expiryMins int) (string, error) {
 	expirationTime := time.Now().Add(time.Duration(expiryMins) * time.Minute)
-	claims := &ABClaims{
+	claims := &JWTClaims{
 		UserID:    userID,
 		SessionID: sessionID,
 		StandardClaims: jwt.StandardClaims{
@@ -43,8 +70,9 @@ func generateTokenWithTTL(userID int64, sessionID string, expiryMins int) (strin
 	return token.SignedString(JwtKey)
 }
 
+// RefreshTokenHandler handles the refreshing of JWT tokens
 func RefreshTokenHandler(ctx context.Context, oldRefreshToken string, ab *authboss.Authboss) (string, string, error) {
-	claims := &ABClaims{}
+	claims := &JWTClaims{}
 	fmt.Println("Token:", oldRefreshToken)
 	tkn, err := jwt.ParseWithClaims(oldRefreshToken, claims, func(token *jwt.Token) (interface{}, error) {
 		return JwtKey, nil
@@ -259,5 +287,40 @@ func JWTRefreshHandler(ab *authboss.Authboss) gin.HandlerFunc {
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"access_token": newAccessToken, "refresh_token": newRefreshToken})
+	}
+}
+
+func JWTLogoutHandler(ab *authboss.Authboss) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var body map[string]string
+		if err := c.BindJSON(&body); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+			return
+		}
+
+		refreshToken := body["refresh_token"]
+		claims := &JWTClaims{}
+		_, err := jwt.ParseWithClaims(refreshToken, claims, func(token *jwt.Token) (interface{}, error) {
+			return JwtKey, nil
+		})
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTLogoutHandler] Error parsing refresh token").Error()})
+			return
+		}
+
+		sessionStorer, ok := ab.Config.Storage.SessionState.(*models.SessionStorer)
+		if !ok {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "[JWTLogoutHandler] Session storage configuration error"})
+			return
+		}
+
+		err = sessionStorer.Delete(c.Request.Context(), claims.SessionID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTLogoutHandler] Error deleting session").Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 	}
 }
