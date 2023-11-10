@@ -231,3 +231,136 @@ Continuing with the API specification for the `/sources` endpoints based on the 
     "error": "source not found"
   }
   ```
+---
+
+
+## 1. List Categories
+
+- **Endpoint**: `/categories`
+- **Method**: GET
+- **Description**: Retrieve a list of all categories for the authenticated user.
+- **Request Format**: No body required (Authorization header with token is needed)
+- **Response Format**:
+  ```json
+  [
+    {
+      "category_id": 1,
+      "name": "Groceries",
+      "description": "Grocery shopping",
+      "icon": "shopping-cart"
+      // other category details
+    },
+    // ... other categories
+  ]
+  ```
+- **Error Response**: (e.g., unauthorized access)
+  ```json
+  {
+    "error": "unauthorized access"
+  }
+  ```
+
+## 2. Create Category
+
+- **Endpoint**: `/categories`
+- **Method**: POST
+- **Description**: Create a new category for the authenticated user.
+- **Request Format**:
+  ```json
+  {
+    "name": "Utilities",
+    "description": "Monthly bills and utilities",
+    "icon": "utilities-icon"
+    // other category details
+  }
+  ```
+- **Response Format**:
+  ```json
+  {
+    "category_id": 2,
+    "name": "Utilities",
+    "description": "Monthly bills and utilities",
+    "icon": "utilities-icon"
+    // other category details
+  }
+  ```
+- **Error Response**: (e.g., invalid input data)
+  ```json
+  {
+    "error": "invalid input data"
+  }
+  ```
+
+## 3. Get Category
+
+- **Endpoint**: `/categories/:id`
+- **Method**: GET
+- **Description**: Retrieve details of a specific category by ID.
+- **Request Format**: Category ID in URL path
+- **Response Format**:
+  ```json
+  {
+    "category_id": 1,
+    "name": "Groceries",
+    "description": "Grocery shopping",
+    "icon": "shopping-cart"
+    // other category details
+  }
+  ```
+- **Error Response**: (e.g., category not found)
+  ```json
+  {
+    "error": "category not found"
+  }
+  ```
+
+## 4. Update Category
+
+- **Endpoint**: `/categories/:id`
+- **Method**: PUT
+- **Description**: Update an existing category.
+- **Request Format**:
+  ```json
+  {
+    "name": "Updated Category",
+    "description": "Updated description",
+    "icon": "updated-icon"
+    // other updated details
+  }
+  ```
+- **Response Format**:
+  ```json
+  {
+    "category_id": 1,
+    "name": "Updated Category",
+    "description": "Updated description",
+    "icon": "updated-icon"
+    // other updated details
+  }
+  ```
+- **Error Response**: (e.g., update failed)
+  ```json
+  {
+    "error": "update failed"
+  }
+  ```
+
+## 5. Delete Category
+
+- **Endpoint**: `/categories/:id`
+- **Method**: DELETE
+- **Description**: Delete a specific category by ID.
+- **Request Format**: Category ID in URL path
+- **Response Format**:
+  ```json
+  {
+    "message": "category deleted successfully"
+  }
+  ```
+- **Error Response**: (e.g., category not found)
+  ```json
+  {
+    "error": "category not found"
+  }
+  ```
+
