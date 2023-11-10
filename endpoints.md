@@ -1,219 +1,233 @@
-# XSpends API Documentation
 
-## Overview
-This document outlines the available API endpoints for the XSpends personal expense management application.
+# XSpends API Specification
 
-### Base URL
-`http://localhost:8080` (Adjust according to deployment)
+## 1. Register User
 
----
-
-## Authentication Endpoints
-
-### 1. Register User
 - **Endpoint**: `/auth/register`
 - **Method**: POST
-- **Description**: Registers a new user with email and password.
+- **Description**: Register a new user account.
 - **Request Format**:
   ```json
   {
-    "email": "user@example.com",
-    "password": "yourpassword"
+    "username": "newuser",
+    "password": "password123",
+    "email": "newuser@example.com"
   }
   ```
 - **Response Format**:
   ```json
   {
-    "user_id": 1,
-    "email": "user@example.com"
+    "user_id": "12345",
+    "username": "newuser",
+    "email": "newuser@example.com"
+  }
+  ```
+- **Error Response**: (if user already exists or input is invalid)
+  ```json
+  {
+    "error": "user already exists or invalid input"
   }
   ```
 
-### 2. Login User
+## 2. Login User
+
 - **Endpoint**: `/auth/login`
 - **Method**: POST
-- **Description**: Logs in an existing user with email and password.
+- **Description**: Log in an existing user.
 - **Request Format**:
   ```json
   {
-    "email": "user@example.com",
-    "password": "yourpassword"
+    "username": "existinguser",
+    "password": "password123"
   }
   ```
 - **Response Format**:
   ```json
   {
-    "token": "jwt-token-here"
+    "token": "jwt-token-here",
+    "user_id": "12345"
+  }
+  ```
+- **Error Response**: (if credentials are incorrect)
+  ```json
+  {
+    "error": "invalid username or password"
   }
   ```
 
+## 3. Refresh Token
+
+- **Endpoint**: `/auth/refresh`
+- **Method**: POST
+- **Description**: Refresh the authentication token.
+- **Request Format**:
+  ```json
+  {
+    "refresh_token": "existing-refresh-token"
+  }
+  ```
+- **Response Format**:
+  ```json
+  {
+    "new_token": "new-jwt-token-here",
+    "new_refresh_token": "new-refresh-token"
+  }
+  ```
+- **Error Response**: (if the refresh token is invalid or expired)
+  ```json
+  {
+    "error": "invalid or expired refresh token"
+  }
+  ```
+
+## 4. Logout User
+
+- **Endpoint**: `/auth/logout`
+- **Method**: POST
+- **Description**: Log out the current user.
+- **Request Format**: No body required (Authorization header with token is needed)
+- **Response Format**:
+  ```json
+  {
+    "message": "successfully logged out"
+  }
+  ```
+- **Error Response**: (if not logged in or invalid token)
+  ```json
+  {
+    "error": "user not logged in or invalid token"
+  }
+  ```
+Continuing with the API specification for the `/sources` endpoints based on the analysis of the `routes.go` and corresponding handler files in the `xspends` project:
+
 ---
 
-## User Profile Management
+## 2. List Sources
 
----
-
-## Fund Source Management
-
-### 1. List Sources
-- **Endpoint**: `/sources` 
+- **Endpoint**: `/sources`
 - **Method**: GET
-- **Description**: Retrieves all sources for the authenticated user.
-- **Request Format**: N/A (Authorization token required)
+- **Description**: Retrieve a list of all financial sources for the authenticated user.
+- **Request Format**: No body required (Authorization header with token is needed)
 - **Response Format**:
   ```json
   [
     {
       "source_id": 1,
       "source_name": "Bank Account",
+      "balance": 1000.00,
+      "type": "SAVINGS"
       // other source details
     },
     // ... other sources
   ]
   ```
-
----
-
-## Health Check Endpoint
-
-### 1. Check Health
-- **Endpoint**: `/health`
-- **Method**: GET
-- **Description**: Checks the health status of the application.
-- **Response Format**:
+- **Error Response**: (e.g., if the user is not authenticated)
   ```json
   {
-    "status": "UP"
+    "error": "unauthorized access"
   }
   ```
 
----
+## 2. Create Source
 
-## Spend Tag Management
-
-### 1. List Tags
-- **Endpoint**: `/tags/list`
-- **Method**: GET
-- **Description**: Retrieves a list of all tags for the authenticated user.
-- **Request Format**: N/A (Authorization token required)
-- **Response Format**:
-  ```json
-  [
-    {
-      "tag_id": 1,
-      "tag_name": "Groceries",
-      // other tag details
-    },
-    // ... other tags
-  ]
-  ```
-
-### 2. Create Tag
-- **Endpoint**: `/tags/create`
+- **Endpoint**: `/sources`
 - **Method**: POST
-- **Description**: Creates a new tag for the authenticated user.
+- **Description**: Create a new financial source for the authenticated user.
 - **Request Format**:
   ```json
   {
-    "tag_name": "New Tag",
-    // other tag details
+    "source_name": "New Source",
+    "balance": 500.00,
+    "type": "CREDIT"
+    // other source details
   }
   ```
 - **Response Format**:
   ```json
   {
-    "tag_id": 2,
-    "tag_name": "New Tag",
-    // other tag details
+    "source_id": 2,
+    "source_name": "New Source",
+    "balance": 500.00,
+    "type": "CREDIT"
+    // other source details
+  }
+  ```
+- **Error Response**: (e.g., if input data is invalid)
+  ```json
+  {
+    "error": "invalid input data"
   }
   ```
 
-### 3. Update Tag
-- **Endpoint**: `/tags/update`
+## 3. Get Source
+
+- **Endpoint**: `/sources/:id`
+- **Method**: GET
+- **Description**: Retrieve details of a specific financial source by ID.
+- **Request Format**: Source ID in URL path
+- **Response Format**:
+  ```json
+  {
+    "source_id": 1,
+    "source_name": "Bank Account",
+    "balance": 1000.00,
+    "type": "SAVINGS"
+    // other source details
+  }
+  ```
+- **Error Response**: (e.g., if the source is not found)
+  ```json
+  {
+    "error": "source not found"
+  }
+  ```
+
+## 4. Update Source
+
+- **Endpoint**: `/sources/:id`
 - **Method**: PUT
-- **Description**: Updates an existing tag for the authenticated user.
+- **Description**: Update an existing financial source.
 - **Request Format**:
   ```json
   {
-    "tag_id": 2,
-    "tag_name": "Updated Tag",
+    "source_name": "Updated Source",
+    "balance": 1200.00,
+    "type": "CREDIT"
     // other updated details
   }
   ```
 - **Response Format**:
   ```json
   {
-    "tag_id": 2,
-    "tag_name": "Updated Tag",
+    "source_id": 1,
+    "source_name": "Updated Source",
+    "balance": 1200.00,
+    "type": "CREDIT"
     // other updated details
   }
   ```
+- **Error Response**: (e.g., if the update fails)
+  ```json
+  {
+    "error": "update failed"
+  }
+  ```
 
-### 4. Delete Tag
-- **Endpoint**: `/tags/delete/{id}`
+## 5. Delete Source
+
+- **Endpoint**: `/sources/:id`
 - **Method**: DELETE
-- **Description**: Deletes a specific tag by ID for the authenticated user.
-- **Request Format**: N/A (Tag ID in URL)
+- **Description**: Delete a specific financial source by ID.
+- **Request Format**: Source ID in URL path
 - **Response Format**:
   ```json
   {
-    "message": "tag deleted successfully"
+    "message": "source deleted successfully"
   }
   ```
-
----
-
-## Tags 
-
-### 1. List Transaction Tags
-- **Endpoint**: `/transaction/tags/list/{transaction_id}`
-- **Method**: GET
-- **Description**: Retrieves a list of tags associated with a specific transaction.
-- **Request Format**: N/A (Transaction ID in URL)
-- **Response Format**:
-  ```json
-  [
-    {
-      "tag_id": 1,
-      "tag_name": "Groceries",
-      // other tag details
-    },
-    // ... other tags
-  ]
-  ```
-
-### 2. Add Tag to Transaction
-- **Endpoint**: `/transaction/tags/add`
-- **Method**: POST
-- **Description**: Adds a tag to a specific transaction.
-- **Request Format**:
+- **Error Response**: (e.g., if the source is not found)
   ```json
   {
-    "transaction_id": 123,
-    "tag_id": 1
-  }
-  ```
-- **Response Format**:
-  ```json
-  {
-    "message": "tag added successfully to the transaction"
-  }
-  ```
-
-### 3. Remove Tag from Transaction
-- **Endpoint**: `/transaction/tags/remove`
-- **Method**: DELETE
-- **Description**: Removes a tag from a specific transaction.
-- **Request Format**:
-  ```json
-  {
-    "transaction_id": 123,
-    "tag_id": 1
-  }
-  ```
-- **Response Format**:
-  ```json
-  {
-    "message": "tag removed successfully from the transaction"
+    "error": "source not found"
   }
   ```
