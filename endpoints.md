@@ -363,4 +363,267 @@ Continuing with the API specification for the `/sources` endpoints based on the 
     "error": "category not found"
   }
   ```
+---
+
+## 1. List Tags
+
+- **Endpoint**: `/tags`
+- **Method**: GET
+- **Description**: Retrieve a list of all tags for the authenticated user.
+- **Request Format**: No body required (Authorization header with token is needed)
+- **Response Format**:
+  ```json
+  [
+    {
+      "tag_id": 1,
+      "name": "Food",
+      // other tag details
+    },
+    // ... other tags
+  ]
+  ```
+- **Error Response**: (e.g., unauthorized access)
+  ```json
+  {
+    "error": "unauthorized access"
+  }
+  ```
+
+## 2. Create Tag
+
+- **Endpoint**: `/tags`
+- **Method**: POST
+- **Description**: Create a new tag for the authenticated user.
+- **Request Format**:
+  ```json
+  {
+    "name": "Entertainment",
+    // other tag details
+  }
+  ```
+- **Response Format**:
+  ```json
+  {
+    "tag_id": 2,
+    "name": "Entertainment",
+    // other tag details
+  }
+  ```
+- **Error Response**: (e.g., invalid input data)
+  ```json
+  {
+    "error": "invalid input data"
+  }
+  ```
+
+## 3. Get Tag
+
+- **Endpoint**: `/tags/:id`
+- **Method**: GET
+- **Description**: Retrieve details of a specific tag by ID.
+- **Request Format**: Tag ID in URL path
+- **Response Format**:
+  ```json
+  {
+    "tag_id": 1,
+    "name": "Food",
+    // other tag details
+  }
+  ```
+- **Error Response**: (e.g., tag not found)
+  ```json
+  {
+    "error": "tag not found"
+  }
+  ```
+
+## 4. Update Tag
+
+- **Endpoint**: `/tags/:id`
+- **Method**: PUT
+- **Description**: Update an existing tag.
+- **Request Format**:
+  ```json
+  {
+    "name": "Updated Tag",
+    // other updated details
+  }
+  ```
+- **Response Format**:
+  ```json
+  {
+    "tag_id": 1,
+    "name": "Updated Tag",
+    // other updated details
+  }
+  ```
+- **Error Response**: (e.g., update failed)
+  ```json
+  {
+    "error": "update failed"
+  }
+  ```
+
+## 5. Delete Tag
+
+- **Endpoint**: `/tags/:id`
+- **Method**: DELETE
+- **Description**: Delete a specific tag by ID.
+- **Request Format**: Tag ID in URL path
+- **Response Format**:
+  ```json
+  {
+    "message": "tag deleted successfully"
+  }
+  ```
+- **Error Response**: (e.g., tag not found)
+  ```json
+  {
+    "error": "tag not found"
+  }
+  ```
+---
+
+## 1. List Transactions
+
+- **Endpoint**: `/transactions`
+- **Method**: GET
+- **Description**: Retrieve a paginated list of transactions for the authenticated user.
+- **Request Parameters**:
+  - `page`: Page number for pagination (optional, default is 1).
+  - `limit`: Number of transactions per page (optional, default is 10).
+- **Request Format**: Query parameters for pagination.
+- **Response Format**:
+  ```json
+  {
+    "transactions": [
+      {
+        "transaction_id": 1,
+        "amount": 50.00,
+        "type": "Expense",
+        "source_id": 1,
+        "category_id": 1,
+        "tags": [1, 2],
+        "description": "Grocery shopping",
+        "date": "2023-01-01T00:00:00Z"
+        // other transaction details
+      },
+      // ... other transactions
+    ],
+    "page": 1,
+    "limit": 10,
+    "total_pages": 5,
+    "total_transactions": 50
+  }
+  ```
+- **Error Response**: (e.g., unauthorized access)
+  ```json
+  {
+    "error": "unauthorized access"
+  }
+  ```
+
+## 2. Create Transaction
+
+- **Endpoint**: `/transactions`
+- **Method**: POST
+- **Description**: Create a new transaction for the authenticated user.
+- **Request Format**:
+  ```json
+  {
+    "amount": 100.00,
+    "type": "Income",
+    "source_id": 1,
+    "category_id": 1,
+    "tags": [1, 3],
+    "description": "Salary",
+    "date": "2023-01-15T00:00:00Z"
+    // other transaction details
+  }
+  ```
+- **Response Format**:
+  ```json
+  {
+    "transaction_id": 2,
+    "amount": 100.00,
+    "type": "Income",
+    // other transaction details
+  }
+  ```
+- **Error Response**: (e.g., invalid input data)
+  ```json
+  {
+    "error": "invalid input data"
+  }
+  ```
+
+## 3. Get Transaction
+
+- **Endpoint**: `/transactions/:id`
+- **Method**: GET
+- **Description**: Retrieve details of a specific transaction by ID.
+- **Request Format**: Transaction ID in URL path
+- **Response Format**:
+  ```json
+  {
+    "transaction_id": 1,
+    "amount": 50.00,
+    "type": "Expense",
+    // other transaction details
+  }
+  ```
+- **Error Response**: (e.g., transaction not found)
+  ```json
+  {
+    "error": "transaction not found"
+  }
+  ```
+
+## 4. Update Transaction
+
+- **Endpoint**: `/transactions/:id`
+- **Method**: PUT
+- **Description**: Update an existing transaction.
+- **Request Format**:
+  ```json
+  {
+    "amount": 75.00,
+    "type": "Expense",
+    // other updated details
+  }
+  ```
+- **Response Format**:
+  ```json
+  {
+    "transaction_id": 1,
+    "amount": 75.00,
+    "type": "Expense",
+    // other updated details
+  }
+  ```
+- **Error Response**: (e.g., update failed)
+  ```json
+  {
+    "error": "update failed"
+  }
+  ```
+
+## 5. Delete Transaction
+
+- **Endpoint**: `/transactions/:id`
+- **Method**: DELETE
+- **Description**: Delete a specific transaction by ID.
+- **Request Format**: Transaction ID in URL path
+- **Response Format**:
+  ```json
+  {
+    "message": "transaction deleted successfully"
+  }
+  ```
+- **Error Response**: (e.g., transaction not found)
+  ```json
+  {
+    "error": "transaction not found"
+  }
+  ```
 
