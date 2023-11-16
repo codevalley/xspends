@@ -1,7 +1,7 @@
 pd:
-  storageClassName: standard
+  storageClassName: standard #managed
 
 tikv:
-  storageClassName: standard
+  storageClassName: standard #managed
 storage:
   enable-ttl: true

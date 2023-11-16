@@ -8,5 +8,5 @@ spec:
   ports:
     - protocol: TCP
       port: 80
-      targetPort: 8080  # Assuming your application runs on port 8080 inside the container
-  type: NodePort
+      targetPort: 8080  # Change this if your app listens on a different port
+  type: NodePort #LoadBalancer

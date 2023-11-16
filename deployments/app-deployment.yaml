@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: xspends-container
-        image: xspends-image:TAG_PLACEHOLDER # You would replace this with the actual image name from your container registry.
+        image: xspends-image:TAG_PLACEHOLDER #<name>.azurecr.io/xspends:v0.1 # You would replace this with the actual image name from your container registry.
         imagePullPolicy: IfNotPresent
         resources:
           requests:
