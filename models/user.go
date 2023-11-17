@@ -1,3 +1,66 @@
+/*
+Package models provides functionality for user management in a Go application.
+
+The User struct represents a user record in the database and implements the AuthBoss User interface.
+
+The package includes functions for inserting, retrieving, updating, and deleting user records in the database. It also includes functions for checking if a user exists and retrieving a user by their ID or username.
+
+Example Usage:
+
+  - Insert a new user:
+    user := &User{
+    Username: "john_doe",
+    Name: "John Doe",
+    Email: "john@example.com",
+    Currency: "USD",
+    Password: "password123",
+    }
+    err := InsertUser(context.Background(), user)
+    if err != nil {
+    log.Fatal(err)
+    }
+
+  - Retrieve a user by ID:
+    retrievedUser, err := GetUserByID(context.Background(), user.ID)
+    if err != nil {
+    log.Fatal(err)
+    }
+
+  - Update a user:
+    retrievedUser.Name = "Jane Doe"
+    err = UpdateUser(context.Background(), retrievedUser)
+    if err != nil {
+    log.Fatal(err)
+    }
+
+  - Delete a user:
+    err = DeleteUser(context.Background(), retrievedUser.ID)
+    if err != nil {
+    log.Fatal(err)
+    }
+
+  - Check if a user exists:
+    exists, err := UserExists(context.Background(), "john_doe", "john@example.com")
+    if err != nil {
+    log.Fatal(err)
+    }
+    if exists {
+    fmt.Println("User exists")
+    } else {
+    fmt.Println("User does not exist")
+    }
+
+  - Check if a user ID exists:
+    exists, err := UserIDExists(context.Background(), user.ID)
+    if err != nil {
+    log.Fatal(err)
+    }
+    if exists {
+    fmt.Println("User ID exists")
+    } else {
+    fmt.Println("User ID does not exist")
+    }
+*/
 package models
 
 import (

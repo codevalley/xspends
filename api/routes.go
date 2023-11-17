@@ -21,6 +21,26 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
+/*
+SetupRoutes configures all the routes for the application.
+It takes a gin Engine, a sql DB, and a kvstore RawKVClientInterface as parameters.
+
+Inputs:
+- r: A pointer to a gin.Engine instance representing the Gin router.
+- db: A pointer to a sql.DB instance representing the database connection.
+- kvClient: An interface representing the key-value store client.
+
+Flow:
+1. The function sets up the routes for the application.
+2. It initializes the authentication boss (ab) using the SetupAuthBoss function.
+3. It defines a health check endpoint.
+4. It sets up authentication routes for user registration, login, token refresh, and logout using custom JWT handlers.
+5. It sets up routes for managing sources, categories, tags, and transactions.
+6. Each route is associated with a specific HTTP method and URL path, and is handled by a corresponding handler function.
+
+Outputs:
+- The routes are configured and ready to handle incoming requests.
+*/
 
 // Package api contains all the routes for the application.
 // It sets up the routes for authentication, sources, categories, tags, and transactions.
@@ -33,7 +53,7 @@ import (
 	"xspends/middleware"
 
 	"github.com/gin-gonic/gin"
-	"github.com/swaggo/gin-swagger"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
 	swaggerFiles "github.com/swaggo/files"
 )
