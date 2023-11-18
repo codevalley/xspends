@@ -25,9 +25,9 @@ spec:
             cpu: "500m"
         env:
         - name: SWAGGER_HOST
-          value: "localhost"  # Replace with your domain or public IP
+          value: app-host  # Replace with your domain or public IP
         - name: SWAGGER_PORT
-          value: "8080"  # Replace with your port if needed
+          value: app-port  # Replace with your port if needed
         - name: JWT_KEY
           valueFrom:
             secretKeyRef:

@@ -11,7 +11,7 @@ COPY . .
 
 # Build the application
 RUN go mod download
-RUN CGO_ENABLED=0 GOOS=linux go build -o xpends .
+RUN CGO_ENABLED=0 GOOS=linux go build -o xspends .
 
 # Use a smaller image to run the application
 FROM alpine:latest
@@ -20,11 +20,13 @@ FROM alpine:latest
 WORKDIR /app
 
 # Copy the binary file from the build container to the production container
-COPY --from=build /app/xpends .
+COPY --from=build /app/xspends .
+
+# Copy the swagger.json file
+COPY --from=build /app/docs/swagger.json ./docs/swagger.json
 
 # Expose the application's port
 EXPOSE 8080
 
 # Run the application
-CMD ["./xpends"]
-
+CMD ["./xspends"]

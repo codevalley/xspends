@@ -56,6 +56,8 @@ import (
 	"xspends/middleware"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 // SetupRoutes sets up all the routes for the application
@@ -64,18 +66,8 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, kvClient kvstore.RawKVClientInterfac
 	ab := middleware.SetupAuthBoss(r, db, kvClient)
 
 	setupHealthEndpoint(r)
-	// Custom Swagger handler
-	r.GET("/swagger/*any", func(c *gin.Context) {
-		swaggerJSON, err := setSwaggerHost("docs/swagger.json") // Adjust the path to your swagger.json
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load swagger file"})
-			return
-		}
-		c.Data(http.StatusOK, "application/json", swaggerJSON)
-	})
-	// Authentication routes using custom JWT handlers
-	// These routes are used for user registration, login, and token refresh.
-	// @tags Authentication
+	setupSwaggerHandler(r)
+
 	auth := r.Group("/auth")
 	{
 		auth.POST("/register", handlers.JWTRegisterHandler(ab)) // Register a new user
@@ -147,6 +139,27 @@ func setupHealthEndpoint(r *gin.Engine) {
 	})
 }
 
+func setupSwaggerHandler(r *gin.Engine) {
+	r.GET("/swagger/*any", func(c *gin.Context) {
+		path := c.Param("any")
+
+		// Serve Swagger JSON at "/swagger/doc.json"
+		if path == "/doc.json" {
+			swaggerJSON, err := setSwaggerHost("docs/swagger.json") // Adjust the path accordingly
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load swagger file"})
+				return
+			}
+			c.Data(http.StatusOK, "application/json", swaggerJSON)
+			return
+		}
+
+		// Serve Swagger UI for any other path under "/swagger/"
+		ginSwagger.CustomWrapHandler(&ginSwagger.Config{
+			URL: "http://" + c.Request.Host + "/swagger/doc.json",
+		}, swaggerFiles.Handler)(c)
+	})
+}
 func setSwaggerHost(filePath string) ([]byte, error) {
 	// Read the original swagger.json file
 	jsonFile, err := os.ReadFile(filePath)
@@ -160,14 +173,17 @@ func setSwaggerHost(filePath string) ([]byte, error) {
 		return nil, err
 	}
 
-	// Determine the current host and port
-	// For Minikube, you might need a different method to get the actual host and port
-	host := "127.0.0.1"
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080" // default port
+	// Use environment variables to determine the host and port
+	host := os.Getenv("SWAGGER_HOST") // Example: "api.example.com"
+	port := os.Getenv("SWAGGER_PORT") // Example: "443" for HTTPS
+	if host == "" {
+		host = "127.0.0.1" // Default host
 	}
-	swagger["host"] = host + ":" + port
+	if port == "" {
+		port = "8080" // Default port
+	}
+	host = host + ":" + port
+	swagger["host"] = host
 
 	// Marshal the modified swagger back to JSON
 	modifiedSwaggerJSON, err := json.Marshal(swagger)
