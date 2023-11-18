@@ -134,6 +134,18 @@ func RefreshTokenHandler(ctx context.Context, oldRefreshToken string, ab *authbo
 
 	return newAccessToken, newRefreshToken, nil
 }
+
+// @Summary Register a new user
+// @Description Register a new user with email and password
+// @ID register-user
+// @Accept  json
+// @Produce  json
+// @Param user body models.User true "User info for registration"
+// @Success 200  {object}  map[string]interface{}  "User registered successfully"
+// @Failure 400  {object}  map[string]string  "Invalid input data"
+// @Failure 500  {object}  map[string]string  "Internal Server Error"
+// @Router /auth/register [post]
+
 func JWTRegisterHandler(ab *authboss.Authboss) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var newUser models.User
@@ -204,6 +216,20 @@ func JWTRegisterHandler(ab *authboss.Authboss) gin.HandlerFunc {
 		c.JSON(http.StatusOK, gin.H{"access_token": accessToken, "refresh_token": refreshToken})
 	}
 }
+
+// @Summary Login an existing user
+// @Description Login an existing user with email and password
+// @ID login-user
+// @Accept  json
+// @Produce  json
+// @Param   email  body  string  true  "User Email"
+// @Param   password  body  string  true  "User Password"
+// @Success 200  {object}  map[string]string  "Access and refresh tokens"
+// @Failure 400  {object}  map[string]string  "Invalid input data"
+// @Failure 401  {object}  map[string]string  "Invalid credentials or username"
+// @Failure 500  {object}  map[string]string  "Internal Server Error"
+// @Router /auth/login [post]
+
 func JWTLoginHandler(ab *authboss.Authboss) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var creds models.User
@@ -273,6 +299,17 @@ func JWTLoginHandler(ab *authboss.Authboss) gin.HandlerFunc {
 	}
 }
 
+// @Summary Refresh JWT token
+// @Description Refresh JWT token for an authenticated user
+// @ID refresh-token
+// @Accept  json
+// @Produce  json
+// @Param   refresh_token  body  string  true  "Refresh token"
+// @Success 200  {object}  map[string]string  "New access and refresh tokens"
+// @Failure 400  {object}  map[string]string  "Invalid refresh token"
+// @Failure 500  {object}  map[string]string  "Internal Server Error"
+// @Router /auth/refresh [post]
+
 func JWTRefreshHandler(ab *authboss.Authboss) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var body map[string]string
@@ -289,6 +326,17 @@ func JWTRefreshHandler(ab *authboss.Authboss) gin.HandlerFunc {
 		c.JSON(http.StatusOK, gin.H{"access_token": newAccessToken, "refresh_token": newRefreshToken})
 	}
 }
+
+// @Summary Logout the current user
+// @Description Logout the user by invalidating their session
+// @ID logout-user
+// @Accept  json
+// @Produce  json
+// @Param   refresh_token  body  string  true  "Refresh Token"
+// @Success 200  {object}  map[string]string  "message: Logged out successfully"
+// @Failure 400  {object}  map[string]string  "Invalid request body"
+// @Failure 500  {object}  map[string]string  "Internal Server Error"
+// @Router /auth/logout [post]
 
 func JWTLogoutHandler(ab *authboss.Authboss) gin.HandlerFunc {
 	return func(c *gin.Context) {

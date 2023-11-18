@@ -51,6 +51,17 @@ func getTxnTagID(c *gin.Context) (int64, bool) {
 	return transactionID, true
 }
 
+// ListTransactionTags
+// @Summary List all tags for a specific transaction
+// @Description Get a list of all tags for a specific transaction
+// @ID list-transaction-tags
+// @Accept  json
+// @Produce  json
+// @Param id path int true "Transaction ID"
+// @Success 200 {array} models.Tag
+// @Failure 500 {object} map[string]string "Unable to fetch tags for the transaction"
+// @Router /transactions/{id}/tags [get]
+
 func ListTransactionTags(c *gin.Context) {
 	transactionID, ok := getTxnTagID(c)
 	if !ok {
@@ -66,6 +77,18 @@ func ListTransactionTags(c *gin.Context) {
 	c.JSON(http.StatusOK, tags)
 }
 
+// AddTagToTransaction
+// @Summary Add a tag to a specific transaction
+// @Description Add a tag to a specific transaction
+// @ID add-tag-to-transaction
+// @Accept  json
+// @Produce  json
+// @Param id path int true "Transaction ID"
+// @Param tag body models.Tag true "Tag info to add"
+// @Success 200 {object} map[string]string "Message: Tag added successfully to the transaction"
+// @Failure 400 {object} map[string]string "Invalid tag data"
+// @Failure 500 {object} map[string]string "Unable to add tag to the transaction"
+// @Router /transactions/{id}/tags [post]
 func AddTagToTransaction(c *gin.Context) {
 	transactionID, ok := getTxnTagID(c)
 	if !ok {
@@ -87,6 +110,17 @@ func AddTagToTransaction(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "tag added successfully to the transaction"})
 }
 
+// RemoveTagFromTransaction
+// @Summary Remove a tag from a specific transaction
+// @Description Remove a tag from a specific transaction
+// @ID remove-tag-from-transaction
+// @Accept  json
+// @Produce  json
+// @Param id path int true "Transaction ID"
+// @Param tagID path int true "Tag ID"
+// @Success 200 {object} map[string]string "Message: Tag removed successfully from the transaction"
+// @Failure 500 {object} map[string]string "Unable to remove tag from the transaction"
+// @Router /transactions/{id}/tags/{tagID} [delete]
 func RemoveTagFromTransaction(c *gin.Context) {
 	transactionID, ok := getTxnTagID(c)
 	if !ok {

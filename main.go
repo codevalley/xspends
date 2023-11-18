@@ -9,6 +9,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// SetupRoutes configures all the routes for the application.
+// It takes a gin Engine, a sql DB, and a kvstore RawKVClientInterface as parameters.
+// @title XSpends API
+// @version 1.0
+// @description This is the API for the XSpends application.
+// @host localhost:8080
+// @BasePath /
 func main() {
 	r := gin.Default()
 	util.InitializeSnowflake()

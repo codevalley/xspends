@@ -52,6 +52,17 @@ func getTagID(c *gin.Context) (int64, bool) {
 	return tagID, true
 }
 
+// ListTags
+// @Summary List all tags
+// @Description Get a list of all tags
+// @ID list-tags
+// @Accept  json
+// @Produce  json
+// @Param limit query int false "Limit number of tags returned"
+// @Param offset query int false "Offset for tags returned"
+// @Success 200 {array} models.Tag
+// @Failure 500 {object} map[string]string "Unable to fetch tags"
+// @Router /tags [get]
 func ListTags(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {
@@ -76,6 +87,16 @@ func ListTags(c *gin.Context) {
 	c.JSON(http.StatusOK, tags)
 }
 
+// GetTag
+// @Summary Get a specific tag
+// @Description Get a specific tag by its ID
+// @ID get-tag
+// @Accept  json
+// @Produce  json
+// @Param id path int true "Tag ID"
+// @Success 200 {object} models.Tag
+// @Failure 404 {object} map[string]string "Tag not found"
+// @Router /tags/{id} [get]
 func GetTag(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {
@@ -96,6 +117,17 @@ func GetTag(c *gin.Context) {
 	c.JSON(http.StatusOK, tag)
 }
 
+// CreateTag
+// @Summary Create a new tag
+// @Description Create a new tag with the provided information
+// @ID create-tag
+// @Accept  json
+// @Produce  json
+// @Param tag body models.Tag true "Tag info for creation"
+// @Success 201 {object} models.Tag
+// @Failure 400 {object} map[string]string "Invalid tag data"
+// @Failure 500 {object} map[string]string "Unable to create tag"
+// @Router /tags [post]
 func CreateTag(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {
@@ -117,6 +149,18 @@ func CreateTag(c *gin.Context) {
 	c.JSON(http.StatusOK, newTag)
 }
 
+// UpdateTag
+// @Summary Update a specific tag
+// @Description Update a specific tag by its ID
+// @ID update-tag
+// @Accept  json
+// @Produce  json
+// @Param id path int true "Tag ID"
+// @Param tag body models.Tag true "Tag info for update"
+// @Success 200 {object} models.Tag
+// @Failure 400 {object} map[string]string "Invalid tag data"
+// @Failure 500 {object} map[string]string "Unable to update tag"
+// @Router /tags/{id} [put]
 func UpdateTag(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {
@@ -138,6 +182,16 @@ func UpdateTag(c *gin.Context) {
 	c.JSON(http.StatusOK, updatedTag)
 }
 
+// DeleteTag
+// @Summary Delete a specific tag
+// @Description Delete a specific tag by its ID
+// @ID delete-tag
+// @Accept  json
+// @Produce  json
+// @Param id path int true "Tag ID"
+// @Success 200 {object} map[string]string "Message: Tag deleted successfully"
+// @Failure 500 {object} map[string]string "Unable to delete tag"
+// @Router /tags/{id} [delete]
 func DeleteTag(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {

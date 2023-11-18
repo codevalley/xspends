@@ -52,7 +52,17 @@ func getTransactionID(c *gin.Context) (int64, bool) {
 	return transactionID, true
 }
 
-// CreateTransaction creates a new transaction for the authenticated user.
+// CreateTransaction
+// @Summary Create a new transaction
+// @Description Create a new transaction with the provided information
+// @ID create-transaction
+// @Accept  json
+// @Produce  json
+// @Param transaction body models.Transaction true "Transaction info for creation"
+// @Success 201 {object} models.Transaction
+// @Failure 400 {object} map[string]string "Invalid transaction data"
+// @Failure 500 {object} map[string]string "Unable to create transaction"
+// @Router /transactions [post]
 func CreateTransaction(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {
@@ -75,7 +85,16 @@ func CreateTransaction(c *gin.Context) {
 	c.JSON(http.StatusOK, newTransaction)
 }
 
-// GetTransaction fetches a specific transaction by its ID.
+// GetTransaction
+// @Summary Get a specific transaction
+// @Description Get a specific transaction by its ID
+// @ID get-transaction
+// @Accept  json
+// @Produce  json
+// @Param id path int true "Transaction ID"
+// @Success 200 {object} models.Transaction
+// @Failure 404 {object} map[string]string "Transaction not found"
+// @Router /transactions/{id} [get]
 func GetTransaction(c *gin.Context) {
 	transactionID, ok := getTransactionID(c)
 	if !ok {
@@ -96,7 +115,19 @@ func GetTransaction(c *gin.Context) {
 	c.JSON(http.StatusOK, transaction)
 }
 
-// UpdateTransaction modifies the details of an existing transaction.
+// UpdateTransaction
+// @Summary Update a specific transaction
+// @Description Update a specific transaction by its ID
+// @ID update-transaction
+// @Accept  json
+// @Produce  json
+// @Param id path int true "Transaction ID"
+// @Param transaction body models.Transaction true "Transaction info for update"
+// @Success 200 {object} models.Transaction
+// @Failure 400 {object} map[string]string "Invalid transaction data"
+// @Failure 404 {object} map[string]string "Transaction not found"
+// @Failure 500 {object} map[string]string "Unable to update transaction"
+// @Router /transactions/{id} [put]
 func UpdateTransaction(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {
@@ -148,6 +179,16 @@ func UpdateTransaction(c *gin.Context) {
 	c.JSON(http.StatusOK, oTxn)
 }
 
+// DeleteTransaction
+// @Summary Delete a specific transaction
+// @Description Delete a specific transaction by its ID
+// @ID delete-transaction
+// @Accept  json
+// @Produce  json
+// @Param id path int true "Transaction ID"
+// @Success 200 {object} map[string]string "Message: Transaction deleted successfully"
+// @Failure 500 {object} map[string]string "Unable to delete transaction"
+// @Router /transactions/{id} [delete]
 func DeleteTransaction(c *gin.Context) {
 	transactionID, ok := getTransactionID(c)
 	if !ok {
@@ -167,7 +208,26 @@ func DeleteTransaction(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "transaction deleted successfully"})
 }
 
-// ListTransactions fetches all transactions for the authenticated user, with optional filters.
+// ListTransactions
+// @Summary List all transactions
+// @Description Get a list of all transactions with optional filters
+// @ID list-transactions
+// @Accept  json
+// @Produce  json
+// @Param start_date query string false "Start Date"
+// @Param end_date query string false "End Date"
+// @Param category query string false "Category"
+// @Param type query string false "Transaction Type"
+// @Param tags query []string false "Tags"
+// @Param min_amount query number false "Minimum Amount"
+// @Param max_amount query number false "Maximum Amount"
+// @Param sort_by query string false "Sort By"
+// @Param sort_order query string false "Sort Order"
+// @Param page query int false "Page Number"
+// @Param items_per_page query int false "Items Per Page"
+// @Success 200 {array} models.Transaction
+// @Failure 500 {object} map[string]string "Unable to fetch transactions"
+// @Router /transactions [get]
 func ListTransactions(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {

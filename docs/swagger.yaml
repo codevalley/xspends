@@ -1,4 +1,827 @@
+basePath: /
+definitions:
+  models.Category:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      icon:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  models.Source:
+    properties:
+      balance:
+        type: number
+      created_at:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      type:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  models.Tag:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  models.Transaction:
+    properties:
+      amount:
+        type: number
+      category_id:
+        type: integer
+      description:
+        type: string
+      id:
+        type: integer
+      source_id:
+        type: integer
+      tags:
+        items:
+          type: string
+        type: array
+      timestamp:
+        type: string
+      type:
+        type: string
+      user_id:
+        type: integer
+    type: object
+host: localhost:8080
 info:
   contact: {}
-paths: {}
+  description: This is the API for the XSpends application.
+  title: XSpends API
+  version: "1.0"
+paths:
+  /categories:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of all categories with optional pagination
+      operationId: list-categories
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: items_per_page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Category'
+            type: array
+        "500":
+          description: Unable to fetch categories
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List all categories
+    post:
+      consumes:
+      - application/json
+      description: Create a new category with the provided information
+      operationId: create-category
+      parameters:
+      - description: Category info for creation
+        in: body
+        name: category
+        required: true
+        schema:
+          $ref: '#/definitions/models.Category'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Category'
+        "400":
+          description: Invalid category data
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Unable to create category
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new category
+  /categories/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a specific category by its ID
+      operationId: delete-category
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'Message: Category deleted successfully'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Unable to delete category
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a specific category
+    get:
+      consumes:
+      - application/json
+      description: Get a specific category by its ID
+      operationId: get-category
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Category'
+        "404":
+          description: Category not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get a specific category
+    put:
+      consumes:
+      - application/json
+      description: Update a specific category by its ID
+      operationId: update-category
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Category info for update
+        in: body
+        name: category
+        required: true
+        schema:
+          $ref: '#/definitions/models.Category'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Category'
+        "400":
+          description: Invalid category data
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Unable to update category
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update a specific category
+  /health:
+    get:
+      description: Check the health status of the application
+      operationId: get-health
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Health status of the application
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Health check
+  /sources:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of all sources
+      operationId: list-sources
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Source'
+            type: array
+        "500":
+          description: Unable to fetch sources
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List all sources
+    post:
+      consumes:
+      - application/json
+      description: Create a new source with the provided information
+      operationId: create-source
+      parameters:
+      - description: Source info for creation
+        in: body
+        name: source
+        required: true
+        schema:
+          $ref: '#/definitions/models.Source'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Source'
+        "400":
+          description: Invalid source data
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to create source
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new source
+  /sources/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a specific source by its ID
+      operationId: delete-source
+      parameters:
+      - description: Source ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Source deleted successfully'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid source ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to delete source
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a specific source
+    get:
+      consumes:
+      - application/json
+      description: Get a specific source by its ID
+      operationId: get-source
+      parameters:
+      - description: Source ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Source'
+        "400":
+          description: Invalid source ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Source not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get a specific source
+    put:
+      consumes:
+      - application/json
+      description: Update a specific source by its ID
+      operationId: update-source
+      parameters:
+      - description: Source ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Source info for update
+        in: body
+        name: source
+        required: true
+        schema:
+          $ref: '#/definitions/models.Source'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Source'
+        "400":
+          description: Invalid source data
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to update source
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update a specific source
+  /tags:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of all tags
+      operationId: list-tags
+      parameters:
+      - description: Limit number of tags returned
+        in: query
+        name: limit
+        type: integer
+      - description: Offset for tags returned
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Tag'
+            type: array
+        "500":
+          description: Unable to fetch tags
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List all tags
+    post:
+      consumes:
+      - application/json
+      description: Create a new tag with the provided information
+      operationId: create-tag
+      parameters:
+      - description: Tag info for creation
+        in: body
+        name: tag
+        required: true
+        schema:
+          $ref: '#/definitions/models.Tag'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Tag'
+        "400":
+          description: Invalid tag data
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Unable to create tag
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new tag
+  /tags/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a specific tag by its ID
+      operationId: delete-tag
+      parameters:
+      - description: Tag ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'Message: Tag deleted successfully'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Unable to delete tag
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a specific tag
+    get:
+      consumes:
+      - application/json
+      description: Get a specific tag by its ID
+      operationId: get-tag
+      parameters:
+      - description: Tag ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Tag'
+        "404":
+          description: Tag not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get a specific tag
+    put:
+      consumes:
+      - application/json
+      description: Update a specific tag by its ID
+      operationId: update-tag
+      parameters:
+      - description: Tag ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Tag info for update
+        in: body
+        name: tag
+        required: true
+        schema:
+          $ref: '#/definitions/models.Tag'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Tag'
+        "400":
+          description: Invalid tag data
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Unable to update tag
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update a specific tag
+  /transactions:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of all transactions with optional filters
+      operationId: list-transactions
+      parameters:
+      - description: Start Date
+        in: query
+        name: start_date
+        type: string
+      - description: End Date
+        in: query
+        name: end_date
+        type: string
+      - description: Category
+        in: query
+        name: category
+        type: string
+      - description: Transaction Type
+        in: query
+        name: type
+        type: string
+      - collectionFormat: csv
+        description: Tags
+        in: query
+        items:
+          type: string
+        name: tags
+        type: array
+      - description: Minimum Amount
+        in: query
+        name: min_amount
+        type: number
+      - description: Maximum Amount
+        in: query
+        name: max_amount
+        type: number
+      - description: Sort By
+        in: query
+        name: sort_by
+        type: string
+      - description: Sort Order
+        in: query
+        name: sort_order
+        type: string
+      - description: Page Number
+        in: query
+        name: page
+        type: integer
+      - description: Items Per Page
+        in: query
+        name: items_per_page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Transaction'
+            type: array
+        "500":
+          description: Unable to fetch transactions
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List all transactions
+    post:
+      consumes:
+      - application/json
+      description: Create a new transaction with the provided information
+      operationId: create-transaction
+      parameters:
+      - description: Transaction info for creation
+        in: body
+        name: transaction
+        required: true
+        schema:
+          $ref: '#/definitions/models.Transaction'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Transaction'
+        "400":
+          description: Invalid transaction data
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Unable to create transaction
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new transaction
+  /transactions/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a specific transaction by its ID
+      operationId: delete-transaction
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'Message: Transaction deleted successfully'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Unable to delete transaction
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a specific transaction
+    get:
+      consumes:
+      - application/json
+      description: Get a specific transaction by its ID
+      operationId: get-transaction
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Transaction'
+        "404":
+          description: Transaction not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get a specific transaction
+    put:
+      consumes:
+      - application/json
+      description: Update a specific transaction by its ID
+      operationId: update-transaction
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Transaction info for update
+        in: body
+        name: transaction
+        required: true
+        schema:
+          $ref: '#/definitions/models.Transaction'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Transaction'
+        "400":
+          description: Invalid transaction data
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Transaction not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Unable to update transaction
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update a specific transaction
+  /transactions/{id}/tags:
+    post:
+      consumes:
+      - application/json
+      description: Add a tag to a specific transaction
+      operationId: add-tag-to-transaction
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Tag info to add
+        in: body
+        name: tag
+        required: true
+        schema:
+          $ref: '#/definitions/models.Tag'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'Message: Tag added successfully to the transaction'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid tag data
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Unable to add tag to the transaction
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Add a tag to a specific transaction
+  /transactions/{id}/tags/{tagID}:
+    delete:
+      consumes:
+      - application/json
+      description: Remove a tag from a specific transaction
+      operationId: remove-tag-from-transaction
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Tag ID
+        in: path
+        name: tagID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'Message: Tag removed successfully from the transaction'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Unable to remove tag from the transaction
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Remove a tag from a specific transaction
 swagger: "2.0"

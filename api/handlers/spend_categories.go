@@ -52,6 +52,17 @@ func getCategoryID(c *gin.Context) (int64, bool) {
 	return categoryID, true
 }
 
+// ListCategories
+// @Summary List all categories
+// @Description Get a list of all categories with optional pagination
+// @ID list-categories
+// @Accept  json
+// @Produce  json
+// @Param page query int false "Page number"
+// @Param items_per_page query int false "Items per page"
+// @Success 200 {array} models.Category
+// @Failure 500 {object} map[string]string "Unable to fetch categories"
+// @Router /categories [get]
 func ListCategories(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {
@@ -76,6 +87,16 @@ func ListCategories(c *gin.Context) {
 	c.JSON(http.StatusOK, categories)
 }
 
+// GetCategory
+// @Summary Get a specific category
+// @Description Get a specific category by its ID
+// @ID get-category
+// @Accept  json
+// @Produce  json
+// @Param id path int true "Category ID"
+// @Success 200 {object} models.Category
+// @Failure 404 {object} map[string]string "Category not found"
+// @Router /categories/{id} [get]
 func GetCategory(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {
@@ -97,6 +118,17 @@ func GetCategory(c *gin.Context) {
 	c.JSON(http.StatusOK, category)
 }
 
+// CreateCategory
+// @Summary Create a new category
+// @Description Create a new category with the provided information
+// @ID create-category
+// @Accept  json
+// @Produce  json
+// @Param category body models.Category true "Category info for creation"
+// @Success 201 {object} models.Category
+// @Failure 400 {object} map[string]string "Invalid category data"
+// @Failure 500 {object} map[string]string "Unable to create category"
+// @Router /categories [post]
 func CreateCategory(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {
@@ -120,6 +152,18 @@ func CreateCategory(c *gin.Context) {
 	c.JSON(http.StatusCreated, newCategory)
 }
 
+// UpdateCategory
+// @Summary Update a specific category
+// @Description Update a specific category by its ID
+// @ID update-category
+// @Accept  json
+// @Produce  json
+// @Param id path int true "Category ID"
+// @Param category body models.Category true "Category info for update"
+// @Success 200 {object} models.Category
+// @Failure 400 {object} map[string]string "Invalid category data"
+// @Failure 500 {object} map[string]string "Unable to update category"
+// @Router /categories/{id} [put]
 func UpdateCategory(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {
@@ -143,6 +187,16 @@ func UpdateCategory(c *gin.Context) {
 	c.JSON(http.StatusOK, updatedCategory)
 }
 
+// DeleteCategory
+// @Summary Delete a specific category
+// @Description Delete a specific category by its ID
+// @ID delete-category
+// @Accept  json
+// @Produce  json
+// @Param id path int true "Category ID"
+// @Success 200 {object} map[string]string "Message: Category deleted successfully"
+// @Failure 500 {object} map[string]string "Unable to delete category"
+// @Router /categories/{id} [delete]
 func DeleteCategory(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {

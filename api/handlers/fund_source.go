@@ -33,6 +33,14 @@ import (
 )
 
 // ListSources retrieves all sources for the authenticated user.
+// @Summary List all sources
+// @Description Get a list of all sources
+// @ID list-sources
+// @Accept  json
+// @Produce  json
+// @Success 200 {array} models.Source
+// @Failure 500 {object} map[string]string "Unable to fetch sources"
+// @Router /sources [get]
 func ListSources(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {
@@ -49,6 +57,16 @@ func ListSources(c *gin.Context) {
 	c.JSON(http.StatusOK, sources)
 }
 
+// @Summary Get a specific source
+// @Description Get a specific source by its ID
+// @ID get-source
+// @Accept  json
+// @Produce  json
+// @Param id path int true "Source ID"
+// @Success 200 {object} models.Source
+// @Failure 400 {object} map[string]string "Invalid source ID"
+// @Failure 404 {object} map[string]string "Source not found"
+// @Router /sources/{id} [get]
 func GetSource(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {
@@ -73,6 +91,16 @@ func GetSource(c *gin.Context) {
 	c.JSON(http.StatusOK, source)
 }
 
+// @Summary Create a new source
+// @Description Create a new source with the provided information
+// @ID create-source
+// @Accept  json
+// @Produce  json
+// @Param source body models.Source true "Source info for creation"
+// @Success 200 {object} models.Source
+// @Failure 400 {object} map[string]string "Invalid source data"
+// @Failure 500 {object} map[string]string "Failed to create source"
+// @Router /sources [post]
 func CreateSource(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {
@@ -94,6 +122,17 @@ func CreateSource(c *gin.Context) {
 	c.JSON(http.StatusOK, newSource)
 }
 
+// @Summary Update a specific source
+// @Description Update a specific source by its ID
+// @ID update-source
+// @Accept  json
+// @Produce  json
+// @Param id path int true "Source ID"
+// @Param source body models.Source true "Source info for update"
+// @Success 200 {object} models.Source
+// @Failure 400 {object} map[string]string "Invalid source data"
+// @Failure 500 {object} map[string]string "Failed to update source"
+// @Router /sources/{id} [put]
 func UpdateSource(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {
@@ -115,6 +154,17 @@ func UpdateSource(c *gin.Context) {
 	c.JSON(http.StatusOK, updatedSource)
 }
 
+// DeleteSource
+// @Summary Delete a specific source
+// @Description Delete a specific source by its ID
+// @ID delete-source
+// @Accept  json
+// @Produce  json
+// @Param id path int true "Source ID"
+// @Success 200 {object} map[string]string "message: Source deleted successfully"
+// @Failure 400 {object} map[string]string "Invalid source ID"
+// @Failure 500 {object} map[string]string "Failed to delete source"
+// @Router /sources/{id} [delete]
 func DeleteSource(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {
