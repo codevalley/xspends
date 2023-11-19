@@ -7,6 +7,7 @@ import (
 	"time"
 	"xspends/kvstore"
 
+	"github.com/pkg/errors"
 	"github.com/volatiletech/authboss/v3"
 )
 
@@ -26,16 +27,16 @@ func NewSessionStorer(kvClient kvstore.RawKVClientInterface) *SessionStorer {
 func (s *SessionStorer) ReadState(r *http.Request) (authboss.ClientState, error) {
 	token := r.Header.Get("Authorization")
 	if token == "" {
-		return CustomClientState{}, authboss.ErrUserNotFound // Or your custom error indicating missing token
+		return CustomClientState{}, errors.New("Missing token")
 	}
 
 	// Assuming the token is a bearer token
-	splitToken := strings.Split(token, "Bearer ")
-	if len(splitToken) != 2 {
-		return CustomClientState{}, authboss.ErrUserNotFound // Or your custom error indicating malformed token
+	const bearerPrefix = "Bearer "
+	if !strings.HasPrefix(token, bearerPrefix) {
+		return CustomClientState{}, errors.New("Malformed token")
 	}
 
-	return CustomClientState{"token": splitToken[1]}, nil
+	return CustomClientState{"token": token[len(bearerPrefix):]}, nil
 }
 
 // WriteState is not used for API calls, as the state is managed client-side.
@@ -50,12 +51,21 @@ func (s *SessionStorer) Load(ctx context.Context, sid string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if len(data) == 0 {
+		return "", nil
+	}
 	return string(data), nil
 }
 
 // Save associates the session data with the session token in the store.
 func (s *SessionStorer) Save(ctx context.Context, sid string, state string, ttl time.Duration) error {
-	return s.kvClient.Put(context.Background(), []byte(sid), []byte(state))
+	if sid == "" {
+		return errors.New("Invalid session ID")
+	}
+	if state == "" {
+		return errors.New("Invalid session state")
+	}
+	return s.kvClient.Put(ctx, []byte(sid), []byte(state))
 	//TODO: not been able to enabled ttl on tikv store.
 	//return s.kvClient.PutWithTTL(ctx, []byte(sid), []byte(state), uint64(ttl.Seconds()))
 }
