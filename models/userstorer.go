@@ -4,9 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"log"
 
 	"github.com/volatiletech/authboss/v3"
+)
+
+const (
+	userTypeAssertionFailed = "user type assertion failed: user is not of type *User"
 )
 
 type UserStorer struct {
@@ -30,43 +35,36 @@ func (s *UserStorer) Load(ctx context.Context, key string) (authboss.User, error
 }
 
 func (s *UserStorer) Save(ctx context.Context, user authboss.User) error {
-	u, ok := user.(*User)
+	u, ok := assertUserType(user)
 	if !ok {
-		log.Printf("[UserStorer Save] Error: user is not of type * User")
-		return errors.New("user is not of type * User")
+		return fmt.Errorf("%w: %s", errors.New(userTypeAssertionFailed), "Save")
 	}
-	err := UpdateUser(ctx, u)
-	if err != nil {
-		log.Printf("[UserStorer Save] Error: %v", err)
-	}
-	return err
+	return UpdateUser(ctx, u)
 }
 
 func (s *UserStorer) Create(ctx context.Context, user authboss.User) error {
-	u, ok := user.(*User)
+	u, ok := assertUserType(user)
 	if !ok {
-		log.Printf("[UserStorer Create] Error: user is not of type * User")
-		return errors.New("user is not of type * User")
+		return fmt.Errorf("%w: %s", errors.New(userTypeAssertionFailed), "Create")
 	}
-	err := InsertUser(ctx, u)
-	if err != nil {
-		log.Printf("[UserStorer Create] Error: %v", err)
-	}
-	return err
+	return InsertUser(ctx, u)
 }
 
 func (s *UserStorer) LoadByConfirmSelector(ctx context.Context, selector string) (authboss.ConfirmableUser, error) {
-	// Implement this method based on your application's requirements.
-	// This method is used for email confirmation features.
 	log.Printf("[LoadByConfirmSelector] Error: method not implemented")
-	return nil, nil
+	return nil, errors.New("LoadByConfirmSelector method not implemented")
 }
 
 func (s *UserStorer) LoadByRecoverSelector(ctx context.Context, selector string) (authboss.RecoverableUser, error) {
-	// Implement this method based on your application's requirements.
-	// This method is used for account recovery features.
 	log.Printf("[LoadByRecoverSelector] Error: method not implemented")
-	return nil, nil
+	return nil, errors.New("LoadByRecoverSelector method not implemented")
 }
 
-// ... and so on for other methods required by different modules of authboss you decide to use.
+func assertUserType(user authboss.User) (*User, bool) {
+	u, ok := user.(*User)
+	if !ok {
+		log.Printf("[UserStorer] Error: user is not of type *User")
+		return nil, false
+	}
+	return u, true
+}
