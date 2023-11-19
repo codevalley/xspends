@@ -36,7 +36,7 @@ func (c *CookieStorer) ReadState(r *http.Request) (authboss.ClientState, error) 
 	cookie, err := r.Cookie(authboss.CookieRemember)
 	if err != nil {
 		if err == http.ErrNoCookie {
-			return CustomClientState{}, nil
+			return nil, nil
 		}
 		return nil, err
 	}
@@ -46,28 +46,32 @@ func (c *CookieStorer) ReadState(r *http.Request) (authboss.ClientState, error) 
 
 // WriteState writes the state to the response.
 func (c *CookieStorer) WriteState(w http.ResponseWriter, state authboss.ClientState, events []authboss.ClientStateEvent) error {
+	const (
+		cookiePath     = "/"
+		cookieHttpOnly = true
+		cookieSecure   = true
+	)
+
+	cookie := &http.Cookie{
+		Name:     "",
+		Value:    "",
+		Path:     cookiePath,
+		HttpOnly: cookieHttpOnly,
+		Secure:   cookieSecure, // Should be set to true if using HTTPS
+	}
+
 	for _, event := range events {
 		switch event.Kind {
 		case authboss.ClientStateEventPut:
-			cookie := &http.Cookie{
-				Name:     event.Key,
-				Value:    event.Value,
-				Path:     "/",
-				HttpOnly: true,
-				Secure:   true, // Should be set to true if using HTTPS
-			}
+			cookie.Name = event.Key
+			cookie.Value = event.Value
 			http.SetCookie(w, cookie)
 
 		case authboss.ClientStateEventDel:
-			cookie := &http.Cookie{
-				Name:     event.Key,
-				Value:    "",
-				Path:     "/",
-				HttpOnly: true,
-				Secure:   true,            // Should be set to true if using HTTPS
-				Expires:  time.Unix(1, 0), // Set to the past to delete the cookie
-				MaxAge:   -1,
-			}
+			cookie.Name = event.Key
+			cookie.Value = ""
+			cookie.Expires = time.Unix(1, 0)
+			cookie.MaxAge = -1
 			http.SetCookie(w, cookie)
 		}
 	}
@@ -76,8 +80,8 @@ func (c *CookieStorer) WriteState(w http.ResponseWriter, state authboss.ClientSt
 }
 
 // Load loads the data associated with a cookie from the store.
-func (c *CookieStorer) Load(sid string) (string, error) {
-	data, err := c.kvClient.Get(context.Background(), []byte(sid))
+func (c *CookieStorer) Load(ctx context.Context, sid string) (string, error) {
+	data, err := c.kvClient.Get(ctx, []byte(sid))
 	if err != nil {
 		return "", err
 	}
@@ -85,11 +89,11 @@ func (c *CookieStorer) Load(sid string) (string, error) {
 }
 
 // Save saves the data associated with a cookie to the store.
-func (c *CookieStorer) Save(sid string, state string) error {
-	return c.kvClient.Put(context.Background(), []byte(sid), []byte(state))
+func (c *CookieStorer) Save(ctx context.Context, sid string, state string) error {
+	return c.kvClient.Put(ctx, []byte(sid), []byte(state))
 }
 
 // Delete deletes the data associated with a cookie from the store.
-func (c *CookieStorer) Delete(sid string) error {
-	return c.kvClient.Delete(context.Background(), []byte(sid))
+func (c *CookieStorer) Delete(ctx context.Context, sid string) error {
+	return c.kvClient.Delete(ctx, []byte(sid))
 }
