@@ -13,6 +13,7 @@ import (
 const (
 	maxCategoryNameLength        = 255
 	maxCategoryDescriptionLength = 500
+	ErrInvalidInput              = "invalid input: user ID must be positive, name must not be empty or exceed max length, description must not exceed max length"
 )
 
 type Category struct {
@@ -27,13 +28,18 @@ type Category struct {
 
 // InsertCategory inserts a new category into the database.
 func InsertCategory(ctx context.Context, category *Category) error {
-	if category.UserID <= 0 || len(category.Name) == 0 || len(category.Name) > maxCategoryNameLength || len(category.Description) > maxCategoryDescriptionLength {
-		return errors.New("invalid input: user ID must be positive, name must not be empty or exceed max length, description must not exceed max length")
+	if err := validateCategoryInput(category); err != nil {
+		return err
 	}
 
-	var err error
+	tx, err := GetDB().BeginTx(ctx, nil)
+	if err != nil {
+		return errors.Wrap(err, "starting transaction failed")
+	}
+
 	category.ID, err = util.GenerateSnowflakeID()
 	if err != nil {
+		tx.Rollback()
 		return errors.Wrap(err, "generating Snowflake ID failed")
 	}
 	category.CreatedAt = time.Now()
@@ -44,11 +50,24 @@ func InsertCategory(ctx context.Context, category *Category) error {
 		Values(category.ID, category.UserID, category.Name, category.Description, category.Icon, category.CreatedAt, category.UpdatedAt).
 		ToSql()
 	if err != nil {
+		tx.Rollback()
 		return errors.Wrap(err, "preparing insert statement failed")
 	}
 
-	if _, err := GetDB().ExecContext(ctx, query, args...); err != nil {
+	stmt, err := tx.PrepareContext(ctx, query)
+	if err != nil {
+		tx.Rollback()
+		return errors.Wrap(err, "preparing SQL statement failed")
+	}
+	defer stmt.Close()
+
+	if _, err := stmt.ExecContext(ctx, args...); err != nil {
+		tx.Rollback()
 		return errors.Wrap(err, "executing insert statement failed")
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, "committing transaction failed")
 	}
 
 	return nil
@@ -56,8 +75,8 @@ func InsertCategory(ctx context.Context, category *Category) error {
 
 // UpdateCategory updates an existing category in the database.
 func UpdateCategory(ctx context.Context, category *Category) error {
-	if category.UserID <= 0 || len(category.Name) == 0 || len(category.Name) > maxCategoryNameLength || len(category.Description) > maxCategoryDescriptionLength {
-		return errors.New("invalid input: user ID must be positive, name must not be empty or exceed max length, description must not exceed max length")
+	if err := validateCategoryInput(category); err != nil {
+		return err
 	}
 
 	category.UpdatedAt = time.Now()
@@ -73,10 +92,23 @@ func UpdateCategory(ctx context.Context, category *Category) error {
 		return errors.Wrap(err, "preparing update statement failed")
 	}
 
-	if _, err := GetDB().ExecContext(ctx, query, args...); err != nil {
+	stmt, err := GetDB().PrepareContext(ctx, query)
+	if err != nil {
+		return errors.Wrap(err, "preparing SQL statement failed")
+	}
+	defer stmt.Close()
+
+	if _, err := stmt.ExecContext(ctx, args...); err != nil {
 		return errors.Wrap(err, "executing update statement failed")
 	}
 
+	return nil
+}
+
+func validateCategoryInput(category *Category) error {
+	if category.UserID <= 0 || category.Name == "" || len(category.Name) > maxCategoryNameLength || len(category.Description) > maxCategoryDescriptionLength {
+		return errors.New(ErrInvalidInput)
+	}
 	return nil
 }
 
@@ -114,11 +146,11 @@ func GetAllCategories(ctx context.Context, userID int64) ([]Category, error) {
 
 	var categories []Category
 	for rows.Next() {
-		var category Category
+		category := &Category{}
 		if err := rows.Scan(&category.ID, &category.UserID, &category.Name, &category.Description, &category.Icon, &category.CreatedAt, &category.UpdatedAt); err != nil {
 			return nil, errors.Wrap(err, "scanning category row failed")
 		}
-		categories = append(categories, category)
+		categories = append(categories, *category)
 	}
 
 	return categories, nil
@@ -138,7 +170,7 @@ func GetCategoryByID(ctx context.Context, categoryID int64, userID int64) (*Cate
 	err = GetDB().QueryRowContext(ctx, query, args...).Scan(&category.ID, &category.UserID, &category.Name, &category.Description, &category.Icon, &category.CreatedAt, &category.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil
+			return nil, errors.New("category not found")
 		}
 		return nil, errors.Wrap(err, "querying category by ID failed")
 	}
@@ -168,11 +200,11 @@ func GetPagedCategories(ctx context.Context, page int, itemsPerPage int, userID 
 
 	var categories []Category
 	for rows.Next() {
-		var category Category
+		category := &Category{}
 		if err := rows.Scan(&category.ID, &category.UserID, &category.Name, &category.Description, &category.Icon, &category.CreatedAt, &category.UpdatedAt); err != nil {
 			return nil, errors.Wrap(err, "scanning paginated category row failed")
 		}
-		categories = append(categories, category)
+		categories = append(categories, *category)
 	}
 
 	return categories, nil
