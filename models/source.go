@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"database/sql"
+	"strings"
 	"time"
 	"xspends/util"
 
@@ -29,7 +30,7 @@ func InsertSource(ctx context.Context, source *Source) error {
 	if source.Name == "" || source.UserID == 0 {
 		return errors.New("invalid input: name or user ID is empty")
 	}
-	if source.Type != SourceTypeCredit && source.Type != SourceTypeSavings {
+	if !strings.EqualFold(source.Type, SourceTypeCredit) && !strings.EqualFold(source.Type, SourceTypeSavings) {
 		return errors.New("invalid type: type must be CREDIT or SAVINGS")
 	}
 
@@ -46,7 +47,7 @@ func InsertSource(ctx context.Context, source *Source) error {
 		return errors.Wrap(err, "preparing insert SQL for source")
 	}
 
-	_, err = GetDB().ExecContext(ctx, query, args...)
+	_, err = execQuery(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "executing insert for source")
 	}
@@ -58,7 +59,7 @@ func UpdateSource(ctx context.Context, source *Source) error {
 	if source.Name == "" || source.UserID == 0 {
 		return errors.New("invalid input: name or user ID is empty")
 	}
-	if source.Type != SourceTypeCredit && source.Type != SourceTypeSavings {
+	if !strings.EqualFold(source.Type, SourceTypeCredit) && !strings.EqualFold(source.Type, SourceTypeSavings) {
 		return errors.New("invalid type: type must be CREDIT or SAVINGS")
 	}
 
@@ -76,7 +77,7 @@ func UpdateSource(ctx context.Context, source *Source) error {
 		return errors.Wrap(err, "preparing update SQL for source")
 	}
 
-	_, err = GetDB().ExecContext(ctx, query, args...)
+	_, err = execQuery(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "executing update for source")
 	}
@@ -93,7 +94,7 @@ func DeleteSource(ctx context.Context, sourceID int64, userID int64) error {
 		return errors.Wrap(err, "preparing delete SQL for source")
 	}
 
-	_, err = GetDB().ExecContext(ctx, query, args...)
+	_, err = execQuery(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "executing delete for source")
 	}
@@ -112,7 +113,7 @@ func GetSourceByID(ctx context.Context, sourceID int64, userID int64) (*Source, 
 	}
 
 	source := &Source{}
-	err = GetDB().QueryRowContext(ctx, query, args...).Scan(&source.ID, &source.UserID, &source.Name, &source.Type, &source.Balance, &source.CreatedAt, &source.UpdatedAt)
+	err = execQueryRow(ctx, query, args...).Scan(&source.ID, &source.UserID, &source.Name, &source.Type, &source.Balance, &source.CreatedAt, &source.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, errors.New("source not found")
@@ -133,7 +134,7 @@ func GetSources(ctx context.Context, userID int64) ([]Source, error) {
 		return nil, errors.Wrap(err, "preparing select SQL for sources by user ID")
 	}
 
-	rows, err := GetDB().QueryContext(ctx, query, args...)
+	rows, err := execQueryRows(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "querying sources by user ID")
 	}
@@ -167,7 +168,7 @@ func SourceIDExists(ctx context.Context, sourceID int64, userID int64) (bool, er
 	}
 
 	var exists int
-	err = GetDB().QueryRowContext(ctx, query, args...).Scan(&exists)
+	err = execQueryRow(ctx, query, args...).Scan(&exists)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return false, nil
@@ -176,4 +177,16 @@ func SourceIDExists(ctx context.Context, sourceID int64, userID int64) (bool, er
 	}
 
 	return exists == 1, nil
+}
+
+func execQuery(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	return GetDB().ExecContext(ctx, query, args...)
+}
+
+func execQueryRow(ctx context.Context, query string, args ...interface{}) *sql.Row {
+	return GetDB().QueryRowContext(ctx, query, args...)
+}
+
+func execQueryRows(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+	return GetDB().QueryContext(ctx, query, args...)
 }
