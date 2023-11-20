@@ -6,11 +6,18 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/Masterminds/squirrel"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/pkg/errors"
+)
+
+const (
+	maxIdleConn        = 25
+	maxOpenConn        = 25
+	maxConnLifetimeMin = 5 * time.Minute
 )
 
 var DB *sql.DB
@@ -29,35 +36,59 @@ func GetContext() *context.Context {
 	return &ctx
 }
 
-func InitDB() {
+func InitDB() error {
 	var err error
 	dsn := os.Getenv("DB_DSN")
 	fmt.Println(dsn)
 	if dsn == "" {
-		err = errors.New("DB_DSN environment variable not set.")
-		log.Fatal(err)
+		return errors.New("DB_DSN environment variable not set.")
 	}
 
 	DB, err = sql.Open("mysql", dsn)
 	if err != nil {
-		err = errors.Wrap(err, "Error initializing database")
-		log.Fatal(err)
+		return errors.Wrap(err, "Error initializing database")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	err = DB.PingContext(ctx)
 	if err != nil {
-		err = errors.Wrap(err, "Error connecting to the database")
-		log.Fatal(err)
+		return errors.Wrap(err, "Error connecting to the database")
 	}
 	log.Println("Successfully connected to the database")
 
 	// Configure database connection pool
-	DB.SetMaxOpenConns(25)
-	DB.SetMaxIdleConns(25)
-	DB.SetConnMaxLifetime(5 * time.Minute) // Adjusted to use the time package for clarity
-	SQLBuilder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Question)
+	maxOpenConns := os.Getenv("DB_MAX_OPEN_CONNS")
+	if maxOpenConns != "" {
+		maxOpen, err := strconv.Atoi(maxOpenConns)
+		if err == nil {
+			DB.SetMaxOpenConns(maxOpen)
+		} else {
+			DB.SetMaxOpenConns(maxOpenConn)
+		}
+	}
+
+	maxIdleConns := os.Getenv("DB_MAX_IDLE_CONNS")
+	if maxIdleConns != "" {
+		maxIdle, err := strconv.Atoi(maxIdleConns)
+		if err == nil {
+			DB.SetMaxIdleConns(maxIdle)
+		} else {
+			DB.SetMaxIdleConns(maxIdleConn)
+		}
+	}
+
+	connMaxLifetime := os.Getenv("DB_CONN_MAX_LIFETIME")
+	if connMaxLifetime != "" {
+		connLifetime, err := time.ParseDuration(connMaxLifetime)
+		if err == nil {
+			DB.SetConnMaxLifetime(connLifetime)
+		} else {
+			DB.SetConnMaxLifetime(maxConnLifetimeMin)
+		}
+	}
+
+	return nil
 }
 
 // CloseDB safely closes the database connection.
