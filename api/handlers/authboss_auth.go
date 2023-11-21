@@ -164,12 +164,12 @@ func JWTRegisterHandler(ab *authboss.Authboss) gin.HandlerFunc {
 			return
 		}
 
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newUser.Password), 12)
+		hashedPassword, err := hashPassword(newUser.Password)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTRegisterHandler] Error hashing password").Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		newUser.Password = string(hashedPassword)
+		newUser.Password = hashedPassword
 
 		userStorer, ok := ab.Config.Storage.Server.(*models.UserStorer)
 		if !ok {
@@ -189,13 +189,15 @@ func JWTRegisterHandler(ab *authboss.Authboss) gin.HandlerFunc {
 			return
 		}
 
-		accessToken, err := generateTokenWithTTL(newUser.ID, strconv.FormatInt(newSessionID, 10), tokenExpiryMins)
+		sessionID := strconv.FormatInt(newSessionID, 10)
+
+		accessToken, err := generateTokenWithTTL(newUser.ID, sessionID, tokenExpiryMins)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTRegisterHandler] Error generating access token").Error()})
 			return
 		}
 
-		refreshToken, err := generateTokenWithTTL(newUser.ID, strconv.FormatInt(newSessionID, 10), refreshTokenExpiryMins)
+		refreshToken, err := generateTokenWithTTL(newUser.ID, sessionID, refreshTokenExpiryMins)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTRegisterHandler] Error generating refresh token").Error()})
 			return
@@ -207,7 +209,7 @@ func JWTRegisterHandler(ab *authboss.Authboss) gin.HandlerFunc {
 			return
 		}
 
-		err = sessionStorer.Save(c.Request.Context(), strconv.FormatInt(newSessionID, 10), refreshToken, refreshTokenExpiryMins*time.Minute)
+		err = sessionStorer.Save(c.Request.Context(), sessionID, refreshToken, refreshTokenExpiryMins*time.Minute)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTRegisterHandler] Error storing refresh token").Error()})
 			return
@@ -271,13 +273,15 @@ func JWTLoginHandler(ab *authboss.Authboss) gin.HandlerFunc {
 			return
 		}
 
-		accessToken, err := generateTokenWithTTL(user.ID, strconv.FormatInt(newSessionID, 10), tokenExpiryMins)
+		sessionID := strconv.FormatInt(newSessionID, 10)
+
+		accessToken, err := generateTokenWithTTL(user.ID, sessionID, tokenExpiryMins)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTLoginHandler] Error generating access token").Error()})
 			return
 		}
 
-		refreshToken, err := generateTokenWithTTL(user.ID, strconv.FormatInt(newSessionID, 10), refreshTokenExpiryMins)
+		refreshToken, err := generateTokenWithTTL(user.ID, sessionID, refreshTokenExpiryMins)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTLoginHandler] Error generating refresh token").Error()})
 			return
@@ -289,7 +293,7 @@ func JWTLoginHandler(ab *authboss.Authboss) gin.HandlerFunc {
 			return
 		}
 
-		err = sessionStorer.Save(c.Request.Context(), strconv.FormatInt(newSessionID, 10), refreshToken, refreshTokenExpiryMins*time.Minute)
+		err = sessionStorer.Save(c.Request.Context(), sessionID, refreshToken, refreshTokenExpiryMins*time.Minute)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTLoginHandler] Error storing refresh token").Error()})
 			return
@@ -371,4 +375,9 @@ func JWTLogoutHandler(ab *authboss.Authboss) gin.HandlerFunc {
 
 		c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 	}
+}
+
+func hashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 12)
+	return string(bytes), err
 }
