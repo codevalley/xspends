@@ -3,6 +3,7 @@ package kvstore
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/tikv/client-go/v2/config"
@@ -57,5 +58,9 @@ func GetClientFromPool(clientPool ...chan RawKVClientInterface) RawKVClientInter
 }
 
 func SetupKV(ctx context.Context, useMock bool) {
-	ClientPool, _ = setupClientPool(ctx, useMock) // not mock
+	var err error
+	ClientPool, err = setupClientPool(ctx, useMock) // not mock
+	if err != nil {
+		log.Fatalf("Failed to create TiKV client: %v", err)
+	}
 }

@@ -87,7 +87,7 @@ func InitDB() error {
 			DB.SetConnMaxLifetime(maxConnLifetimeMin)
 		}
 	}
-
+	SQLBuilder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Question)
 	return nil
 }
 
