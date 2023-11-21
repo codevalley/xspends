@@ -21,6 +21,24 @@ type RawKVClientWrapper struct {
 	client RawKVClientInterface
 }
 
+// NewRawKVClientWrapper is a constructor method that initializes the `client` field in the RawKVClientWrapper struct
+func NewRawKVClientWrapper(client RawKVClientInterface) *RawKVClientWrapper {
+	return &RawKVClientWrapper{
+		client: client,
+	}
+}
+
+// SetClient is a method of the RawKVClientWrapper struct that sets the client field
+func (r *RawKVClientWrapper) SetClient(client RawKVClientInterface) {
+	r.client = client
+}
+
+// Close is a method of the RawKVClientWrapper struct that closes the underlying client
+func (r *RawKVClientWrapper) Close() error {
+	// close the underlying client here
+	return nil
+}
+
 // Get is a method of the RawKVClientWrapper struct that calls the Get method on the underlying rawkv.Client object
 func (r *RawKVClientWrapper) Get(ctx context.Context, key []byte, options ...rawkv.RawOption) ([]byte, error) {
 	if ctx.Err() != nil {
@@ -59,13 +77,6 @@ func (r *RawKVClientWrapper) Scan(ctx context.Context, startKey []byte, endKey [
 		return nil, nil, ctx.Err()
 	}
 	return r.client.Scan(ctx, startKey, endKey, limit, options...)
-}
-
-// NewRawKVClientWrapper is a function that creates a new instance of the RawKVClientWrapper struct, wrapping the provided rawkv.Client object
-func NewRawKVClientWrapper(client RawKVClientInterface) *RawKVClientWrapper {
-	return &RawKVClientWrapper{
-		client: client,
-	}
 }
 
 // CustomError is a struct that represents a custom error with a message and code

@@ -16,10 +16,13 @@ import (
 // Initialize AuthBoss.
 var ab *authboss.Authboss
 
+const userIDKey = "userID"
+const authKey = "Authorization"
+
 func AuthMiddleware(ab *authboss.Authboss) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Get token from the Authorization header
-		authorizationHeader := c.GetHeader("Authorization")
+		authorizationHeader := c.GetHeader(authKey)
 		if authorizationHeader == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is missing"})
 			c.Abort()
@@ -47,7 +50,8 @@ func AuthMiddleware(ab *authboss.Authboss) gin.HandlerFunc {
 		}
 
 		// If the token is valid, store the user data (from the JWT claims) in the context
-		c.Set("userID", claims.UserID)
+
+		c.Set(userIDKey, claims.UserID)
 
 		// Continue with the request
 		c.Next()
@@ -56,7 +60,7 @@ func AuthMiddleware(ab *authboss.Authboss) gin.HandlerFunc {
 
 func EnsureUserID() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		_, exists := c.Get("userID")
+		_, exists := c.Get(userIDKey)
 		if !exists {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 			c.Abort() // This prevents the handler from being executed if the check fails
