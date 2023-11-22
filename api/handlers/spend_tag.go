@@ -33,6 +33,7 @@ import (
 )
 
 const defaultLimit = 10
+const maxTagNameLength = 255
 
 func getTagID(c *gin.Context) (int64, bool) {
 	tagIDStr := c.Param("id")
@@ -141,6 +142,11 @@ func CreateTag(c *gin.Context) {
 		return
 	}
 	newTag.UserID = userID
+	if len(newTag.Name) > maxTagNameLength {
+		log.Printf("[CreateTag] Error: tag name exceeds maximum length")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "tag name exceeds maximum length"})
+		return
+	}
 	if err := models.InsertTag(c, &newTag); err != nil {
 		log.Printf("[CreateTag] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create tag"})
@@ -174,6 +180,11 @@ func UpdateTag(c *gin.Context) {
 		return
 	}
 	updatedTag.UserID = userID
+	if len(updatedTag.Name) > maxTagNameLength {
+		log.Printf("[UpdateTag] Error: tag name exceeds maximum length")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "tag name exceeds maximum length"})
+		return
+	}
 	if err := models.UpdateTag(c, &updatedTag); err != nil {
 		log.Printf("[UpdateTag] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update tag"})
