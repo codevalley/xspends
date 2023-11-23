@@ -29,6 +29,8 @@ import (
 	"log"
 	"time"
 
+	"xspends/kvstore/mock"
+
 	"github.com/tikv/client-go/v2/config"
 	"github.com/tikv/client-go/v2/rawkv"
 )
@@ -50,7 +52,7 @@ func setupClientPool(ctx context.Context, useMock bool) (chan RawKVClientInterfa
 	for i := 0; i < ClientPoolSize; i++ {
 		var client RawKVClientInterface
 		if useMock {
-			//client = NewMockRawKVClientInterface(nil) // Assuming you have the mock generated
+			client = mock.NewMockRawKVClientInterface(nil) // Assuming you have the mock generated
 		} else {
 			actualClient, err := rawkv.NewClient(ctx, pdAddrs, security)
 			if err != nil {
