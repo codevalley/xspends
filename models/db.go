@@ -155,7 +155,16 @@ func CloseDB() {
 	}
 }
 
-func GetTransaction(ctx context.Context, tx ...*sql.Tx) (isExternalTx bool, newTx *sql.Tx, err error) {
+// getExecutor returns the appropriate DBExecutor (transaction or standard DB connection)
+func getExecutor(otx ...*sql.Tx) (bool, DBExecutor) {
+	if len(otx) > 0 && otx[0] != nil {
+		// Use the provided transaction and mark it as external
+		return true, otx[0]
+	}
+	// Use the global DB service's executor and mark it as internal
+	return false, GetDBService().Executor
+}
+func GetTxn(ctx context.Context, tx ...*sql.Tx) (isExternalTx bool, newTx *sql.Tx, err error) {
 	db := GetDB()
 
 	if len(tx) > 0 && tx[0] != nil {

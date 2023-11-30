@@ -41,7 +41,7 @@ type TransactionTag struct {
 }
 
 func GetTagsByTransactionID(ctx context.Context, transactionID int64, otx ...*sql.Tx) ([]Tag, error) {
-	isExternalTx, tx, err := GetTransaction(ctx, otx...)
+	isExternalTx, tx, err := GetTxn(ctx, otx...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting transaction")
 	}
@@ -80,7 +80,7 @@ func GetTagsByTransactionID(ctx context.Context, transactionID int64, otx ...*sq
 }
 
 func InsertTransactionTag(ctx context.Context, transactionID, tagID int64, otx ...*sql.Tx) error {
-	isExternalTx, tx, err := GetTransaction(ctx, otx...)
+	isExternalTx, tx, err := GetTxn(ctx, otx...)
 	if err != nil {
 		return errors.Wrap(err, "error getting transaction")
 	}
@@ -108,7 +108,7 @@ func InsertTransactionTag(ctx context.Context, transactionID, tagID int64, otx .
 }
 
 func DeleteTransactionTag(ctx context.Context, transactionID, tagID int64, otx ...*sql.Tx) error {
-	isExternalTx, tx, err := GetTransaction(ctx, otx...)
+	isExternalTx, tx, err := GetTxn(ctx, otx...)
 	if err != nil {
 		return errors.Wrap(err, "error getting transaction")
 	}
@@ -139,7 +139,7 @@ func DeleteTransactionTag(ctx context.Context, transactionID, tagID int64, otx .
 
 func AddTagsToTransaction(ctx context.Context, transactionID int64, tags []string, userID int64, otx ...*sql.Tx) error {
 
-	isExternalTx, tx, err := GetTransaction(ctx, otx...)
+	isExternalTx, tx, err := GetTxn(ctx, otx...)
 	if err != nil {
 		return errors.Wrap(err, "error getting transaction")
 	}
@@ -164,7 +164,7 @@ func AddTagsToTransaction(ctx context.Context, transactionID int64, tags []strin
 }
 
 func UpdateTagsForTransaction(ctx context.Context, transactionID int64, tags []string, userID int64, otx ...*sql.Tx) error {
-	isExternalTx, tx, err := GetTransaction(ctx, otx...)
+	isExternalTx, tx, err := GetTxn(ctx, otx...)
 	if err != nil {
 		return errors.Wrap(err, "error getting transaction")
 	}
@@ -188,7 +188,7 @@ func UpdateTagsForTransaction(ctx context.Context, transactionID int64, tags []s
 }
 
 func DeleteTagsFromTransaction(ctx context.Context, transactionID int64, otx ...*sql.Tx) error {
-	isExternalTx, tx, err := GetTransaction(ctx, otx...)
+	isExternalTx, tx, err := GetTxn(ctx, otx...)
 	if err != nil {
 		return errors.Wrap(err, "error getting transaction")
 	}

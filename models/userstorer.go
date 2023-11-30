@@ -71,6 +71,7 @@ func (s *UserStorer) Create(ctx context.Context, user authboss.User) error {
 	if !ok {
 		return fmt.Errorf("%w: %s", errors.New(userTypeAssertionFailed), "Create")
 	}
+
 	return InsertUser(ctx, u)
 }
 
