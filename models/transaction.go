@@ -277,7 +277,7 @@ func GetTransactionsByFilter(ctx context.Context, filter TransactionFilter) ([]T
 // validateForeignKeyReferences checks if the foreign keys in the transaction exist.
 func validateForeignKeyReferences(ctx context.Context, transaction Transaction, tx *sql.Tx) error {
 	userExists, userErr := UserIDExists(ctx, transaction.UserID, tx)
-	sourceExists, sourceErr := SourceIDExists(ctx, transaction.SourceID, transaction.UserID)
+	sourceExists, sourceErr := SourceIDExists(ctx, transaction.SourceID, transaction.UserID, GetDBService())
 	categoryExists, categoryErr := CategoryIDExists(ctx, transaction.CategoryID, transaction.UserID)
 
 	// Return an error if there was a problem checking any reference

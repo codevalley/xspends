@@ -50,7 +50,7 @@ type Source struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-func InsertSource(ctx context.Context, dbService *DBService, source *Source) error {
+func InsertSource(ctx context.Context, source *Source, dbService *DBService) error {
 	if source.Name == "" || source.UserID == 0 {
 		return errors.New("invalid input: name or user ID is empty")
 	}
@@ -79,7 +79,7 @@ func InsertSource(ctx context.Context, dbService *DBService, source *Source) err
 	return nil
 }
 
-func UpdateSource(ctx context.Context, dbService *DBService, source *Source) error {
+func UpdateSource(ctx context.Context, source *Source, dbService *DBService) error {
 	if source.Name == "" || source.UserID == 0 {
 		return errors.New("invalid input: name or user ID is empty")
 	}
@@ -109,7 +109,7 @@ func UpdateSource(ctx context.Context, dbService *DBService, source *Source) err
 	return nil
 }
 
-func DeleteSource(ctx context.Context, dbService *DBService, sourceID int64, userID int64) error {
+func DeleteSource(ctx context.Context, sourceID int64, userID int64, dbService *DBService) error {
 	query, args, err := SQLBuilder.Delete("sources").
 		Where(squirrel.Eq{"id": sourceID, "user_id": userID}).
 		ToSql()
@@ -126,7 +126,7 @@ func DeleteSource(ctx context.Context, dbService *DBService, sourceID int64, use
 	return nil
 }
 
-func GetSourceByID(ctx context.Context, dbService *DBService, sourceID int64, userID int64) (*Source, error) {
+func GetSourceByID(ctx context.Context, sourceID int64, userID int64, dbService *DBService) (*Source, error) {
 	query, args, err := SQLBuilder.Select("id", "user_id", "name", "type", "balance", "created_at", "updated_at").
 		From("sources").
 		Where(squirrel.Eq{"id": sourceID, "user_id": userID}).
@@ -148,7 +148,7 @@ func GetSourceByID(ctx context.Context, dbService *DBService, sourceID int64, us
 	return source, nil
 }
 
-func GetSources(ctx context.Context, dbService *DBService, userID int64) ([]Source, error) {
+func GetSources(ctx context.Context, userID int64, dbService *DBService) ([]Source, error) {
 	query, args, err := SQLBuilder.Select("id", "user_id", "name", "type", "balance", "created_at", "updated_at").
 		From("sources").
 		Where(squirrel.Eq{"user_id": userID}).
@@ -180,7 +180,7 @@ func GetSources(ctx context.Context, dbService *DBService, userID int64) ([]Sour
 	return sources, nil
 }
 
-func SourceIDExists(ctx context.Context, dbService *DBService, sourceID int64, userID int64) (bool, error) {
+func SourceIDExists(ctx context.Context, sourceID int64, userID int64, dbService *DBService) (bool, error) {
 	query, args, err := SQLBuilder.Select("1").
 		From("sources").
 		Where(squirrel.Eq{"id": sourceID, "user_id": userID}).
