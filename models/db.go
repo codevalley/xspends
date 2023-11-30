@@ -47,6 +47,29 @@ const (
 var DB *sql.DB
 var SQLBuilder squirrel.StatementBuilderType
 
+var dbService *DBService // dbService will hold the instance of DBService
+type DBExecutor interface {
+	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
+	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
+}
+
+type DBService struct {
+	Executor DBExecutor
+}
+
+func (db *DBService) execQuery(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	return db.Executor.ExecContext(ctx, query, args...)
+}
+
+func (db *DBService) execQueryRow(ctx context.Context, query string, args ...interface{}) *sql.Row {
+	return db.Executor.QueryRowContext(ctx, query, args...)
+}
+
+func (db *DBService) execQueryRows(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+	return db.Executor.QueryContext(ctx, query, args...)
+}
+
 func GetQueryBuilder() *squirrel.StatementBuilderType {
 	return &SQLBuilder
 }
@@ -111,8 +134,18 @@ func InitDB() error {
 			DB.SetConnMaxLifetime(maxConnLifetimeMin)
 		}
 	}
+
+	dbService = &DBService{
+		Executor: DB,
+	}
+
 	SQLBuilder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Question)
 	return nil
+}
+
+// GetDBService provides access to the initialized DBService.
+func GetDBService() *DBService {
+	return dbService
 }
 
 // CloseDB safely closes the database connection.

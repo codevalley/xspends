@@ -50,7 +50,7 @@ type Source struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-func InsertSource(ctx context.Context, source *Source) error {
+func InsertSource(ctx context.Context, dbService *DBService, source *Source) error {
 	if source.Name == "" || source.UserID == 0 {
 		return errors.New("invalid input: name or user ID is empty")
 	}
@@ -71,7 +71,7 @@ func InsertSource(ctx context.Context, source *Source) error {
 		return errors.Wrap(err, "preparing insert SQL for source")
 	}
 
-	_, err = execQuery(ctx, query, args...)
+	_, err = dbService.execQuery(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "executing insert for source")
 	}
@@ -79,7 +79,7 @@ func InsertSource(ctx context.Context, source *Source) error {
 	return nil
 }
 
-func UpdateSource(ctx context.Context, source *Source) error {
+func UpdateSource(ctx context.Context, dbService *DBService, source *Source) error {
 	if source.Name == "" || source.UserID == 0 {
 		return errors.New("invalid input: name or user ID is empty")
 	}
@@ -101,7 +101,7 @@ func UpdateSource(ctx context.Context, source *Source) error {
 		return errors.Wrap(err, "preparing update SQL for source")
 	}
 
-	_, err = execQuery(ctx, query, args...)
+	_, err = dbService.execQuery(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "executing update for source")
 	}
@@ -109,7 +109,7 @@ func UpdateSource(ctx context.Context, source *Source) error {
 	return nil
 }
 
-func DeleteSource(ctx context.Context, sourceID int64, userID int64) error {
+func DeleteSource(ctx context.Context, dbService *DBService, sourceID int64, userID int64) error {
 	query, args, err := SQLBuilder.Delete("sources").
 		Where(squirrel.Eq{"id": sourceID, "user_id": userID}).
 		ToSql()
@@ -118,7 +118,7 @@ func DeleteSource(ctx context.Context, sourceID int64, userID int64) error {
 		return errors.Wrap(err, "preparing delete SQL for source")
 	}
 
-	_, err = execQuery(ctx, query, args...)
+	_, err = dbService.execQuery(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "executing delete for source")
 	}
@@ -126,7 +126,7 @@ func DeleteSource(ctx context.Context, sourceID int64, userID int64) error {
 	return nil
 }
 
-func GetSourceByID(ctx context.Context, sourceID int64, userID int64) (*Source, error) {
+func GetSourceByID(ctx context.Context, dbService *DBService, sourceID int64, userID int64) (*Source, error) {
 	query, args, err := SQLBuilder.Select("id", "user_id", "name", "type", "balance", "created_at", "updated_at").
 		From("sources").
 		Where(squirrel.Eq{"id": sourceID, "user_id": userID}).
@@ -137,7 +137,7 @@ func GetSourceByID(ctx context.Context, sourceID int64, userID int64) (*Source, 
 	}
 
 	source := &Source{}
-	err = execQueryRow(ctx, query, args...).Scan(&source.ID, &source.UserID, &source.Name, &source.Type, &source.Balance, &source.CreatedAt, &source.UpdatedAt)
+	err = dbService.execQueryRow(ctx, query, args...).Scan(&source.ID, &source.UserID, &source.Name, &source.Type, &source.Balance, &source.CreatedAt, &source.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, errors.New("source not found")
@@ -148,7 +148,7 @@ func GetSourceByID(ctx context.Context, sourceID int64, userID int64) (*Source, 
 	return source, nil
 }
 
-func GetSources(ctx context.Context, userID int64) ([]Source, error) {
+func GetSources(ctx context.Context, dbService *DBService, userID int64) ([]Source, error) {
 	query, args, err := SQLBuilder.Select("id", "user_id", "name", "type", "balance", "created_at", "updated_at").
 		From("sources").
 		Where(squirrel.Eq{"user_id": userID}).
@@ -158,7 +158,7 @@ func GetSources(ctx context.Context, userID int64) ([]Source, error) {
 		return nil, errors.Wrap(err, "preparing select SQL for sources by user ID")
 	}
 
-	rows, err := execQueryRows(ctx, query, args...)
+	rows, err := dbService.execQueryRows(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "querying sources by user ID")
 	}
@@ -180,7 +180,7 @@ func GetSources(ctx context.Context, userID int64) ([]Source, error) {
 	return sources, nil
 }
 
-func SourceIDExists(ctx context.Context, sourceID int64, userID int64) (bool, error) {
+func SourceIDExists(ctx context.Context, dbService *DBService, sourceID int64, userID int64) (bool, error) {
 	query, args, err := SQLBuilder.Select("1").
 		From("sources").
 		Where(squirrel.Eq{"id": sourceID, "user_id": userID}).
@@ -192,7 +192,7 @@ func SourceIDExists(ctx context.Context, sourceID int64, userID int64) (bool, er
 	}
 
 	var exists int
-	err = execQueryRow(ctx, query, args...).Scan(&exists)
+	err = dbService.execQueryRow(ctx, query, args...).Scan(&exists)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return false, nil
@@ -201,16 +201,4 @@ func SourceIDExists(ctx context.Context, sourceID int64, userID int64) (bool, er
 	}
 
 	return exists == 1, nil
-}
-
-func execQuery(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	return GetDB().ExecContext(ctx, query, args...)
-}
-
-func execQueryRow(ctx context.Context, query string, args ...interface{}) *sql.Row {
-	return GetDB().QueryRowContext(ctx, query, args...)
-}
-
-func execQueryRows(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	return GetDB().QueryContext(ctx, query, args...)
 }
