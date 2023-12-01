@@ -52,10 +52,7 @@ type PaginationParams struct {
 }
 
 func InsertTag(ctx context.Context, tag *Tag, otx ...*sql.Tx) error {
-	isExternalTx, tx, err := GetTxn(ctx, otx...)
-	if err != nil {
-		return errors.Wrap(err, "error getting transaction")
-	}
+	isExternalTx, executor := getExecutor(otx...)
 
 	if tag.UserID <= 0 || len(tag.Name) == 0 || len(tag.Name) > maxTagNameLength {
 		return errors.New("invalid input for tag")
@@ -65,35 +62,34 @@ func InsertTag(ctx context.Context, tag *Tag, otx ...*sql.Tx) error {
 	tag.CreatedAt = time.Now()
 	tag.UpdatedAt = time.Now()
 
-	sql, args, err := squirrel.Insert("tags").
+	query, args, err := squirrel.Insert("tags").
 		Columns("id", "user_id", "name", "created_at", "updated_at").
 		Values(tag.ID, tag.UserID, tag.Name, tag.CreatedAt, tag.UpdatedAt).
-		RunWith(tx).PlaceholderFormat(squirrel.Question).
+		PlaceholderFormat(squirrel.Question).
 		ToSql()
 
 	if err != nil {
 		return errors.Wrap(err, "failed to build insert query for tag")
 	}
 
-	_, err = tx.ExecContext(ctx, sql, args...)
+	_, err = executor.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrapf(err, "failed to insert tag: %v", tag)
 	}
 
 	if !isExternalTx {
-		err = tx.Commit()
-		if err != nil {
-			return errors.Wrap(err, "committing transaction failed")
+		if tx, ok := executor.(*sql.Tx); ok {
+			if err := tx.Commit(); err != nil {
+				tx.Rollback()
+				return errors.Wrap(err, "committing transaction failed")
+			}
 		}
 	}
 	return nil
 }
 
 func UpdateTag(ctx context.Context, tag *Tag, otx ...*sql.Tx) error {
-	isExternalTx, tx, err := GetTxn(ctx, otx...)
-	if err != nil {
-		return errors.Wrap(err, "error getting transaction")
-	}
+	isExternalTx, executor := getExecutor(otx...)
 
 	if tag.UserID <= 0 || len(tag.Name) == 0 || len(tag.Name) > maxTagNameLength {
 		return errors.New("invalid input for tag")
@@ -101,56 +97,56 @@ func UpdateTag(ctx context.Context, tag *Tag, otx ...*sql.Tx) error {
 
 	tag.UpdatedAt = time.Now()
 
-	sql, args, err := squirrel.Update("tags").
+	query, args, err := squirrel.Update("tags").
 		Set("name", tag.Name).
 		Set("updated_at", tag.UpdatedAt).
 		Where(squirrel.Eq{"id": tag.ID, "user_id": tag.UserID}).
-		RunWith(tx).PlaceholderFormat(squirrel.Question).
+		PlaceholderFormat(squirrel.Question).
 		ToSql()
 
 	if err != nil {
 		return errors.Wrap(err, "failed to build update query for tag")
 	}
 
-	_, err = tx.ExecContext(ctx, sql, args...)
+	_, err = executor.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrapf(err, "failed to update tag: %v", tag)
 	}
 
 	if !isExternalTx {
-		err = tx.Commit()
-		if err != nil {
-			return errors.Wrap(err, "committing transaction failed")
+		if tx, ok := executor.(*sql.Tx); ok {
+			if err := tx.Commit(); err != nil {
+				tx.Rollback()
+				return errors.Wrap(err, "committing transaction failed")
+			}
 		}
 	}
-
 	return nil
 }
 
 func DeleteTag(ctx context.Context, tagID int64, userID int64, otx ...*sql.Tx) error {
-	isExternalTx, tx, err := GetTxn(ctx, otx...)
-	if err != nil {
-		return errors.Wrap(err, "error getting transaction")
-	}
+	isExternalTx, executor := getExecutor(otx...)
 
-	sql, args, err := squirrel.Delete("tags").
+	query, args, err := squirrel.Delete("tags").
 		Where(squirrel.Eq{"id": tagID, "user_id": userID}).
-		RunWith(tx).PlaceholderFormat(squirrel.Question).
+		PlaceholderFormat(squirrel.Question).
 		ToSql()
 
 	if err != nil {
 		return errors.Wrap(err, "failed to build delete query for tag")
 	}
 
-	_, err = tx.ExecContext(ctx, sql, args...)
+	_, err = executor.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrapf(err, "failed to delete tag with tagID: %d and userID: %d", tagID, userID)
 	}
 
 	if !isExternalTx {
-		err = tx.Commit()
-		if err != nil {
-			return errors.Wrap(err, "committing transaction failed")
+		if tx, ok := executor.(*sql.Tx); ok {
+			if err := tx.Commit(); err != nil {
+				tx.Rollback()
+				return errors.Wrap(err, "committing transaction failed")
+			}
 		}
 	}
 
@@ -158,56 +154,47 @@ func DeleteTag(ctx context.Context, tagID int64, userID int64, otx ...*sql.Tx) e
 }
 
 func GetTagByID(ctx context.Context, tagID int64, userID int64, otx ...*sql.Tx) (*Tag, error) {
+	_, executor := getExecutor(otx...)
 
-	isExternalTx, tx, err := GetTxn(ctx, otx...)
-	if err != nil {
-		return nil, errors.Wrap(err, "error getting transaction")
-	}
-
-	sql, args, err := squirrel.Select("id", "user_id", "name", "created_at", "updated_at").
+	query, args, err := squirrel.Select("id", "user_id", "name", "created_at", "updated_at").
 		From("tags").
 		Where(squirrel.Eq{"id": tagID, "user_id": userID}).
-		RunWith(tx).PlaceholderFormat(squirrel.Question).
+		PlaceholderFormat(squirrel.Question).
 		ToSql()
 
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build query for retrieving tag by ID")
 	}
 
-	row := tx.QueryRowContext(ctx, sql, args...)
+	row := executor.QueryRowContext(ctx, query, args...)
 	tag := &Tag{}
 	err = row.Scan(&tag.ID, &tag.UserID, &tag.Name, &tag.CreatedAt, &tag.UpdatedAt)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve tag by ID: %d", tagID)
-	}
-	if !isExternalTx {
-		err = tx.Commit()
-		if err != nil {
-			return nil, errors.Wrap(err, "committing transaction failed")
+		if err == sql.ErrNoRows {
+			return nil, errors.New("tag not found")
 		}
+		return nil, errors.Wrapf(err, "failed to retrieve tag by ID: %d", tagID)
 	}
 
 	return tag, nil
 }
 
 func GetAllTags(ctx context.Context, userID int64, pagination PaginationParams, otx ...*sql.Tx) ([]Tag, error) {
-	isExternalTx, tx, err := GetTxn(ctx, otx...)
-	if err != nil {
-		return nil, errors.Wrap(err, "error getting transaction")
-	}
-	sql, args, err := squirrel.Select("id", "user_id", "name", "created_at", "updated_at").
+	_, executor := getExecutor(otx...)
+
+	query, args, err := squirrel.Select("id", "user_id", "name", "created_at", "updated_at").
 		From("tags").
 		Where(squirrel.Eq{"user_id": userID}).
 		Limit(uint64(pagination.Limit)).
 		Offset(uint64(pagination.Offset)).
-		RunWith(tx).PlaceholderFormat(squirrel.Question).
+		PlaceholderFormat(squirrel.Question).
 		ToSql()
 
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build query for retrieving all tags")
 	}
 
-	rows, err := tx.QueryContext(ctx, sql, args...)
+	rows, err := executor.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to retrieve all tags for userID: %d", userID)
 	}
@@ -227,42 +214,31 @@ func GetAllTags(ctx context.Context, userID int64, pagination PaginationParams, 
 		return nil, errors.Wrap(err, "failed to iterate over all tags")
 	}
 
-	if !isExternalTx {
-		err = tx.Commit()
-		if err != nil {
-			return nil, errors.Wrap(err, "committing transaction failed")
-		}
-	}
 	return tags, nil
 }
 
 func GetTagByName(ctx context.Context, name string, userID int64, otx ...*sql.Tx) (*Tag, error) {
-	isExternalTx, tx, err := GetTxn(ctx, otx...)
-	if err != nil {
-		return nil, errors.Wrap(err, "error getting transaction")
-	}
-	sql, args, err := squirrel.Select("id", "user_id", "name", "created_at", "updated_at").
+	_, executor := getExecutor(otx...)
+
+	query, args, err := squirrel.Select("id", "user_id", "name", "created_at", "updated_at").
 		From("tags").
 		Where(squirrel.Eq{"name": name, "user_id": userID}).
-		RunWith(tx).PlaceholderFormat(squirrel.Question).
+		PlaceholderFormat(squirrel.Question).
 		ToSql()
 
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build query for retrieving tag by name")
 	}
 
-	row := tx.QueryRowContext(ctx, sql, args...)
+	row := executor.QueryRowContext(ctx, query, args...)
 	tag := &Tag{}
 	err = row.Scan(&tag.ID, &tag.UserID, &tag.Name, &tag.CreatedAt, &tag.UpdatedAt)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("tag not found")
+		}
 		return nil, errors.Wrapf(err, "failed to retrieve tag by name: %s for userID: %d", name, userID)
 	}
 
-	if !isExternalTx {
-		err = tx.Commit()
-		if err != nil {
-			return nil, errors.Wrap(err, "committing transaction failed")
-		}
-	}
 	return tag, nil
 }
