@@ -180,3 +180,16 @@ func GetTxn(ctx context.Context, tx ...*sql.Tx) (isExternalTx bool, newTx *sql.T
 
 	return
 }
+func commitOrRollback(executor DBExecutor, isExternalTx bool, err error) error {
+	if !isExternalTx {
+		tx, ok := executor.(*sql.Tx)
+		if !ok {
+			return errors.New("executor is not a transaction")
+		}
+		if err != nil {
+			return tx.Rollback()
+		}
+		return tx.Commit()
+	}
+	return err
+}
