@@ -15,9 +15,9 @@ if [ -z "$SKIP_REGISTER" ]; then
   response=$(curl -s -X POST "$MINIKUBE_URL/auth/register" \
        -H "Content-Type: application/json" \
        -d '{
-            "username": "testyuser",
+            "username": "textuser",
             "password": "testypass",
-            "email": "testy@example.com"
+            "email": "text@example.com"
            }')
   accessToken=$(echo $response | jq -r .access_token)
   refreshToken=$(echo $response | jq -r .refresh_token)
@@ -34,7 +34,7 @@ echo -e "\n\nLogging in..."
 response=$(curl -s -X POST "$MINIKUBE_URL/auth/login" \
              -H "Content-Type: application/json" \
              -d '{
-                  "username": "testyuser",
+                  "username": "textuser",
                   "password": "testypass"
                  }')
 accessToken=$(echo $response | jq -r .access_token)
@@ -73,7 +73,7 @@ if [ -z "$SKIP_SOURCES" ]; then
           -H "Content-Type: application/json" \
           -H "Authorization: Bearer $accessToken" \
           -d '{
-               "name": "Bank Current",
+               "name": "Bank Spike",
                "type": "SAVINGS",
                "balance": 10000.0
           }')
@@ -86,8 +86,8 @@ if [ -z "$SKIP_SOURCES" ]; then
           -H "Content-Type: application/json" \
           -H "Authorization: Bearer $accessToken" \
           -d '{
-               "name": "Food",
-               "description": "Food related transactions",
+               "name": "Shopping",
+               "description": "Shopping related transactions",
                "icon": "food"
           }')
      categoryID=$(echo $response | jq -r .id)
@@ -100,9 +100,9 @@ response=$(curl -s -X POST "$MINIKUBE_URL/transactions" \
      -H "Content-Type: application/json" \
      -H "Authorization: Bearer $accessToken" \
      -d '{
-          "amount": 90.50,
+          "amount": 83.50,
           "type": "expense",
-          "description": "Food transaction",
+          "description": "Shopping transaction",
           "source_id": '"$sourceID"',
           "category_id": '"$categoryID"'
          }')
@@ -121,12 +121,12 @@ response=$(curl -s -X PUT "$MINIKUBE_URL/transactions/$txnID" \
      -H "Content-Type: application/json" \
      -H "Authorization: Bearer $accessToken" \
      -d '{
-          "amount": 70.75,
+          "amount": 10.75,
           "type": "expense",
-          "description": "Tasty transaction",
+          "description": "Shopped transaction",
           "source_id": '"$sourceID"',
           "category_id": '"$categoryID"',
-          "tags": ["eat", "binge"]
+          "tags": ["mall", "shop"]
          }')
 echo $response
 
