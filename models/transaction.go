@@ -82,7 +82,7 @@ func InsertTransaction(ctx context.Context, txn Transaction, otx ...*sql.Tx) err
 		return errors.Wrap(err, "validating foreign key references failed")
 	}
 
-	sql, args, err := squirrel.Insert("transactions").
+	query, args, err := squirrel.Insert("transactions").
 		Columns("id", "user_id", "source_id", "category_id", "timestamp", "amount", "type", "description").
 		Values(txn.ID, txn.UserID, txn.SourceID, txn.CategoryID, txn.Timestamp, txn.Amount, txn.Type, txn.Description).
 		PlaceholderFormat(squirrel.Question).
@@ -91,7 +91,7 @@ func InsertTransaction(ctx context.Context, txn Transaction, otx ...*sql.Tx) err
 		return errors.Wrap(err, "failed to build insert query for transaction")
 	}
 
-	if _, err := executor.ExecContext(ctx, sql, args...); err != nil {
+	if _, err := executor.ExecContext(ctx, query, args...); err != nil {
 		return errors.Wrap(err, "insert transaction failed")
 	}
 
@@ -102,7 +102,8 @@ func InsertTransaction(ctx context.Context, txn Transaction, otx ...*sql.Tx) err
 	if err := AddTagsToTransaction(ctx, txn.ID, txn.Tags, txn.UserID, otx...); err != nil {
 		return errors.Wrap(err, "adding tags to transaction failed")
 	}
-	return commitOrRollback(executor, isExternalTx, err)
+	commitOrRollback(executor, isExternalTx, err)
+	return nil
 }
 
 // UpdateTransaction updates an existing transaction in the database.
@@ -140,7 +141,9 @@ func UpdateTransaction(ctx context.Context, txn Transaction, otx ...*sql.Tx) err
 		return errors.Wrap(err, "updating tags for transaction failed")
 	}
 
-	return commitOrRollback(executor, isExternalTx, err)
+	commitOrRollback(executor, isExternalTx, err)
+
+	return nil
 }
 
 // DeleteTransaction removes a transaction from the database.
@@ -159,7 +162,17 @@ func DeleteTransaction(ctx context.Context, transactionID int64, userID int64, o
 		return errors.Wrap(err, "delete transaction failed")
 	}
 
-	return commitOrRollback(executor, isExternalTx, err)
+	commitOrRollback(executor, isExternalTx, err)
+	// if !isExternalTx {
+	// 	if tx, ok := executor.(*sql.Tx); ok {
+	// 		if err := tx.Commit(); err != nil {
+	// 			tx.Rollback()
+	// 			return errors.Wrap(err, "committing transaction failed")
+	// 		}
+	// 	}
+	// }
+
+	return nil
 }
 
 // GetTransactionByID retrieves a single transaction from the database by its ID.
@@ -180,6 +193,8 @@ func GetTransactionByID(ctx context.Context, transactionID int64, userID int64, 
 	if err := row.Scan(&transaction.ID, &transaction.UserID, &transaction.SourceID, &transaction.CategoryID, &transaction.Timestamp, &transaction.Amount, &transaction.Type, &transaction.Description); err != nil {
 		return nil, errors.Wrap(err, "get transaction by ID failed")
 	}
+
+	getTagsForTransaction(ctx, &transaction, otx...)
 
 	return &transaction, nil
 }
@@ -256,6 +271,7 @@ func GetTransactionsByFilter(ctx context.Context, filter TransactionFilter, otx 
 		if err := rows.Scan(&transaction.ID, &transaction.UserID, &transaction.SourceID, &transaction.CategoryID, &transaction.Timestamp, &transaction.Amount, &transaction.Type, &transaction.Description); err != nil {
 			return nil, errors.Wrap(err, "scanning transaction failed")
 		}
+		getTagsForTransaction(ctx, &transaction, otx...)
 		transactions = append(transactions, transaction)
 	}
 	if err = rows.Err(); err != nil {
@@ -263,6 +279,20 @@ func GetTransactionsByFilter(ctx context.Context, filter TransactionFilter, otx 
 	}
 
 	return transactions, nil
+}
+
+func getTagsForTransaction(ctx context.Context, transaction *Transaction, otx ...*sql.Tx) error {
+	tags, err := GetTagsByTransactionID(ctx, transaction.ID, otx...)
+	if err != nil {
+		return errors.Wrap(err, "Couldn't fetch tags for the transaction")
+	}
+
+	transaction.Tags = make([]string, len(tags))
+	for i, tag := range tags {
+		transaction.Tags[i] = tag.Name
+	}
+
+	return nil
 }
 
 // validateForeignKeyReferences checks if the foreign keys in the transaction exist.
@@ -301,10 +331,7 @@ func validateForeignKeyReferences(ctx context.Context, txn Transaction, otx ...*
 func addMissingTags(ctx context.Context, transactionID int64, tagNames []string, userID int64, otx ...*sql.Tx) error {
 	// Ensure all tags are present in the database
 	for _, tagName := range tagNames {
-		tag, err := GetTagByName(ctx, tagName, userID, otx...)
-		if err != nil && err != sql.ErrNoRows {
-			return errors.Wrapf(err, "failed to retrieve tag '%s'", tagName)
-		}
+		tag, _ := GetTagByName(ctx, tagName, userID, otx...)
 
 		if tag == nil {
 			// Tag does not exist; create it
