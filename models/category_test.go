@@ -55,7 +55,7 @@ func TestInsertCategory(t *testing.T) {
 
 	mockExecutor.EXPECT().
 		ExecContext(gomock.Any(), gomock.Any(), gomock.Any()).
-		Return(sql.Result(nil), nil).
+		Return(sqlmock.NewResult(1, 1), nil).
 		Times(1)
 
 	err := InsertCategory(ctx, category, mockDBService)
@@ -101,40 +101,30 @@ func TestDeleteCategory(t *testing.T) {
 }
 
 func TestGetAllCategories(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	tearDown := setUp(t)
+	defer tearDown()
 
-	// Initialize SQLBuilder
-	SQLBuilder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Question)
-
-	mockExecutor := mock.NewMockDBExecutor(ctrl)
-	mockDBService := &DBService{Executor: mockExecutor}
-	ctx := context.Background()
 	userID := int64(1)
 
-	// Create sqlmock database connection
-	db, mockSql, err := sqlmock.New()
+	// Here we use sqlmock to simulate database response
+	db, mock, err := sqlmock.New()
 	if err != nil {
-		t.Fatalf("An error '%s' was not expected when opening a stub database connection", err)
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
 	defer db.Close()
 
-	// Set up your DBService to use the mock database
 	mockDBService.Executor = db
 
-	// Set expectations on the mock database
 	rows := sqlmock.NewRows([]string{"id", "user_id", "name", "description", "icon", "created_at", "updated_at"}).
 		AddRow(1, userID, "Category 1", "Description 1", "icon1", time.Now(), time.Now()).
 		AddRow(2, userID, "Category 2", "Description 2", "icon2", time.Now(), time.Now())
-	mockSql.ExpectQuery("^SELECT (.+) FROM categories").WillReturnRows(rows)
+	mock.ExpectQuery("^SELECT (.+) FROM categories WHERE").WillReturnRows(rows)
 
-	// Call the function under test
 	categories, err := GetAllCategories(ctx, userID, mockDBService)
 	assert.NoError(t, err)
 	assert.Len(t, categories, 2)
 
-	// Make sure that all expectations were met
-	if err := mockSql.ExpectationsWereMet(); err != nil {
+	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 }
