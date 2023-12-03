@@ -156,13 +156,30 @@ func CloseDB() {
 }
 
 // getExecutor returns the appropriate DBExecutor (transaction or standard DB connection)
-func getExecutor(otx ...*sql.Tx) (bool, DBExecutor) {
+func getExecutor(dbService *DBService, otx ...*sql.Tx) (bool, DBExecutor) {
 	if len(otx) > 0 && otx[0] != nil {
 		// Use the provided transaction and mark it as external
 		return true, otx[0]
 	}
 	// Use the global DB service's executor and mark it as internal
-	return false, GetDBService().Executor
+	if dbService == nil {
+		return false, GetDBService().Executor
+	} else {
+		return false, dbService.Executor
+	}
+}
+
+func getLegacyExecutor(otx ...*sql.Tx) (bool, DBExecutor) {
+	if len(otx) > 0 && otx[0] != nil {
+		// Use the provided transaction and mark it as external
+		return true, otx[0]
+	}
+	// Use the global DB service's executor and mark it as internal
+	if dbService == nil {
+		return false, GetDBService().Executor
+	} else {
+		return false, dbService.Executor
+	}
 }
 func GetTxn(ctx context.Context, tx ...*sql.Tx) (isExternalTx bool, newTx *sql.Tx, err error) {
 	db := GetDB()

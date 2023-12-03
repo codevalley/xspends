@@ -52,7 +52,7 @@ type PaginationParams struct {
 }
 
 func InsertTag(ctx context.Context, tag *Tag, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(otx...)
+	isExternalTx, executor := getLegacyExecutor(otx...)
 
 	if tag.UserID <= 0 || len(tag.Name) == 0 || len(tag.Name) > maxTagNameLength {
 		return errors.New("invalid input for tag")
@@ -89,7 +89,7 @@ func InsertTag(ctx context.Context, tag *Tag, otx ...*sql.Tx) error {
 }
 
 func UpdateTag(ctx context.Context, tag *Tag, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(otx...)
+	isExternalTx, executor := getLegacyExecutor(otx...)
 
 	if tag.UserID <= 0 || len(tag.Name) == 0 || len(tag.Name) > maxTagNameLength {
 		return errors.New("invalid input for tag")
@@ -125,7 +125,7 @@ func UpdateTag(ctx context.Context, tag *Tag, otx ...*sql.Tx) error {
 }
 
 func DeleteTag(ctx context.Context, tagID int64, userID int64, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(otx...)
+	isExternalTx, executor := getLegacyExecutor(otx...)
 
 	query, args, err := squirrel.Delete("tags").
 		Where(squirrel.Eq{"id": tagID, "user_id": userID}).
@@ -154,7 +154,7 @@ func DeleteTag(ctx context.Context, tagID int64, userID int64, otx ...*sql.Tx) e
 }
 
 func GetTagByID(ctx context.Context, tagID int64, userID int64, otx ...*sql.Tx) (*Tag, error) {
-	_, executor := getExecutor(otx...)
+	_, executor := getLegacyExecutor(otx...)
 
 	query, args, err := squirrel.Select("id", "user_id", "name", "created_at", "updated_at").
 		From("tags").
@@ -180,7 +180,7 @@ func GetTagByID(ctx context.Context, tagID int64, userID int64, otx ...*sql.Tx) 
 }
 
 func GetAllTags(ctx context.Context, userID int64, pagination PaginationParams, otx ...*sql.Tx) ([]Tag, error) {
-	_, executor := getExecutor(otx...)
+	_, executor := getLegacyExecutor(otx...)
 
 	query, args, err := squirrel.Select("id", "user_id", "name", "created_at", "updated_at").
 		From("tags").
@@ -218,7 +218,7 @@ func GetAllTags(ctx context.Context, userID int64, pagination PaginationParams, 
 }
 
 func GetTagByName(ctx context.Context, name string, userID int64, otx ...*sql.Tx) (*Tag, error) {
-	_, executor := getExecutor(otx...)
+	_, executor := getLegacyExecutor(otx...)
 
 	query, args, err := squirrel.Select("id", "user_id", "name", "created_at", "updated_at").
 		From("tags").

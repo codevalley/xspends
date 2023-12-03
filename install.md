@@ -157,3 +157,11 @@ If you make code changes and wish to redeploy:
    # Optionally, clean up old Docker images
    docker image prune -a -f
    ```
+
+### Testing and mocks
+
+1. Generate mocks
+```
+$ mockgen -source=./kvstore/rawkv_interface.go -destination=./kvstore/mock/mock_rawkv.go -package=mock
+$ mockgen -source=./models/db.go -destination=./models/mock/mock_DBExecutor.go -package=mock
+```

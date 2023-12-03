@@ -180,8 +180,8 @@ func GetSources(ctx context.Context, userID int64, dbService *DBService) ([]Sour
 	return sources, nil
 }
 
-func SourceIDExists(ctx context.Context, sourceID int64, userID int64, otx ...*sql.Tx) (bool, error) {
-	_, executor := getExecutor(otx...)
+func SourceIDExists(ctx context.Context, sourceID int64, userID int64, executor *DBService) (bool, error) {
+	//_, executor := getExecutor(otx...)
 
 	query, args, err := SQLBuilder.Select("1").
 		From("sources").
@@ -194,7 +194,7 @@ func SourceIDExists(ctx context.Context, sourceID int64, userID int64, otx ...*s
 	}
 
 	var exists int
-	err = executor.QueryRowContext(ctx, query, args...).Scan(&exists)
+	err = executor.execQueryRow(ctx, query, args...).Scan(&exists)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return false, nil

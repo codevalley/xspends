@@ -41,7 +41,7 @@ type TransactionTag struct {
 }
 
 func GetTagsByTransactionID(ctx context.Context, transactionID int64, otx ...*sql.Tx) ([]Tag, error) {
-	_, executor := getExecutor(otx...)
+	_, executor := getLegacyExecutor(otx...)
 
 	query, args, err := squirrel.Select("t.id", "t.name").
 		From("tags t").
@@ -73,7 +73,7 @@ func GetTagsByTransactionID(ctx context.Context, transactionID int64, otx ...*sq
 }
 
 func InsertTransactionTag(ctx context.Context, transactionID, tagID int64, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(otx...)
+	isExternalTx, executor := getLegacyExecutor(otx...)
 
 	query, args, err := squirrel.Insert("transaction_tags").
 		Columns("transaction_id", "tag_id", "created_at", "updated_at").
@@ -102,7 +102,7 @@ func InsertTransactionTag(ctx context.Context, transactionID, tagID int64, otx .
 }
 
 func DeleteTransactionTag(ctx context.Context, transactionID, tagID int64, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(otx...)
+	isExternalTx, executor := getLegacyExecutor(otx...)
 
 	query, args, err := squirrel.Delete("transaction_tags").
 		Where(squirrel.Eq{"transaction_id": transactionID, "tag_id": tagID}).
@@ -131,7 +131,7 @@ func DeleteTransactionTag(ctx context.Context, transactionID, tagID int64, otx .
 }
 
 func AddTagsToTransaction(ctx context.Context, transactionID int64, tags []string, userID int64, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(otx...)
+	isExternalTx, executor := getLegacyExecutor(otx...)
 
 	for _, tagName := range tags {
 		tag, err := GetTagByName(ctx, tagName, userID, otx...)
@@ -156,7 +156,7 @@ func AddTagsToTransaction(ctx context.Context, transactionID int64, tags []strin
 }
 
 func UpdateTagsForTransaction(ctx context.Context, transactionID int64, tags []string, userID int64, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(otx...)
+	isExternalTx, executor := getLegacyExecutor(otx...)
 
 	err := DeleteTagsFromTransaction(ctx, transactionID, otx...)
 	if err != nil {
@@ -180,7 +180,7 @@ func UpdateTagsForTransaction(ctx context.Context, transactionID int64, tags []s
 }
 
 func DeleteTagsFromTransaction(ctx context.Context, transactionID int64, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(otx...)
+	isExternalTx, executor := getLegacyExecutor(otx...)
 
 	query, args, err := squirrel.Delete("transaction_tags").
 		Where(squirrel.Eq{"transaction_id": transactionID}).

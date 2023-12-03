@@ -58,8 +58,8 @@ func validateCategoryInput(category *Category) error {
 }
 
 // InsertCategory inserts a new category into the database.
-func InsertCategory(ctx context.Context, category *Category, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(otx...)
+func InsertCategory(ctx context.Context, category *Category, dbService *DBService, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutor(dbService, otx...)
 
 	if err := validateCategoryInput(category); err != nil {
 		return err
@@ -94,8 +94,8 @@ func InsertCategory(ctx context.Context, category *Category, otx ...*sql.Tx) err
 }
 
 // UpdateCategory updates an existing category in the database.
-func UpdateCategory(ctx context.Context, category *Category, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(otx...)
+func UpdateCategory(ctx context.Context, category *Category, dbService *DBService, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutor(dbService, otx...)
 
 	if err := validateCategoryInput(category); err != nil {
 		return err
@@ -131,8 +131,8 @@ func UpdateCategory(ctx context.Context, category *Category, otx ...*sql.Tx) err
 }
 
 // DeleteCategory deletes a category from the database.
-func DeleteCategory(ctx context.Context, categoryID int64, userID int64, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(otx...)
+func DeleteCategory(ctx context.Context, categoryID int64, userID int64, dbService *DBService, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutor(dbService, otx...)
 
 	query, args, err := SQLBuilder.Delete("categories").
 		Where(squirrel.Eq{"id": categoryID, "user_id": userID}).
@@ -157,8 +157,8 @@ func DeleteCategory(ctx context.Context, categoryID int64, userID int64, otx ...
 }
 
 // GetAllCategories retrieves all categories for a user from the database.
-func GetAllCategories(ctx context.Context, userID int64, otx ...*sql.Tx) ([]Category, error) {
-	_, executor := getExecutor(otx...)
+func GetAllCategories(ctx context.Context, userID int64, dbService *DBService, otx ...*sql.Tx) ([]Category, error) {
+	_, executor := getExecutor(dbService, otx...)
 
 	query, args, err := SQLBuilder.Select("id", "user_id", "name", "description", "icon", "created_at", "updated_at").
 		From("categories").
@@ -187,8 +187,8 @@ func GetAllCategories(ctx context.Context, userID int64, otx ...*sql.Tx) ([]Cate
 }
 
 // GetCategoryByID retrieves a category by its ID for a user from the database.
-func GetCategoryByID(ctx context.Context, categoryID int64, userID int64, otx ...*sql.Tx) (*Category, error) {
-	_, executor := getExecutor(otx...)
+func GetCategoryByID(ctx context.Context, categoryID int64, userID int64, dbService *DBService, otx ...*sql.Tx) (*Category, error) {
+	_, executor := getExecutor(dbService, otx...)
 
 	query, args, err := SQLBuilder.Select("id", "user_id", "name", "description", "icon", "created_at", "updated_at").
 		From("categories").
@@ -211,8 +211,8 @@ func GetCategoryByID(ctx context.Context, categoryID int64, userID int64, otx ..
 }
 
 // GetPagedCategories retrieves a paginated list of categories for a user from the database.
-func GetPagedCategories(ctx context.Context, page int, itemsPerPage int, userID int64, otx ...*sql.Tx) ([]Category, error) {
-	_, executor := getExecutor(otx...)
+func GetPagedCategories(ctx context.Context, page int, itemsPerPage int, userID int64, dbService *DBService, otx ...*sql.Tx) ([]Category, error) {
+	_, executor := getExecutor(dbService, otx...)
 
 	offset := (page - 1) * itemsPerPage
 
@@ -245,8 +245,8 @@ func GetPagedCategories(ctx context.Context, page int, itemsPerPage int, userID 
 }
 
 // CategoryIDExists checks if a category with the given ID exists in the database.
-func CategoryIDExists(ctx context.Context, categoryID int64, userID int64, otx ...*sql.Tx) (bool, error) {
-	_, executor := getExecutor(otx...)
+func CategoryIDExists(ctx context.Context, categoryID int64, userID int64, dbService *DBService, otx ...*sql.Tx) (bool, error) {
+	_, executor := getExecutor(dbService, otx...)
 
 	query, args, err := SQLBuilder.Select("1").
 		From("categories").

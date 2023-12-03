@@ -1,3 +1,8 @@
+### Scribble pad
+- Transactions.go --> validateForeignKeyReferences needs to be refactored, doens't need a txn for this.
+- ***IDExists() methods of all model classes to be relooked at (remove txn again)
+- Refactor out getLegacyExecutor() and make changes to all model classes to support this. 
+- Overall review over-use of SQL txns across models. 
 ### Logging & Monitoring
 - Implement structured logging with different log levels (info, error, debug, etc.).
 - Integrate with monitoring tools for database metrics.

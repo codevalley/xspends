@@ -135,7 +135,7 @@ func (u User) GetPassword() string {
 }
 
 func InsertUser(ctx context.Context, user *User, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(otx...)
+	isExternalTx, executor := getLegacyExecutor(otx...)
 
 	if user.Username == "" {
 		return errors.New("mandatory field missing: Username")
@@ -202,7 +202,7 @@ func InsertUser(ctx context.Context, user *User, otx ...*sql.Tx) error {
 }
 
 func UpdateUser(ctx context.Context, user *User, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(otx...)
+	isExternalTx, executor := getLegacyExecutor(otx...)
 	user.UpdatedAt = time.Now()
 
 	sqlquery, args, err := squirrel.Update("users").
@@ -239,7 +239,7 @@ func UpdateUser(ctx context.Context, user *User, otx ...*sql.Tx) error {
 }
 
 func DeleteUser(ctx context.Context, id int64, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(otx...)
+	isExternalTx, executor := getLegacyExecutor(otx...)
 
 	sqlquery, args, err := squirrel.Delete("users").
 		Where(squirrel.Eq{"id": id}).
@@ -267,7 +267,7 @@ func DeleteUser(ctx context.Context, id int64, otx ...*sql.Tx) error {
 }
 
 func GetUserByID(ctx context.Context, id int64, otx ...*sql.Tx) (*User, error) {
-	_, executor := getExecutor(otx...)
+	_, executor := getLegacyExecutor(otx...)
 
 	sqlquery, args, err := squirrel.Select("id", "username", "name", "email", "currency", "password").
 		From("users").
@@ -291,7 +291,7 @@ func GetUserByID(ctx context.Context, id int64, otx ...*sql.Tx) (*User, error) {
 }
 
 func GetUserByUsername(ctx context.Context, username string, otx ...*sql.Tx) (*User, error) {
-	_, executor := getExecutor(otx...)
+	_, executor := getLegacyExecutor(otx...)
 
 	sqlquery, args, err := squirrel.Select("id", "username", "name", "email", "currency", "password").
 		From("users").
@@ -314,7 +314,7 @@ func GetUserByUsername(ctx context.Context, username string, otx ...*sql.Tx) (*U
 	return user, nil
 }
 func UserExists(ctx context.Context, username, email string, otx ...*sql.Tx) (bool, error) {
-	_, executor := getExecutor(otx...)
+	_, executor := getLegacyExecutor(otx...)
 
 	sqlquery, args, err := squirrel.Select("1").
 		From("users").
@@ -339,7 +339,7 @@ func UserExists(ctx context.Context, username, email string, otx ...*sql.Tx) (bo
 }
 
 func UserIDExists(ctx context.Context, id int64, otx ...*sql.Tx) (bool, error) {
-	_, executor := getExecutor(otx...)
+	_, executor := getLegacyExecutor(otx...)
 
 	sqlquery, args, err := squirrel.Select("1").
 		From("users").

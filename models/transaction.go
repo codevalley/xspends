@@ -73,7 +73,7 @@ type TransactionFilter struct {
 
 // InsertTransaction inserts a new transaction into the database.// InsertTransaction inserts a new transaction into the database.
 func InsertTransaction(ctx context.Context, txn Transaction, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(otx...)
+	isExternalTx, executor := getLegacyExecutor(otx...)
 
 	txn.ID, _ = util.GenerateSnowflakeID()
 	txn.Timestamp = time.Now()
@@ -108,7 +108,7 @@ func InsertTransaction(ctx context.Context, txn Transaction, otx ...*sql.Tx) err
 
 // UpdateTransaction updates an existing transaction in the database.
 func UpdateTransaction(ctx context.Context, txn Transaction, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(otx...)
+	isExternalTx, executor := getLegacyExecutor(otx...)
 
 	// Validate foreign key references
 	if err := validateForeignKeyReferences(ctx, txn, otx...); err != nil {
@@ -148,7 +148,7 @@ func UpdateTransaction(ctx context.Context, txn Transaction, otx ...*sql.Tx) err
 
 // DeleteTransaction removes a transaction from the database.
 func DeleteTransaction(ctx context.Context, transactionID int64, userID int64, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(otx...)
+	isExternalTx, executor := getLegacyExecutor(otx...)
 
 	query, args, err := SQLBuilder.Delete("transactions").
 		Where(squirrel.Eq{"id": transactionID, "user_id": userID}).
@@ -177,7 +177,7 @@ func DeleteTransaction(ctx context.Context, transactionID int64, userID int64, o
 
 // GetTransactionByID retrieves a single transaction from the database by its ID.
 func GetTransactionByID(ctx context.Context, transactionID int64, userID int64, otx ...*sql.Tx) (*Transaction, error) {
-	_, executor := getExecutor(otx...)
+	_, executor := getLegacyExecutor(otx...)
 
 	query, args, err := SQLBuilder.Select("id", "user_id", "source_id", "category_id", "timestamp", "amount", "type", "description").
 		From("transactions").
@@ -201,7 +201,7 @@ func GetTransactionByID(ctx context.Context, transactionID int64, userID int64, 
 
 // GetTransactionsByFilter retrieves a list of transactions from the database based on a set of filters.
 func GetTransactionsByFilter(ctx context.Context, filter TransactionFilter, otx ...*sql.Tx) ([]Transaction, error) {
-	_, executor := getExecutor(otx...)
+	_, executor := getLegacyExecutor(otx...)
 	query := SQLBuilder.Select("id", "user_id", "source_id", "category_id", "timestamp", "amount", "type", "description").
 		From("transactions").
 		Where(squirrel.Eq{"user_id": filter.UserID})
@@ -298,7 +298,7 @@ func getTagsForTransaction(ctx context.Context, transaction *Transaction, otx ..
 // validateForeignKeyReferences checks if the foreign keys in the transaction exist.
 func validateForeignKeyReferences(ctx context.Context, txn Transaction, otx ...*sql.Tx) error {
 	// Check if the user exists
-	userExists, err := UserIDExists(ctx, txn.UserID, otx...)
+	userExists, err := UserIDExists(ctx, txn.UserID, nil)
 	if err != nil {
 		return errors.Wrap(err, "error checking if user exists")
 	}
@@ -307,7 +307,7 @@ func validateForeignKeyReferences(ctx context.Context, txn Transaction, otx ...*
 	}
 
 	// Check if the source exists
-	sourceExists, err := SourceIDExists(ctx, txn.SourceID, txn.UserID, otx...)
+	sourceExists, err := SourceIDExists(ctx, txn.SourceID, txn.UserID, nil)
 	if err != nil {
 		return errors.Wrap(err, "error checking if source exists")
 	}
@@ -316,7 +316,7 @@ func validateForeignKeyReferences(ctx context.Context, txn Transaction, otx ...*
 	}
 
 	// Check if the category exists
-	categoryExists, err := CategoryIDExists(ctx, txn.CategoryID, txn.UserID, otx...)
+	categoryExists, err := CategoryIDExists(ctx, txn.CategoryID, txn.UserID, nil)
 	if err != nil {
 		return errors.Wrap(err, "error checking if category exists")
 	}
