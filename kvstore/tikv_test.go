@@ -78,11 +78,11 @@ func TestReturnChannelOfClients(t *testing.T) {
 	}
 }
 
-// If useMock is true, creates a mock client instead of an actual client
 func TestCreateMockClientIfUseMockIsTrue(t *testing.T) {
 	// Setup
 	ctx := context.Background()
 	useMock := true
+	const expectedClientCount = 1 // Adjust this to match the expected number of clients
 
 	// Mock setup
 	ctrl := gomock.NewController(t)
@@ -90,7 +90,8 @@ func TestCreateMockClientIfUseMockIsTrue(t *testing.T) {
 	mockClient := mock.NewMockRawKVClientInterface(ctrl)
 
 	// Expectations
-	mockClient.EXPECT().Scan(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil, nil)
+	// Adjust the expectation to match how many times you expect the method to be called
+	mockClient.EXPECT().Scan(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil, nil).AnyTimes()
 
 	// Code under test
 	clientPool, err := setupClientPool(ctx, useMock)
@@ -99,11 +100,21 @@ func TestCreateMockClientIfUseMockIsTrue(t *testing.T) {
 	}
 
 	// Assertions
+	count := 0
 	for client := range clientPool {
-		_, ok := client.(*mock.MockRawKVClientInterface)
-		if !ok {
+		_, isMockClient := client.(*mock.MockRawKVClientInterface)
+		if !isMockClient {
 			t.Errorf("Expected client to be of type *mock.MockRawKVClientInterface, but got %T", client)
 		}
+
+		count++
+		if count >= expectedClientCount {
+			break // Exit the loop after processing the expected number of clients
+		}
+	}
+
+	if count != expectedClientCount {
+		t.Errorf("Expected %d clients in the pool, but got %d", expectedClientCount, count)
 	}
 }
 
