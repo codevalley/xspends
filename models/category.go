@@ -81,14 +81,7 @@ func InsertCategory(ctx context.Context, category *Category, dbService *DBServic
 		return errors.Wrap(err, "executing insert statement failed")
 	}
 
-	if !isExternalTx {
-		if tx, ok := executor.(*sql.Tx); ok {
-			if err := tx.Commit(); err != nil {
-				tx.Rollback()
-				return errors.Wrap(err, "committing transaction failed")
-			}
-		}
-	}
+	commitOrRollback(executor, isExternalTx, err)
 
 	return nil
 }
@@ -118,14 +111,7 @@ func UpdateCategory(ctx context.Context, category *Category, dbService *DBServic
 	if err != nil {
 		return errors.Wrap(err, "executing update statement failed")
 	}
-	if !isExternalTx {
-		if tx, ok := executor.(*sql.Tx); ok {
-			if err := tx.Commit(); err != nil {
-				tx.Rollback()
-				return errors.Wrap(err, "committing transaction failed")
-			}
-		}
-	}
+	commitOrRollback(executor, isExternalTx, err)
 
 	return nil
 }
@@ -145,14 +131,7 @@ func DeleteCategory(ctx context.Context, categoryID int64, userID int64, dbServi
 	if err != nil {
 		return errors.Wrap(err, "executing delete statement failed")
 	}
-	if !isExternalTx {
-		if tx, ok := executor.(*sql.Tx); ok {
-			if err := tx.Commit(); err != nil {
-				tx.Rollback()
-				return errors.Wrap(err, "committing transaction failed")
-			}
-		}
-	}
+	commitOrRollback(executor, isExternalTx, err)
 	return nil
 }
 
