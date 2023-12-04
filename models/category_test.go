@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// //////////common test setup for all test files in the package/////////////////
 var (
 	mockDBService *DBService
 	mockExecutor  *mock.MockDBExecutor
@@ -39,6 +40,8 @@ func setUp(t *testing.T) func() {
 	mockDBService = &DBService{Executor: mockExecutor}
 	return func() { ctrl.Finish() }
 }
+
+/////////////common section ends here///////////////////////////////////////////
 
 func TestInsertCategory(t *testing.T) {
 	tearDown := setUp(t)
