@@ -1,6 +1,6 @@
 # XSpends: Personal Expense Management API Service
 
-[![Go](https://github.com/codevalley/xspends/actions/workflows/go.yml/badge.svg?branch=master)](https://github.com/codevalley/xspends/actions/workflows/go.yml)
+[![Go](https://github.com/codevalley/xspends/actions/workflows/go.yml/badge.svg?branch=main)](https://github.com/codevalley/xspends/actions/workflows/go.yml)
 
 ## Overview
 XSpends is a RESTful API server designed for personal expense management. It offers functionalities like user authentication, transaction recording, fund source tracking, and spend categorization.
