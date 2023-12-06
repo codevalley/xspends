@@ -72,8 +72,8 @@ func GetTagsByTransactionID(ctx context.Context, transactionID int64, dbService 
 	return tags, nil
 }
 
-func InsertTransactionTag(ctx context.Context, transactionID, tagID int64, otx ...*sql.Tx) error {
-	isExternalTx, executor := getLegacyExecutor(otx...)
+func InsertTransactionTag(ctx context.Context, transactionID, tagID int64, dbService *DBService, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutor(dbService, otx...)
 
 	query, args, err := squirrel.Insert("transaction_tags").
 		Columns("transaction_id", "tag_id", "created_at", "updated_at").
@@ -90,19 +90,12 @@ func InsertTransactionTag(ctx context.Context, transactionID, tagID int64, otx .
 		return errors.Wrap(err, "error inserting transaction tag")
 	}
 
-	if !isExternalTx {
-		if tx, ok := executor.(*sql.Tx); ok {
-			if err := tx.Commit(); err != nil {
-				tx.Rollback()
-				return errors.Wrap(err, "committing transaction failed")
-			}
-		}
-	}
+	commitOrRollback(executor, isExternalTx, err)
 	return nil
 }
 
-func DeleteTransactionTag(ctx context.Context, transactionID, tagID int64, otx ...*sql.Tx) error {
-	isExternalTx, executor := getLegacyExecutor(otx...)
+func DeleteTransactionTag(ctx context.Context, transactionID, tagID int64, dbService *DBService, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutor(dbService, otx...)
 
 	query, args, err := squirrel.Delete("transaction_tags").
 		Where(squirrel.Eq{"transaction_id": transactionID, "tag_id": tagID}).
@@ -118,69 +111,48 @@ func DeleteTransactionTag(ctx context.Context, transactionID, tagID int64, otx .
 		return errors.Wrap(err, "error deleting transaction tag")
 	}
 
-	if !isExternalTx {
-		if tx, ok := executor.(*sql.Tx); ok {
-			if err := tx.Commit(); err != nil {
-				tx.Rollback()
-				return errors.Wrap(err, "committing transaction failed")
-			}
-		}
-	}
+	commitOrRollback(executor, isExternalTx, err)
 
 	return nil
 }
 
-func AddTagsToTransaction(ctx context.Context, transactionID int64, tags []string, userID int64, otx ...*sql.Tx) error {
-	isExternalTx, executor := getLegacyExecutor(otx...)
+func AddTagsToTransaction(ctx context.Context, transactionID int64, tags []string, userID int64, dbService *DBService, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutor(dbService, otx...)
 
 	for _, tagName := range tags {
-		tag, err := GetTagByName(ctx, tagName, userID, nil, otx...) //TODO FIX dbService nil
+		tag, err := GetTagByName(ctx, tagName, userID, dbService, otx...)
 		if err != nil {
 			return errors.Wrap(err, "error getting tag by name")
 		}
-		err = InsertTransactionTag(ctx, transactionID, tag.ID, otx...)
+		err = InsertTransactionTag(ctx, transactionID, tag.ID, dbService, otx...)
 		if err != nil {
 			return errors.Wrap(err, "error associating tag with transaction")
 		}
 	}
 
-	if !isExternalTx {
-		if tx, ok := executor.(*sql.Tx); ok {
-			if err := tx.Commit(); err != nil {
-				tx.Rollback()
-				return errors.Wrap(err, "committing transaction failed")
-			}
-		}
-	}
+	commitOrRollback(executor, isExternalTx, nil)
 	return nil
 }
 
-func UpdateTagsForTransaction(ctx context.Context, transactionID int64, tags []string, userID int64, otx ...*sql.Tx) error {
-	isExternalTx, executor := getLegacyExecutor(otx...)
+func UpdateTagsForTransaction(ctx context.Context, transactionID int64, tags []string, userID int64, dbService *DBService, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutor(dbService, otx...)
 
-	err := DeleteTagsFromTransaction(ctx, transactionID, otx...)
+	err := DeleteTagsFromTransaction(ctx, transactionID, dbService, otx...)
 	if err != nil {
 		return errors.Wrap(err, "error removing existing tags from transaction")
 	}
 
-	err = AddTagsToTransaction(ctx, transactionID, tags, userID, otx...)
+	err = AddTagsToTransaction(ctx, transactionID, tags, userID, dbService, otx...)
 	if err != nil {
 		return errors.Wrap(err, "error adding new tags to transaction")
 	}
 
-	if !isExternalTx {
-		if tx, ok := executor.(*sql.Tx); ok {
-			if err := tx.Commit(); err != nil {
-				tx.Rollback()
-				return errors.Wrap(err, "committing transaction failed")
-			}
-		}
-	}
+	commitOrRollback(executor, isExternalTx, nil)
 	return nil
 }
 
-func DeleteTagsFromTransaction(ctx context.Context, transactionID int64, otx ...*sql.Tx) error {
-	isExternalTx, executor := getLegacyExecutor(otx...)
+func DeleteTagsFromTransaction(ctx context.Context, transactionID int64, dbService *DBService, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutor(dbService, otx...)
 
 	query, args, err := squirrel.Delete("transaction_tags").
 		Where(squirrel.Eq{"transaction_id": transactionID}).
@@ -196,13 +168,6 @@ func DeleteTagsFromTransaction(ctx context.Context, transactionID int64, otx ...
 		return errors.Wrap(err, "error deleting tags from transaction")
 	}
 
-	if !isExternalTx {
-		if tx, ok := executor.(*sql.Tx); ok {
-			if err := tx.Commit(); err != nil {
-				tx.Rollback()
-				return errors.Wrap(err, "committing transaction failed")
-			}
-		}
-	}
+	commitOrRollback(executor, isExternalTx, err)
 	return nil
 }

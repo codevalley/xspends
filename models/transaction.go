@@ -99,7 +99,7 @@ func InsertTransaction(ctx context.Context, txn Transaction, dbService *DBServic
 		return errors.Wrap(err, "handling transaction tags failed")
 	}
 	// Associate tags with the transaction
-	if err := AddTagsToTransaction(ctx, txn.ID, txn.Tags, txn.UserID, otx...); err != nil {
+	if err := AddTagsToTransaction(ctx, txn.ID, txn.Tags, txn.UserID, dbService, otx...); err != nil {
 		return errors.Wrap(err, "adding tags to transaction failed")
 	}
 	commitOrRollback(executor, isExternalTx, err)
@@ -137,7 +137,7 @@ func UpdateTransaction(ctx context.Context, txn Transaction, dbService *DBServic
 	if err := addMissingTags(ctx, txn.ID, txn.Tags, txn.UserID, dbService, otx...); err != nil {
 		return errors.Wrap(err, "adding missing tags failed")
 	}
-	if err := UpdateTagsForTransaction(ctx, txn.ID, txn.Tags, txn.UserID, otx...); err != nil {
+	if err := UpdateTagsForTransaction(ctx, txn.ID, txn.Tags, txn.UserID, dbService, otx...); err != nil {
 		return errors.Wrap(err, "updating tags for transaction failed")
 	}
 

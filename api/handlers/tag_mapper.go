@@ -102,7 +102,7 @@ func AddTagToTransaction(c *gin.Context) {
 		return
 	}
 
-	if err := models.InsertTransactionTag(c, transactionID, tag.ID); err != nil {
+	if err := models.InsertTransactionTag(c, transactionID, tag.ID, nil); err != nil {
 		log.Printf("[AddTagToTransaction] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to add tag to the transaction"})
 		return
@@ -132,7 +132,7 @@ func RemoveTagFromTransaction(c *gin.Context) {
 		return
 	}
 
-	if err := models.DeleteTransactionTag(c, transactionID, tagID); err != nil {
+	if err := models.DeleteTransactionTag(c, transactionID, tagID, nil); err != nil {
 		log.Printf("[RemoveTagFromTransaction] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to remove tag from the transaction"})
 		return

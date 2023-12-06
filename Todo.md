@@ -3,6 +3,8 @@
 - ***IDExists() methods of all model classes to be relooked at (remove txn again)
 - Refactor out getLegacyExecutor() and make changes to all model classes to support this. 
 - Overall review over-use of SQL txns across models. 
+
+- Incomplete (partial dbService) (user.go, transaction_tag.go )
 ### Logging & Monitoring
 - Implement structured logging with different log levels (info, error, debug, etc.).
 - Integrate with monitoring tools for database metrics.
