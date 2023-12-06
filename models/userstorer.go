@@ -47,7 +47,7 @@ func NewUserStorer(db *sql.DB) *UserStorer {
 }
 
 func (s *UserStorer) Load(ctx context.Context, key string) (authboss.User, error) {
-	user, err := GetUserByUsername(ctx, key)
+	user, err := GetUserByUsername(ctx, key, nil) //TODO add DBService / transaction support
 	if err != nil {
 		log.Printf("[UserStorer Load] Error: %v", err)
 		if errors.Is(err, ErrUserNotFound) {
@@ -63,7 +63,7 @@ func (s *UserStorer) Save(ctx context.Context, user authboss.User) error {
 	if !ok {
 		return fmt.Errorf("%w: %s", errors.New(userTypeAssertionFailed), "Save")
 	}
-	return UpdateUser(ctx, u)
+	return UpdateUser(ctx, u, nil) //TODO add DBService / transaction support
 }
 
 func (s *UserStorer) Create(ctx context.Context, user authboss.User) error {
@@ -72,7 +72,7 @@ func (s *UserStorer) Create(ctx context.Context, user authboss.User) error {
 		return fmt.Errorf("%w: %s", errors.New(userTypeAssertionFailed), "Create")
 	}
 
-	return InsertUser(ctx, u)
+	return InsertUser(ctx, u, nil) //TODO add DBService / transaction support
 }
 
 func (s *UserStorer) LoadByConfirmSelector(ctx context.Context, selector string) (authboss.ConfirmableUser, error) {

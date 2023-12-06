@@ -91,7 +91,7 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	exists, err := models.UserExists(c, newUser.Username, newUser.Email)
+	exists, err := models.UserExists(c, newUser.Username, newUser.Email, nil)
 	if err != nil {
 		log.Printf("[Register] Error checking user existence: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -111,7 +111,7 @@ func Register(c *gin.Context) {
 	}
 	newUser.Password = string(hashedPassword)
 
-	err = models.InsertUser(c, &newUser)
+	err = models.InsertUser(c, &newUser, nil)
 	if err != nil {
 		log.Printf("[Register] Error inserting user into database: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": ErrInsertingUser.Error()})
@@ -130,7 +130,7 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	user, err := models.GetUserByUsername(c, creds.Username)
+	user, err := models.GetUserByUsername(c, creds.Username, nil)
 	if err != nil {
 		log.Printf("[Login] Error retrieving user: %v", err)
 		if err == models.ErrUserNotFound {

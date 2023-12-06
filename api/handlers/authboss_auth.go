@@ -154,7 +154,7 @@ func JWTRegisterHandler(ab *authboss.Authboss) gin.HandlerFunc {
 			return
 		}
 
-		exists, err := models.UserExists(c, newUser.Username, newUser.Email)
+		exists, err := models.UserExists(c, newUser.Username, newUser.Email, nil)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTRegisterHandler] Error checking user existence").Error()})
 			return

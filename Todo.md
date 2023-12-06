@@ -4,7 +4,7 @@
 - Refactor out getLegacyExecutor() and make changes to all model classes to support this. 
 - Overall review over-use of SQL txns across models. 
 
-- Incomplete (partial dbService) (user.go, transaction_tag.go )
+- Txn support for userstorer
 ### Logging & Monitoring
 - Implement structured logging with different log levels (info, error, debug, etc.).
 - Integrate with monitoring tools for database metrics.

@@ -134,8 +134,8 @@ func (u User) GetPassword() string {
 	return u.Password
 }
 
-func InsertUser(ctx context.Context, user *User, otx ...*sql.Tx) error {
-	isExternalTx, executor := getLegacyExecutor(otx...)
+func InsertUser(ctx context.Context, user *User, dbService *DBService, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutor(dbService, otx...)
 
 	if user.Username == "" {
 		return errors.New("mandatory field missing: Username")
@@ -189,20 +189,13 @@ func InsertUser(ctx context.Context, user *User, otx ...*sql.Tx) error {
 	}
 
 	// Handle transaction commitment if it's not external
-	if !isExternalTx {
-		if tx, ok := executor.(*sql.Tx); ok {
-			if commitErr := tx.Commit(); commitErr != nil {
-				tx.Rollback() // Rollback in case of commit failure
-				return errors.Wrap(commitErr, "committing transaction failed")
-			}
-		}
-	}
+	commitOrRollback(executor, isExternalTx, err)
 
 	return nil
 }
 
-func UpdateUser(ctx context.Context, user *User, otx ...*sql.Tx) error {
-	isExternalTx, executor := getLegacyExecutor(otx...)
+func UpdateUser(ctx context.Context, user *User, dbService *DBService, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutor(dbService, otx...)
 	user.UpdatedAt = time.Now()
 
 	sqlquery, args, err := squirrel.Update("users").
@@ -227,19 +220,12 @@ func UpdateUser(ctx context.Context, user *User, otx ...*sql.Tx) error {
 		return errors.Wrap(err, "updating user failed")
 	}
 
-	if !isExternalTx {
-		if tx, ok := executor.(*sql.Tx); ok {
-			if err := tx.Commit(); err != nil {
-				tx.Rollback()
-				return errors.Wrap(err, "committing transaction failed")
-			}
-		}
-	}
+	commitOrRollback(executor, isExternalTx, err)
 	return nil
 }
 
-func DeleteUser(ctx context.Context, id int64, otx ...*sql.Tx) error {
-	isExternalTx, executor := getLegacyExecutor(otx...)
+func DeleteUser(ctx context.Context, id int64, dbService *DBService, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutor(dbService, otx...)
 
 	sqlquery, args, err := squirrel.Delete("users").
 		Where(squirrel.Eq{"id": id}).
@@ -255,19 +241,12 @@ func DeleteUser(ctx context.Context, id int64, otx ...*sql.Tx) error {
 		return errors.Wrap(err, "deleting user failed")
 	}
 
-	if !isExternalTx {
-		if tx, ok := executor.(*sql.Tx); ok {
-			if err := tx.Commit(); err != nil {
-				tx.Rollback()
-				return errors.Wrap(err, "committing transaction failed")
-			}
-		}
-	}
+	commitOrRollback(executor, isExternalTx, err)
 	return nil
 }
 
-func GetUserByID(ctx context.Context, id int64, otx ...*sql.Tx) (*User, error) {
-	_, executor := getLegacyExecutor(otx...)
+func GetUserByID(ctx context.Context, id int64, dbService *DBService, otx ...*sql.Tx) (*User, error) {
+	_, executor := getExecutor(dbService, otx...)
 
 	sqlquery, args, err := squirrel.Select("id", "username", "name", "email", "currency", "password").
 		From("users").
@@ -290,8 +269,8 @@ func GetUserByID(ctx context.Context, id int64, otx ...*sql.Tx) (*User, error) {
 	return user, nil
 }
 
-func GetUserByUsername(ctx context.Context, username string, otx ...*sql.Tx) (*User, error) {
-	_, executor := getLegacyExecutor(otx...)
+func GetUserByUsername(ctx context.Context, username string, dbService *DBService, otx ...*sql.Tx) (*User, error) {
+	_, executor := getExecutor(dbService, otx...)
 
 	sqlquery, args, err := squirrel.Select("id", "username", "name", "email", "currency", "password").
 		From("users").
@@ -313,8 +292,8 @@ func GetUserByUsername(ctx context.Context, username string, otx ...*sql.Tx) (*U
 	}
 	return user, nil
 }
-func UserExists(ctx context.Context, username, email string, otx ...*sql.Tx) (bool, error) {
-	_, executor := getLegacyExecutor(otx...)
+func UserExists(ctx context.Context, username, email string, dbService *DBService, otx ...*sql.Tx) (bool, error) {
+	_, executor := getExecutor(dbService, otx...)
 
 	sqlquery, args, err := squirrel.Select("1").
 		From("users").

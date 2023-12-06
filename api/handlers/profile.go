@@ -55,7 +55,7 @@ func GetUserProfile(c *gin.Context) {
 		return
 	}
 
-	user, err := models.GetUserByID(c, userID)
+	user, err := models.GetUserByID(c, userID, nil)
 	if err != nil {
 		log.Printf("[GetUserProfile] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
@@ -80,7 +80,7 @@ func UpdateUserProfile(c *gin.Context) {
 
 	updatedUser.ID = userID
 
-	if err := models.UpdateUser(c, &updatedUser); err != nil {
+	if err := models.UpdateUser(c, &updatedUser, nil); err != nil {
 		log.Printf("[UpdateUserProfile] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update user"})
 		return
@@ -95,7 +95,7 @@ func DeleteUser(c *gin.Context) {
 		return
 	}
 
-	if err := models.DeleteUser(c, userID); err != nil {
+	if err := models.DeleteUser(c, userID, nil); err != nil {
 		log.Printf("[DeleteUser] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete user"})
 		return
