@@ -40,8 +40,8 @@ type TransactionTag struct {
 	UpdatedAt     time.Time `json:"updated_at"`
 }
 
-func GetTagsByTransactionID(ctx context.Context, transactionID int64, otx ...*sql.Tx) ([]Tag, error) {
-	_, executor := getLegacyExecutor(otx...)
+func GetTagsByTransactionID(ctx context.Context, transactionID int64, dbService *DBService, otx ...*sql.Tx) ([]Tag, error) {
+	_, executor := getExecutor(dbService, otx...)
 
 	query, args, err := squirrel.Select("t.id", "t.name").
 		From("tags t").
@@ -134,7 +134,7 @@ func AddTagsToTransaction(ctx context.Context, transactionID int64, tags []strin
 	isExternalTx, executor := getLegacyExecutor(otx...)
 
 	for _, tagName := range tags {
-		tag, err := GetTagByName(ctx, tagName, userID, otx...)
+		tag, err := GetTagByName(ctx, tagName, userID, nil, otx...) //TODO FIX dbService nil
 		if err != nil {
 			return errors.Wrap(err, "error getting tag by name")
 		}

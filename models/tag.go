@@ -51,8 +51,8 @@ type PaginationParams struct {
 	Offset int
 }
 
-func InsertTag(ctx context.Context, tag *Tag, otx ...*sql.Tx) error {
-	isExternalTx, executor := getLegacyExecutor(otx...)
+func InsertTag(ctx context.Context, tag *Tag, dbService *DBService, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutor(dbService, otx...)
 
 	if tag.UserID <= 0 || len(tag.Name) == 0 || len(tag.Name) > maxTagNameLength {
 		return errors.New("invalid input for tag")
@@ -77,19 +77,12 @@ func InsertTag(ctx context.Context, tag *Tag, otx ...*sql.Tx) error {
 		return errors.Wrapf(err, "failed to insert tag: %v", tag)
 	}
 
-	if !isExternalTx {
-		if tx, ok := executor.(*sql.Tx); ok {
-			if err := tx.Commit(); err != nil {
-				tx.Rollback()
-				return errors.Wrap(err, "committing transaction failed")
-			}
-		}
-	}
+	commitOrRollback(executor, isExternalTx, err)
 	return nil
 }
 
-func UpdateTag(ctx context.Context, tag *Tag, otx ...*sql.Tx) error {
-	isExternalTx, executor := getLegacyExecutor(otx...)
+func UpdateTag(ctx context.Context, tag *Tag, dbService *DBService, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutor(dbService, otx...)
 
 	if tag.UserID <= 0 || len(tag.Name) == 0 || len(tag.Name) > maxTagNameLength {
 		return errors.New("invalid input for tag")
@@ -113,19 +106,12 @@ func UpdateTag(ctx context.Context, tag *Tag, otx ...*sql.Tx) error {
 		return errors.Wrapf(err, "failed to update tag: %v", tag)
 	}
 
-	if !isExternalTx {
-		if tx, ok := executor.(*sql.Tx); ok {
-			if err := tx.Commit(); err != nil {
-				tx.Rollback()
-				return errors.Wrap(err, "committing transaction failed")
-			}
-		}
-	}
+	commitOrRollback(executor, isExternalTx, err)
 	return nil
 }
 
-func DeleteTag(ctx context.Context, tagID int64, userID int64, otx ...*sql.Tx) error {
-	isExternalTx, executor := getLegacyExecutor(otx...)
+func DeleteTag(ctx context.Context, tagID int64, userID int64, dbService *DBService, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutor(dbService, otx...)
 
 	query, args, err := squirrel.Delete("tags").
 		Where(squirrel.Eq{"id": tagID, "user_id": userID}).
@@ -141,20 +127,13 @@ func DeleteTag(ctx context.Context, tagID int64, userID int64, otx ...*sql.Tx) e
 		return errors.Wrapf(err, "failed to delete tag with tagID: %d and userID: %d", tagID, userID)
 	}
 
-	if !isExternalTx {
-		if tx, ok := executor.(*sql.Tx); ok {
-			if err := tx.Commit(); err != nil {
-				tx.Rollback()
-				return errors.Wrap(err, "committing transaction failed")
-			}
-		}
-	}
+	commitOrRollback(executor, isExternalTx, err)
 
 	return nil
 }
 
-func GetTagByID(ctx context.Context, tagID int64, userID int64, otx ...*sql.Tx) (*Tag, error) {
-	_, executor := getLegacyExecutor(otx...)
+func GetTagByID(ctx context.Context, tagID int64, userID int64, dbService *DBService, otx ...*sql.Tx) (*Tag, error) {
+	_, executor := getExecutor(dbService, otx...)
 
 	query, args, err := squirrel.Select("id", "user_id", "name", "created_at", "updated_at").
 		From("tags").
@@ -179,8 +158,8 @@ func GetTagByID(ctx context.Context, tagID int64, userID int64, otx ...*sql.Tx) 
 	return tag, nil
 }
 
-func GetAllTags(ctx context.Context, userID int64, pagination PaginationParams, otx ...*sql.Tx) ([]Tag, error) {
-	_, executor := getLegacyExecutor(otx...)
+func GetAllTags(ctx context.Context, userID int64, pagination PaginationParams, dbService *DBService, otx ...*sql.Tx) ([]Tag, error) {
+	_, executor := getExecutor(dbService, otx...)
 
 	query, args, err := squirrel.Select("id", "user_id", "name", "created_at", "updated_at").
 		From("tags").
@@ -217,8 +196,8 @@ func GetAllTags(ctx context.Context, userID int64, pagination PaginationParams, 
 	return tags, nil
 }
 
-func GetTagByName(ctx context.Context, name string, userID int64, otx ...*sql.Tx) (*Tag, error) {
-	_, executor := getLegacyExecutor(otx...)
+func GetTagByName(ctx context.Context, name string, userID int64, dbService *DBService, otx ...*sql.Tx) (*Tag, error) {
+	_, executor := getExecutor(dbService, otx...)
 
 	query, args, err := squirrel.Select("id", "user_id", "name", "created_at", "updated_at").
 		From("tags").

@@ -73,7 +73,7 @@ func ListTags(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", strconv.Itoa(defaultLimit)))
 	offset, _ := strconv.Atoi(c.Query("offset"))
 
-	tags, err := models.GetAllTags(c, userID, models.PaginationParams{Limit: limit, Offset: offset})
+	tags, err := models.GetAllTags(c, userID, models.PaginationParams{Limit: limit, Offset: offset}, nil)
 	if err != nil {
 		log.Printf("[ListTags] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch tags"})
@@ -109,7 +109,7 @@ func GetTag(c *gin.Context) {
 		return
 	}
 
-	tag, err := models.GetTagByID(c, tagID, userID)
+	tag, err := models.GetTagByID(c, tagID, userID, nil)
 	if err != nil {
 		log.Printf("[GetTag] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "tag not found"})
@@ -147,7 +147,7 @@ func CreateTag(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "tag name exceeds maximum length"})
 		return
 	}
-	if err := models.InsertTag(c, &newTag); err != nil {
+	if err := models.InsertTag(c, &newTag, nil); err != nil {
 		log.Printf("[CreateTag] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create tag"})
 		return
@@ -185,7 +185,7 @@ func UpdateTag(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "tag name exceeds maximum length"})
 		return
 	}
-	if err := models.UpdateTag(c, &updatedTag); err != nil {
+	if err := models.UpdateTag(c, &updatedTag, nil); err != nil {
 		log.Printf("[UpdateTag] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update tag"})
 		return
@@ -214,7 +214,7 @@ func DeleteTag(c *gin.Context) {
 		return
 	}
 
-	if err := models.DeleteTag(c, tagID, userID); err != nil {
+	if err := models.DeleteTag(c, tagID, userID, nil); err != nil {
 		log.Printf("[DeleteTag] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete tag"})
 		return

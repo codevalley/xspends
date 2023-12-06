@@ -68,7 +68,7 @@ func ListTransactionTags(c *gin.Context) {
 		return
 	}
 
-	tags, err := models.GetTagsByTransactionID(c, transactionID)
+	tags, err := models.GetTagsByTransactionID(c, transactionID, nil)
 	if err != nil {
 		log.Printf("[ListTransactionTags] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch tags for the transaction"})
