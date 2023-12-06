@@ -338,8 +338,8 @@ func UserExists(ctx context.Context, username, email string, otx ...*sql.Tx) (bo
 	return exists, nil
 }
 
-func UserIDExists(ctx context.Context, id int64, otx ...*sql.Tx) (bool, error) {
-	_, executor := getLegacyExecutor(otx...)
+func UserIDExists(ctx context.Context, id int64, dbService *DBService, otx ...*sql.Tx) (bool, error) {
+	_, executor := getExecutor(dbService, otx...)
 
 	sqlquery, args, err := squirrel.Select("1").
 		From("users").

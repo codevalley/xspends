@@ -27,7 +27,6 @@ package models
 import (
 	"context"
 	"database/sql"
-	"fmt"
 
 	"time"
 
@@ -270,8 +269,6 @@ func GetTransactionsByFilter(ctx context.Context, filter TransactionFilter, dbSe
 	if err = rows.Err(); err != nil {
 		return nil, errors.Wrap(err, "processing rows failed")
 	}
-	fmt.Println("SQL Query:", sql)
-	fmt.Printf("Arguments: %v\n", args)
 
 	return transactions, nil
 }
@@ -293,7 +290,7 @@ func getTagsForTransaction(ctx context.Context, transaction *Transaction, dbServ
 // validateForeignKeyReferences checks if the foreign keys in the transaction exist.
 func validateForeignKeyReferences(ctx context.Context, txn Transaction, dbService *DBService, otx ...*sql.Tx) error {
 	// Check if the user exists
-	userExists, err := UserIDExists(ctx, txn.UserID, nil)
+	userExists, err := UserIDExists(ctx, txn.UserID, dbService)
 	if err != nil {
 		return errors.Wrap(err, "error checking if user exists")
 	}

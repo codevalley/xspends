@@ -78,15 +78,27 @@ func TestRetrieveExistingTagByID(t *testing.T) {
 	tagID := int64(1)
 	userID := int64(1)
 
+	// Setting up the sqlmock
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("An error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	// Set up the mock DBService
+	mockDBService := &DBService{Executor: db}
+
+	// Mock rows to simulate database response
 	mockRows := sqlmock.NewRows([]string{"id", "user_id", "name", "created_at", "updated_at"}).
 		AddRow(tagID, userID, "Test Tag", time.Now(), time.Now())
 
-	mockExecutor.EXPECT().
-		QueryRowContext(gomock.Any(), gomock.Any(), gomock.Any()).
-		Return(mockRows).
-		Times(1)
+	// Expect QueryRowContext to be called with the correct SQL and arguments, and return mockRows
+	mock.ExpectQuery("^SELECT (.+) FROM tags WHERE").WithArgs(tagID, userID).WillReturnRows(mockRows)
 
+	// Call the method under test
 	tag, err := GetTagByID(ctx, tagID, userID, mockDBService)
+
+	// Assertions
 	assert.NoError(t, err)
 	assert.NotNil(t, tag)
 }
@@ -102,16 +114,28 @@ func TestRetrieveAllTagsForUser(t *testing.T) {
 		Offset: 0,
 	}
 
+	// Setting up the sqlmock
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("An error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	// Set up the mock DBService
+	mockDBService := &DBService{Executor: db}
+
+	// Mock rows to simulate database response
 	mockRows := sqlmock.NewRows([]string{"id", "user_id", "name", "created_at", "updated_at"}).
 		AddRow(1, userID, "Tag 1", time.Now(), time.Now()).
 		AddRow(2, userID, "Tag 2", time.Now(), time.Now())
 
-	mockExecutor.EXPECT().
-		QueryContext(gomock.Any(), gomock.Any(), gomock.Any()).
-		Return(mockRows, nil).
-		Times(1)
+	// Expect QueryContext to be called with the correct SQL and arguments, and return mockRows
+	mock.ExpectQuery("^SELECT (.+) FROM tags WHERE").WithArgs(userID).WillReturnRows(mockRows)
 
+	// Call the method under test
 	tags, err := GetAllTags(ctx, userID, pagination, mockDBService)
+
+	// Assertions
 	assert.NoError(t, err)
 	assert.NotNil(t, tags)
 	assert.Equal(t, 2, len(tags))
