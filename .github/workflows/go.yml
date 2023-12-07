@@ -39,5 +39,6 @@ jobs:
         report: 'true'
         chart: 'true'
         amend: 'true'
+        badge-style: 'plastic'
         reuse-go: 'true'
       continue-on-error: true
