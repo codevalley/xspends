@@ -39,6 +39,6 @@ jobs:
         report: 'true'
         chart: 'true'
         amend: 'true'
-        badge-style: for-the-badge
+        badge-style: plastic
         reuse-go: 'true'
       continue-on-error: true
