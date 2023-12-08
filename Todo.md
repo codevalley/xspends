@@ -1,8 +1,7 @@
 ### Scribble pad
-- Transactions.go --> validateForeignKeyReferences needs to be refactored, doens't need a txn for this.
-- ***IDExists() methods of all model classes to be relooked at (remove txn again)
-- Refactor out getLegacyExecutor() and make changes to all model classes to support this. 
-- Overall review over-use of SQL txns across models. 
+- Create a Model Service wrapper for all models
+- Remove DBService param and directly access it via services file objects
+- Mock or not mock decided at init
 
 - Txn support for userstorer
 ### Logging & Monitoring

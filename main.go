@@ -44,7 +44,7 @@ import (
 func main() {
 	r := gin.Default()
 	util.InitializeSnowflake()
-	models.InitDB()
+	models.InitModelsService()
 	kvstore.SetupKV(context.Background(), false)
 	kv := kvstore.GetClientFromPool()
 	api.SetupRoutes(r, models.GetDB(), kv)

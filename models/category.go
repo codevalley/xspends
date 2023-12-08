@@ -50,7 +50,21 @@ type Category struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-func validateCategoryInput(category *Category) error {
+type CategoryService interface {
+	InsertCategory(ctx context.Context, category *Category, dbService *DBService, otx ...*sql.Tx) error
+	UpdateCategory(ctx context.Context, category *Category, dbService *DBService, otx ...*sql.Tx) error
+	DeleteCategory(ctx context.Context, categoryID int64, userID int64, dbService *DBService, otx ...*sql.Tx) error
+	GetAllCategories(ctx context.Context, userID int64, dbService *DBService, otx ...*sql.Tx) ([]Category, error)
+	GetCategoryByID(ctx context.Context, categoryID int64, userID int64, dbService *DBService, otx ...*sql.Tx) (*Category, error)
+	GetPagedCategories(ctx context.Context, page int, itemsPerPage int, userID int64, dbService *DBService, otx ...*sql.Tx) ([]Category, error)
+	CategoryIDExists(ctx context.Context, categoryID int64, userID int64, dbService *DBService, otx ...*sql.Tx) (bool, error)
+}
+
+type CategoryModel struct {
+	//nothing here.
+}
+
+func (cm *CategoryModel) validateCategoryInput(category *Category) error {
 	if category.UserID <= 0 || category.Name == "" || len(category.Name) > maxCategoryNameLength || len(category.Description) > maxCategoryDescriptionLength {
 		return errors.New(ErrInvalidInput)
 	}
@@ -58,10 +72,10 @@ func validateCategoryInput(category *Category) error {
 }
 
 // InsertCategory inserts a new category into the database.
-func InsertCategory(ctx context.Context, category *Category, dbService *DBService, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(dbService, otx...)
+func (cm *CategoryModel) InsertCategory(ctx context.Context, category *Category, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutorNew(otx...)
 
-	if err := validateCategoryInput(category); err != nil {
+	if err := cm.validateCategoryInput(category); err != nil {
 		return err
 	}
 
@@ -87,10 +101,10 @@ func InsertCategory(ctx context.Context, category *Category, dbService *DBServic
 }
 
 // UpdateCategory updates an existing category in the database.
-func UpdateCategory(ctx context.Context, category *Category, dbService *DBService, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(dbService, otx...)
+func (cm *CategoryModel) UpdateCategory(ctx context.Context, category *Category, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutorNew(otx...)
 
-	if err := validateCategoryInput(category); err != nil {
+	if err := cm.validateCategoryInput(category); err != nil {
 		return err
 	}
 
@@ -117,8 +131,8 @@ func UpdateCategory(ctx context.Context, category *Category, dbService *DBServic
 }
 
 // DeleteCategory deletes a category from the database.
-func DeleteCategory(ctx context.Context, categoryID int64, userID int64, dbService *DBService, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(dbService, otx...)
+func (cm *CategoryModel) DeleteCategory(ctx context.Context, categoryID int64, userID int64, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutorNew(otx...)
 
 	query, args, err := SQLBuilder.Delete("categories").
 		Where(squirrel.Eq{"id": categoryID, "user_id": userID}).
@@ -136,8 +150,8 @@ func DeleteCategory(ctx context.Context, categoryID int64, userID int64, dbServi
 }
 
 // GetAllCategories retrieves all categories for a user from the database.
-func GetAllCategories(ctx context.Context, userID int64, dbService *DBService, otx ...*sql.Tx) ([]Category, error) {
-	_, executor := getExecutor(dbService, otx...)
+func (cm *CategoryModel) GetAllCategories(ctx context.Context, userID int64, otx ...*sql.Tx) ([]Category, error) {
+	_, executor := getExecutorNew(otx...)
 
 	query, args, err := SQLBuilder.Select("id", "user_id", "name", "description", "icon", "created_at", "updated_at").
 		From("categories").
@@ -166,8 +180,8 @@ func GetAllCategories(ctx context.Context, userID int64, dbService *DBService, o
 }
 
 // GetCategoryByID retrieves a category by its ID for a user from the database.
-func GetCategoryByID(ctx context.Context, categoryID int64, userID int64, dbService *DBService, otx ...*sql.Tx) (*Category, error) {
-	_, executor := getExecutor(dbService, otx...)
+func (cm *CategoryModel) GetCategoryByID(ctx context.Context, categoryID int64, userID int64, otx ...*sql.Tx) (*Category, error) {
+	_, executor := getExecutorNew(otx...)
 
 	query, args, err := SQLBuilder.Select("id", "user_id", "name", "description", "icon", "created_at", "updated_at").
 		From("categories").
@@ -190,8 +204,8 @@ func GetCategoryByID(ctx context.Context, categoryID int64, userID int64, dbServ
 }
 
 // GetPagedCategories retrieves a paginated list of categories for a user from the database.
-func GetPagedCategories(ctx context.Context, page int, itemsPerPage int, userID int64, dbService *DBService, otx ...*sql.Tx) ([]Category, error) {
-	_, executor := getExecutor(dbService, otx...)
+func (cm *CategoryModel) GetPagedCategories(ctx context.Context, page int, itemsPerPage int, userID int64, otx ...*sql.Tx) ([]Category, error) {
+	_, executor := getExecutorNew(otx...)
 
 	offset := (page - 1) * itemsPerPage
 
@@ -224,9 +238,8 @@ func GetPagedCategories(ctx context.Context, page int, itemsPerPage int, userID 
 }
 
 // CategoryIDExists checks if a category with the given ID exists in the database.
-func CategoryIDExists(ctx context.Context, categoryID int64, userID int64, dbService *DBService, otx ...*sql.Tx) (bool, error) {
-	_, executor := getExecutor(dbService, otx...)
-
+func (cm *CategoryModel) CategoryIDExists(ctx context.Context, categoryID int64, userID int64, otx ...*sql.Tx) (bool, error) {
+	_, executor := getExecutorNew(otx...)
 	query, args, err := SQLBuilder.Select("1").
 		From("categories").
 		Where(squirrel.Eq{"id": categoryID, "user_id": userID}).

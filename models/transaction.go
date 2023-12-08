@@ -308,7 +308,7 @@ func validateForeignKeyReferences(ctx context.Context, txn Transaction, dbServic
 	}
 
 	// Check if the category exists
-	categoryExists, err := CategoryIDExists(ctx, txn.CategoryID, txn.UserID, dbService)
+	categoryExists, err := GetModelsService().CategoryModel.CategoryIDExists(ctx, txn.CategoryID, txn.UserID)
 	if err != nil {
 		return errors.Wrap(err, "error checking if category exists")
 	}
@@ -323,7 +323,7 @@ func validateForeignKeyReferences(ctx context.Context, txn Transaction, dbServic
 func addMissingTags(ctx context.Context, transactionID int64, tagNames []string, userID int64, dbService *DBService, otx ...*sql.Tx) error {
 	// Ensure all tags are present in the database
 	for _, tagName := range tagNames {
-		tag, _ := GetTagByName(ctx, tagName, userID, dbService, otx...) //TODO FIX dbService nil
+		tag, _ := GetTagByName(ctx, tagName, userID, dbService, otx...)
 
 		if tag == nil {
 			// Tag does not exist; create it
@@ -331,7 +331,7 @@ func addMissingTags(ctx context.Context, transactionID int64, tagNames []string,
 				UserID: userID,
 				Name:   tagName,
 			}
-			if err := InsertTag(ctx, &newTag, dbService, otx...); err != nil { //TODO FIX dbService nil
+			if err := InsertTag(ctx, &newTag, dbService, otx...); err != nil {
 				return errors.Wrapf(err, "failed to insert new tag '%s'", tagName)
 			}
 		}

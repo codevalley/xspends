@@ -58,29 +58,20 @@ type DBService struct {
 	Executor DBExecutor
 }
 
-func (db *DBService) execQuery(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	return db.Executor.ExecContext(ctx, query, args...)
-}
-
-func (db *DBService) execQueryRow(ctx context.Context, query string, args ...interface{}) *sql.Row {
-	return db.Executor.QueryRowContext(ctx, query, args...)
-}
-
-func (db *DBService) execQueryRows(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	return db.Executor.QueryContext(ctx, query, args...)
-}
-
-func GetQueryBuilder() *squirrel.StatementBuilderType {
-	return &SQLBuilder
-}
-
 func GetDB() *sql.DB {
 	return DB
 }
 
-func GetContext() *context.Context {
-	ctx := context.Background()
-	return &ctx
+// GetDBService provides access to the initialized DBService.
+func GetDBService() *DBService {
+	return dbService
+}
+
+// CloseDB safely closes the database connection.
+func CloseDB() {
+	if DB != nil {
+		DB.Close()
+	}
 }
 
 func InitDB() error {
@@ -143,16 +134,25 @@ func InitDB() error {
 	return nil
 }
 
-// GetDBService provides access to the initialized DBService.
-func GetDBService() *DBService {
-	return dbService
+func (db *DBService) execQuery(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	return db.Executor.ExecContext(ctx, query, args...)
 }
 
-// CloseDB safely closes the database connection.
-func CloseDB() {
-	if DB != nil {
-		DB.Close()
-	}
+func (db *DBService) execQueryRow(ctx context.Context, query string, args ...interface{}) *sql.Row {
+	return db.Executor.QueryRowContext(ctx, query, args...)
+}
+
+func (db *DBService) execQueryRows(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+	return db.Executor.QueryContext(ctx, query, args...)
+}
+
+func GetQueryBuilder() *squirrel.StatementBuilderType {
+	return &SQLBuilder
+}
+
+func GetContext() *context.Context {
+	ctx := context.Background()
+	return &ctx
 }
 
 // getExecutor returns the appropriate DBExecutor (transaction or standard DB connection)
@@ -166,6 +166,15 @@ func getExecutor(dbService *DBService, otx ...*sql.Tx) (bool, DBExecutor) {
 		return false, GetDBService().Executor
 	} else {
 		return false, dbService.Executor
+	}
+}
+func getExecutorNew(otx ...*sql.Tx) (bool, DBExecutor) {
+	dbService := GetModelsService().DBService
+
+	if len(otx) > 0 && otx[0] != nil {
+		return true, otx[0] // Using provided transaction
+	} else {
+		return false, dbService.Executor // Using global DB service's executor
 	}
 }
 
