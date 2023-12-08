@@ -15,9 +15,10 @@ import (
 )
 
 var (
-	ctx           context.Context
-	mockExecutor  *mock.MockDBExecutor
-	mockDBService *DBService
+	ctx              context.Context
+	mockExecutor     *mock.MockDBExecutor
+	mockDBService    *DBService
+	mockModelService *ModelsServiceContainer
 )
 
 func TestMain(m *testing.M) {
@@ -33,6 +34,10 @@ func setUp(t *testing.T) func() {
 	ctrl := gomock.NewController(t)
 	mockExecutor = mock.NewMockDBExecutor(ctrl)
 	mockDBService = &DBService{Executor: mockExecutor}
+	mockModelService = &ModelsServiceContainer{
+		DBService:     mockDBService,
+		CategoryModel: &CategoryModel{}}
+	ModelsService = mockModelService
 	return func() { ctrl.Finish() }
 }
 
