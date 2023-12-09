@@ -290,7 +290,7 @@ func getTagsForTransaction(ctx context.Context, transaction *Transaction, dbServ
 // validateForeignKeyReferences checks if the foreign keys in the transaction exist.
 func validateForeignKeyReferences(ctx context.Context, txn Transaction, dbService *DBService, otx ...*sql.Tx) error {
 	// Check if the user exists
-	userExists, err := UserIDExists(ctx, txn.UserID, dbService)
+	userExists, err := GetModelsService().UserModel.UserIDExists(ctx, txn.UserID)
 	if err != nil {
 		return errors.Wrap(err, "error checking if user exists")
 	}

@@ -35,6 +35,7 @@ import (
 	"os"
 	"time"
 	"xspends/models/impl"
+	"xspends/models/interfaces"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
@@ -84,14 +85,14 @@ func generateToken(userID int64) (string, error) {
 
 // Register is the handler for user registration
 func Register(c *gin.Context) {
-	var newUser impl.User
+	var newUser interfaces.User
 	if err := c.ShouldBindJSON(&newUser); err != nil {
 		log.Printf("[Register] Error binding JSON: %v", err)
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": ErrInvalidInputData.Error()})
 		return
 	}
 
-	exists, err := impl.UserExists(c, newUser.Username, newUser.Email, nil)
+	exists, err := impl.GetModelsService().UserModel.UserExists(c, newUser.Username, newUser.Email, nil)
 	if err != nil {
 		log.Printf("[Register] Error checking user existence: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -111,7 +112,7 @@ func Register(c *gin.Context) {
 	}
 	newUser.Password = string(hashedPassword)
 
-	err = impl.InsertUser(c, &newUser, nil)
+	err = impl.GetModelsService().UserModel.InsertUser(c, &newUser, nil)
 	if err != nil {
 		log.Printf("[Register] Error inserting user into database: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": ErrInsertingUser.Error()})
@@ -123,14 +124,14 @@ func Register(c *gin.Context) {
 
 // Login is the handler for user login
 func Login(c *gin.Context) {
-	var creds impl.User
+	var creds interfaces.User
 	if err := c.ShouldBindJSON(&creds); err != nil {
 		log.Printf("[Login] Error binding JSON: %v", err)
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": ErrInvalidInputData.Error()})
 		return
 	}
 
-	user, err := impl.GetUserByUsername(c, creds.Username, nil)
+	user, err := impl.GetModelsService().UserModel.GetUserByUsername(c, creds.Username, nil)
 	if err != nil {
 		log.Printf("[Login] Error retrieving user: %v", err)
 		if err == impl.ErrUserNotFound {

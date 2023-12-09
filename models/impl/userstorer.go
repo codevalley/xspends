@@ -30,6 +30,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"xspends/models/interfaces"
 
 	"github.com/volatiletech/authboss/v3"
 )
@@ -47,7 +48,7 @@ func NewUserStorer(db *sql.DB) *UserStorer {
 }
 
 func (s *UserStorer) Load(ctx context.Context, key string) (authboss.User, error) {
-	user, err := GetUserByUsername(ctx, key, nil) //TODO add DBService / transaction support
+	user, err := GetModelsService().UserModel.GetUserByUsername(ctx, key, nil) //TODO add DBService / transaction support
 	if err != nil {
 		log.Printf("[UserStorer Load] Error: %v", err)
 		if errors.Is(err, ErrUserNotFound) {
@@ -63,7 +64,7 @@ func (s *UserStorer) Save(ctx context.Context, user authboss.User) error {
 	if !ok {
 		return fmt.Errorf("%w: %s", errors.New(userTypeAssertionFailed), "Save")
 	}
-	return UpdateUser(ctx, u, nil) //TODO add DBService / transaction support
+	return GetModelsService().UserModel.UpdateUser(ctx, u, nil) //TODO add DBService / transaction support
 }
 
 func (s *UserStorer) Create(ctx context.Context, user authboss.User) error {
@@ -72,7 +73,7 @@ func (s *UserStorer) Create(ctx context.Context, user authboss.User) error {
 		return fmt.Errorf("%w: %s", errors.New(userTypeAssertionFailed), "Create")
 	}
 
-	return InsertUser(ctx, u, nil) //TODO add DBService / transaction support
+	return GetModelsService().UserModel.InsertUser(ctx, u, nil) //TODO add DBService / transaction support
 }
 
 func (s *UserStorer) LoadByConfirmSelector(ctx context.Context, selector string) (authboss.ConfirmableUser, error) {
@@ -85,8 +86,8 @@ func (s *UserStorer) LoadByRecoverSelector(ctx context.Context, selector string)
 	return nil, errors.New("LoadByRecoverSelector method not implemented")
 }
 
-func assertUserType(user authboss.User) (*User, bool) {
-	u, ok := user.(*User)
+func assertUserType(user authboss.User) (*interfaces.User, bool) {
+	u, ok := user.(*interfaces.User)
 	if !ok {
 		log.Printf("[UserStorer] Error: user is not of type *User")
 		return nil, false

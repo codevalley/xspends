@@ -28,61 +28,6 @@ The User struct represents a user record in the database and implements the Auth
 
 The package includes functions for inserting, retrieving, updating, and deleting user records in the database. It also includes functions for checking if a user exists and retrieving a user by their ID or username.
 
-Example Usage:
-
-  - Insert a new user:
-    user := &User{
-    Username: "john_doe",
-    Name: "John Doe",
-    Email: "john@example.com",
-    Currency: "USD",
-    Password: "password123",
-    }
-    err := InsertUser(context.Background(), user)
-    if err != nil {
-    log.Fatal(err)
-    }
-
-  - Retrieve a user by ID:
-    retrievedUser, err := GetUserByID(context.Background(), user.ID)
-    if err != nil {
-    log.Fatal(err)
-    }
-
-  - Update a user:
-    retrievedUser.Name = "Jane Doe"
-    err = UpdateUser(context.Background(), retrievedUser)
-    if err != nil {
-    log.Fatal(err)
-    }
-
-  - Delete a user:
-    err = DeleteUser(context.Background(), retrievedUser.ID)
-    if err != nil {
-    log.Fatal(err)
-    }
-
-  - Check if a user exists:
-    exists, err := UserExists(context.Background(), "john_doe", "john@example.com")
-    if err != nil {
-    log.Fatal(err)
-    }
-    if exists {
-    fmt.Println("User exists")
-    } else {
-    fmt.Println("User does not exist")
-    }
-
-  - Check if a user ID exists:
-    exists, err := UserIDExists(context.Background(), user.ID)
-    if err != nil {
-    log.Fatal(err)
-    }
-    if exists {
-    fmt.Println("User ID exists")
-    } else {
-    fmt.Println("User ID does not exist")
-    }
 */
 package impl
 
@@ -90,9 +35,9 @@ import (
 	"context"
 	"database/sql"
 
-	"strconv"
 	"strings"
 	"time"
+	"xspends/models/interfaces"
 	"xspends/util"
 
 	"github.com/Masterminds/squirrel"
@@ -100,16 +45,6 @@ import (
 )
 
 // User struct mirrors the users table and satisfies the AuthBoss User interface.
-type User struct {
-	ID        int64     `json:"id"`
-	Username  string    `json:"username"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	Currency  string    `json:"currency"`
-	Password  string    `json:"-"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-}
 
 var (
 	ErrUserNotFound  = errors.New("user not found")
@@ -117,25 +52,12 @@ var (
 	ErrUsernameTaken = errors.New("username already exists")
 )
 
-// Authboss methods
-func (u *User) PutPID(pid string) {
-	u.ID, _ = strconv.ParseInt(pid, 10, 64)
+type UserModel struct {
+	// Any fields if required
 }
 
-func (u User) GetPID() string {
-	return strconv.FormatInt(u.ID, 10)
-}
-
-func (u *User) PutPassword(password string) {
-	u.Password = password
-}
-
-func (u User) GetPassword() string {
-	return u.Password
-}
-
-func InsertUser(ctx context.Context, user *User, dbService *DBService, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(dbService, otx...)
+func (um *UserModel) InsertUser(ctx context.Context, user *interfaces.User, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutorNew(otx...)
 
 	if user.Username == "" {
 		return errors.New("mandatory field missing: Username")
@@ -194,8 +116,8 @@ func InsertUser(ctx context.Context, user *User, dbService *DBService, otx ...*s
 	return nil
 }
 
-func UpdateUser(ctx context.Context, user *User, dbService *DBService, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(dbService, otx...)
+func (um *UserModel) UpdateUser(ctx context.Context, user *interfaces.User, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutorNew(otx...)
 	user.UpdatedAt = time.Now()
 
 	sqlquery, args, err := squirrel.Update("users").
@@ -224,8 +146,8 @@ func UpdateUser(ctx context.Context, user *User, dbService *DBService, otx ...*s
 	return nil
 }
 
-func DeleteUser(ctx context.Context, id int64, dbService *DBService, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(dbService, otx...)
+func (um *UserModel) DeleteUser(ctx context.Context, id int64, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutorNew(otx...)
 
 	sqlquery, args, err := squirrel.Delete("users").
 		Where(squirrel.Eq{"id": id}).
@@ -245,8 +167,8 @@ func DeleteUser(ctx context.Context, id int64, dbService *DBService, otx ...*sql
 	return nil
 }
 
-func GetUserByID(ctx context.Context, id int64, dbService *DBService, otx ...*sql.Tx) (*User, error) {
-	_, executor := getExecutor(dbService, otx...)
+func (um *UserModel) GetUserByID(ctx context.Context, id int64, otx ...*sql.Tx) (*interfaces.User, error) {
+	_, executor := getExecutorNew(otx...)
 
 	sqlquery, args, err := squirrel.Select("id", "username", "name", "email", "currency", "password").
 		From("users").
@@ -258,7 +180,7 @@ func GetUserByID(ctx context.Context, id int64, dbService *DBService, otx ...*sq
 		return nil, errors.Wrap(err, "building SQL query for GetUserByID failed")
 	}
 
-	user := &User{}
+	user := &interfaces.User{}
 	err = executor.QueryRowContext(ctx, sqlquery, args...).Scan(&user.ID, &user.Username, &user.Name, &user.Email, &user.Currency, &user.Password)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -269,8 +191,8 @@ func GetUserByID(ctx context.Context, id int64, dbService *DBService, otx ...*sq
 	return user, nil
 }
 
-func GetUserByUsername(ctx context.Context, username string, dbService *DBService, otx ...*sql.Tx) (*User, error) {
-	_, executor := getExecutor(dbService, otx...)
+func (um *UserModel) GetUserByUsername(ctx context.Context, username string, otx ...*sql.Tx) (*interfaces.User, error) {
+	_, executor := getExecutorNew(otx...)
 
 	sqlquery, args, err := squirrel.Select("id", "username", "name", "email", "currency", "password").
 		From("users").
@@ -282,7 +204,7 @@ func GetUserByUsername(ctx context.Context, username string, dbService *DBServic
 		return nil, errors.Wrap(err, "building SQL query for GetUserByUsername failed")
 	}
 
-	user := &User{}
+	user := &interfaces.User{}
 	err = executor.QueryRowContext(ctx, sqlquery, args...).Scan(&user.ID, &user.Username, &user.Name, &user.Email, &user.Currency, &user.Password)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -292,8 +214,8 @@ func GetUserByUsername(ctx context.Context, username string, dbService *DBServic
 	}
 	return user, nil
 }
-func UserExists(ctx context.Context, username, email string, dbService *DBService, otx ...*sql.Tx) (bool, error) {
-	_, executor := getExecutor(dbService, otx...)
+func (um *UserModel) UserExists(ctx context.Context, username, email string, otx ...*sql.Tx) (bool, error) {
+	_, executor := getExecutorNew(otx...)
 
 	sqlquery, args, err := squirrel.Select("1").
 		From("users").
@@ -317,8 +239,8 @@ func UserExists(ctx context.Context, username, email string, dbService *DBServic
 	return exists, nil
 }
 
-func UserIDExists(ctx context.Context, id int64, dbService *DBService, otx ...*sql.Tx) (bool, error) {
-	_, executor := getExecutor(dbService, otx...)
+func (um *UserModel) UserIDExists(ctx context.Context, id int64, otx ...*sql.Tx) (bool, error) {
+	_, executor := getExecutorNew(otx...)
 
 	sqlquery, args, err := squirrel.Select("1").
 		From("users").

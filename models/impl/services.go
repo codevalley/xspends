@@ -7,6 +7,7 @@ import (
 type ModelsServiceContainer struct {
 	DBService     *DBService
 	CategoryModel interfaces.CategoryService
+	UserModel     interfaces.UserService
 	// other models...
 }
 
@@ -14,6 +15,7 @@ func NewModelsServiceContainer() *ModelsServiceContainer {
 	return &ModelsServiceContainer{
 		DBService:     GetDBService(),   // Using the existing DBService instance
 		CategoryModel: &CategoryModel{}, // Initialize other models as needed
+		UserModel:     &UserModel{},
 		// initialize other models...
 	}
 }

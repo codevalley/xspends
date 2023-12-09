@@ -34,6 +34,7 @@ import (
 	"strconv"
 	"time"
 	"xspends/models/impl"
+	"xspends/models/interfaces"
 	"xspends/util"
 
 	"github.com/dgrijalva/jwt-go"
@@ -148,13 +149,13 @@ func RefreshTokenHandler(ctx context.Context, oldRefreshToken string, ab *authbo
 
 func JWTRegisterHandler(ab *authboss.Authboss) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var newUser impl.User
+		var newUser interfaces.User
 		if err := c.ShouldBindJSON(&newUser); err != nil {
 			c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "Invalid input data"})
 			return
 		}
 
-		exists, err := impl.UserExists(c, newUser.Username, newUser.Email, nil)
+		exists, err := impl.GetModelsService().UserModel.UserExists(c, newUser.Username, newUser.Email, nil)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTRegisterHandler] Error checking user existence").Error()})
 			return
@@ -234,7 +235,7 @@ func JWTRegisterHandler(ab *authboss.Authboss) gin.HandlerFunc {
 
 func JWTLoginHandler(ab *authboss.Authboss) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var creds impl.User
+		var creds interfaces.User
 		if err := c.ShouldBindJSON(&creds); err != nil {
 			c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "Invalid input data"})
 			return
@@ -256,7 +257,7 @@ func JWTLoginHandler(ab *authboss.Authboss) gin.HandlerFunc {
 			return
 		}
 
-		user, ok := userInterface.(*impl.User)
+		user, ok := userInterface.(*interfaces.User)
 		if !ok {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "[JWTLoginHandler] User retrieval error"})
 			return
