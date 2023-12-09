@@ -134,18 +134,6 @@ func InitDB() error {
 	return nil
 }
 
-func (db *DBService) execQuery(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	return db.Executor.ExecContext(ctx, query, args...)
-}
-
-func (db *DBService) execQueryRow(ctx context.Context, query string, args ...interface{}) *sql.Row {
-	return db.Executor.QueryRowContext(ctx, query, args...)
-}
-
-func (db *DBService) execQueryRows(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	return db.Executor.QueryContext(ctx, query, args...)
-}
-
 func GetQueryBuilder() *squirrel.StatementBuilderType {
 	return &SQLBuilder
 }

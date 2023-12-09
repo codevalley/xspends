@@ -17,9 +17,8 @@ func NewModelsServiceContainer() *ModelsServiceContainer {
 var ModelsService *ModelsServiceContainer
 
 func InitModelsService() error {
-	var err error
-	err = InitDB()
-	if err != nil {
+	err := InitDB()
+	if err == nil {
 		ModelsService = NewModelsServiceContainer()
 		return nil
 	}
@@ -27,5 +26,6 @@ func InitModelsService() error {
 }
 
 func GetModelsService() *ModelsServiceContainer {
+
 	return ModelsService
 }

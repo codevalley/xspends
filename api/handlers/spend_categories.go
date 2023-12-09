@@ -137,7 +137,6 @@ func CreateCategory(c *gin.Context) {
 
 	var newCategory models.Category
 	if err := c.ShouldBindJSON(&newCategory); err != nil {
-		log.Printf("[CreateCategory] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

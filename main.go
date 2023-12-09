@@ -47,7 +47,7 @@ func main() {
 	models.InitModelsService()
 	kvstore.SetupKV(context.Background(), false)
 	kv := kvstore.GetClientFromPool()
-	api.SetupRoutes(r, models.GetDB(), kv)
+	api.SetupRoutes(r, models.GetDB(), kv) // to be refactored (getDB)
 
 	r.Run() // Defaults to :8080
 }
