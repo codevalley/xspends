@@ -33,7 +33,7 @@ import (
 	"net/http"
 	"strconv"
 	"time"
-	"xspends/models"
+	"xspends/models/impl"
 	"xspends/util"
 
 	"github.com/dgrijalva/jwt-go"
@@ -89,7 +89,7 @@ func RefreshTokenHandler(ctx context.Context, oldRefreshToken string, ab *authbo
 		return "", "", errors.New("[RefreshTokenHandler] invalid refresh token")
 	}
 
-	sessionStorer, ok := ab.Config.Storage.SessionState.(*models.SessionStorer)
+	sessionStorer, ok := ab.Config.Storage.SessionState.(*impl.SessionStorer)
 	if !ok {
 		return "", "", errors.New("[RefreshTokenHandler] session storage configuration error")
 	}
@@ -140,7 +140,7 @@ func RefreshTokenHandler(ctx context.Context, oldRefreshToken string, ab *authbo
 // @ID register-user
 // @Accept  json
 // @Produce  json
-// @Param user body models.User true "User info for registration"
+// @Param user body impl.User true "User info for registration"
 // @Success 200  {object}  map[string]interface{}  "User registered successfully"
 // @Failure 400  {object}  map[string]string  "Invalid input data"
 // @Failure 500  {object}  map[string]string  "Internal Server Error"
@@ -148,13 +148,13 @@ func RefreshTokenHandler(ctx context.Context, oldRefreshToken string, ab *authbo
 
 func JWTRegisterHandler(ab *authboss.Authboss) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var newUser models.User
+		var newUser impl.User
 		if err := c.ShouldBindJSON(&newUser); err != nil {
 			c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "Invalid input data"})
 			return
 		}
 
-		exists, err := models.UserExists(c, newUser.Username, newUser.Email, nil)
+		exists, err := impl.UserExists(c, newUser.Username, newUser.Email, nil)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTRegisterHandler] Error checking user existence").Error()})
 			return
@@ -171,7 +171,7 @@ func JWTRegisterHandler(ab *authboss.Authboss) gin.HandlerFunc {
 		}
 		newUser.Password = hashedPassword
 
-		userStorer, ok := ab.Config.Storage.Server.(*models.UserStorer)
+		userStorer, ok := ab.Config.Storage.Server.(*impl.UserStorer)
 		if !ok {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "[JWTRegisterHandler] User storage configuration error"})
 			return
@@ -203,7 +203,7 @@ func JWTRegisterHandler(ab *authboss.Authboss) gin.HandlerFunc {
 			return
 		}
 
-		sessionStorer, ok := ab.Config.Storage.SessionState.(*models.SessionStorer)
+		sessionStorer, ok := ab.Config.Storage.SessionState.(*impl.SessionStorer)
 		if !ok {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "[JWTRegisterHandler] Session storage configuration error"})
 			return
@@ -234,13 +234,13 @@ func JWTRegisterHandler(ab *authboss.Authboss) gin.HandlerFunc {
 
 func JWTLoginHandler(ab *authboss.Authboss) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var creds models.User
+		var creds impl.User
 		if err := c.ShouldBindJSON(&creds); err != nil {
 			c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "Invalid input data"})
 			return
 		}
 
-		userStorer, ok := ab.Config.Storage.Server.(*models.UserStorer)
+		userStorer, ok := ab.Config.Storage.Server.(*impl.UserStorer)
 		if !ok {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "[JWTLoginHandler] User storage configuration error"})
 			return
@@ -256,7 +256,7 @@ func JWTLoginHandler(ab *authboss.Authboss) gin.HandlerFunc {
 			return
 		}
 
-		user, ok := userInterface.(*models.User)
+		user, ok := userInterface.(*impl.User)
 		if !ok {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "[JWTLoginHandler] User retrieval error"})
 			return
@@ -287,7 +287,7 @@ func JWTLoginHandler(ab *authboss.Authboss) gin.HandlerFunc {
 			return
 		}
 
-		sessionStorer, ok := ab.Config.Storage.SessionState.(*models.SessionStorer)
+		sessionStorer, ok := ab.Config.Storage.SessionState.(*impl.SessionStorer)
 		if !ok {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "[JWTLoginHandler] Session storage configuration error"})
 			return
@@ -361,7 +361,7 @@ func JWTLogoutHandler(ab *authboss.Authboss) gin.HandlerFunc {
 			return
 		}
 
-		sessionStorer, ok := ab.Config.Storage.SessionState.(*models.SessionStorer)
+		sessionStorer, ok := ab.Config.Storage.SessionState.(*impl.SessionStorer)
 		if !ok {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "[JWTLogoutHandler] Session storage configuration error"})
 			return

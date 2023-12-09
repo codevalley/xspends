@@ -28,7 +28,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"xspends/models"
+	"xspends/models/impl"
 	"xspends/util"
 
 	"github.com/gin-gonic/gin"
@@ -58,8 +58,8 @@ func getTransactionID(c *gin.Context) (int64, bool) {
 // @ID create-transaction
 // @Accept  json
 // @Produce  json
-// @Param transaction body models.Transaction true "Transaction info for creation"
-// @Success 201 {object} models.Transaction
+// @Param transaction body impl.Transaction true "Transaction info for creation"
+// @Success 201 {object} impl.Transaction
 // @Failure 400 {object} map[string]string "Invalid transaction data"
 // @Failure 500 {object} map[string]string "Unable to create transaction"
 // @Router /transactions [post]
@@ -69,14 +69,14 @@ func CreateTransaction(c *gin.Context) {
 		return
 	}
 
-	var newTransaction models.Transaction
+	var newTransaction impl.Transaction
 	if err := c.ShouldBindJSON(&newTransaction); err != nil {
 		log.Printf("[CreateTransaction] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	newTransaction.UserID = userID
-	if err := models.InsertTransaction(c, newTransaction, nil); err != nil {
+	if err := impl.InsertTransaction(c, newTransaction, nil); err != nil {
 		log.Printf("[CreateTransaction] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create transaction"})
 		return
@@ -92,7 +92,7 @@ func CreateTransaction(c *gin.Context) {
 // @Accept  json
 // @Produce  json
 // @Param id path int true "Transaction ID"
-// @Success 200 {object} models.Transaction
+// @Success 200 {object} impl.Transaction
 // @Failure 404 {object} map[string]string "Transaction not found"
 // @Router /transactions/{id} [get]
 func GetTransaction(c *gin.Context) {
@@ -105,7 +105,7 @@ func GetTransaction(c *gin.Context) {
 		return
 	}
 
-	transaction, err := models.GetTransactionByID(c, transactionID, userID, nil)
+	transaction, err := impl.GetTransactionByID(c, transactionID, userID, nil)
 	if err != nil {
 		log.Printf("[GetTransaction] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "transaction not found"})
@@ -122,8 +122,8 @@ func GetTransaction(c *gin.Context) {
 // @Accept  json
 // @Produce  json
 // @Param id path int true "Transaction ID"
-// @Param transaction body models.Transaction true "Transaction info for update"
-// @Success 200 {object} models.Transaction
+// @Param transaction body impl.Transaction true "Transaction info for update"
+// @Success 200 {object} impl.Transaction
 // @Failure 400 {object} map[string]string "Invalid transaction data"
 // @Failure 404 {object} map[string]string "Transaction not found"
 // @Failure 500 {object} map[string]string "Unable to update transaction"
@@ -138,7 +138,7 @@ func UpdateTransaction(c *gin.Context) {
 		return
 	}
 
-	var uTxn models.Transaction
+	var uTxn impl.Transaction
 	if err := c.ShouldBindJSON(&uTxn); err != nil {
 		log.Printf("[UpdateTransaction] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -146,7 +146,7 @@ func UpdateTransaction(c *gin.Context) {
 	}
 	uTxn.UserID = userID
 	uTxn.ID = transactionID
-	oTxn, err := models.GetTransactionByID(c, transactionID, userID, nil)
+	oTxn, err := impl.GetTransactionByID(c, transactionID, userID, nil)
 	if err != nil {
 		log.Printf("[UpdateTransaction] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "unable to find transaction"})
@@ -170,7 +170,7 @@ func UpdateTransaction(c *gin.Context) {
 	if uTxn.CategoryID != 0 {
 		oTxn.CategoryID = uTxn.CategoryID
 	}
-	if err := models.UpdateTransaction(c, *oTxn, nil); err != nil {
+	if err := impl.UpdateTransaction(c, *oTxn, nil); err != nil {
 		log.Printf("[UpdateTransaction] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update transaction"})
 		return
@@ -199,7 +199,7 @@ func DeleteTransaction(c *gin.Context) {
 		return
 	}
 
-	if err := models.DeleteTransaction(c, transactionID, userID, nil); err != nil {
+	if err := impl.DeleteTransaction(c, transactionID, userID, nil); err != nil {
 		log.Printf("[DeleteTransaction] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete transaction"})
 		return
@@ -225,7 +225,7 @@ func DeleteTransaction(c *gin.Context) {
 // @Param sort_order query string false "Sort Order"
 // @Param page query int false "Page Number"
 // @Param items_per_page query int false "Items Per Page"
-// @Success 200 {array} models.Transaction
+// @Success 200 {array} impl.Transaction
 // @Failure 500 {object} map[string]string "Unable to fetch transactions"
 // @Router /transactions [get]
 func ListTransactions(c *gin.Context) {
@@ -235,7 +235,7 @@ func ListTransactions(c *gin.Context) {
 	}
 
 	// Create a filter from the query parameters.
-	filter := models.TransactionFilter{
+	filter := impl.TransactionFilter{
 		UserID:       userID,
 		StartDate:    c.DefaultQuery("start_date", ""),
 		EndDate:      c.DefaultQuery("end_date", ""),
@@ -250,7 +250,7 @@ func ListTransactions(c *gin.Context) {
 		ItemsPerPage: util.GetIntFromQuery(c, "items_per_page", 10), // defaulting to 10 items per page
 	}
 
-	transactions, err := models.GetTransactionsByFilter(c, filter, nil)
+	transactions, err := impl.GetTransactionsByFilter(c, filter, nil)
 	if err != nil {
 		log.Printf("[ListTransactions] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch transactions"})

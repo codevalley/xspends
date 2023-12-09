@@ -27,7 +27,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"xspends/models"
+	"xspends/models/impl"
 
 	"github.com/gin-gonic/gin"
 )
@@ -38,7 +38,7 @@ import (
 // @ID list-sources
 // @Accept  json
 // @Produce  json
-// @Success 200 {array} models.Source
+// @Success 200 {array} impl.Source
 // @Failure 500 {object} map[string]string "Unable to fetch sources"
 // @Router /sources [get]
 func ListSources(c *gin.Context) {
@@ -47,7 +47,7 @@ func ListSources(c *gin.Context) {
 		return
 	}
 
-	sources, err := models.GetSources(c, userID, models.GetDBService())
+	sources, err := impl.GetSources(c, userID, impl.GetDBService())
 	if err != nil {
 		log.Printf("[ListSources] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to fetch sources"})
@@ -63,7 +63,7 @@ func ListSources(c *gin.Context) {
 // @Accept  json
 // @Produce  json
 // @Param id path int true "Source ID"
-// @Success 200 {object} models.Source
+// @Success 200 {object} impl.Source
 // @Failure 400 {object} map[string]string "Invalid source ID"
 // @Failure 404 {object} map[string]string "Source not found"
 // @Router /sources/{id} [get]
@@ -81,7 +81,7 @@ func GetSource(c *gin.Context) {
 		return
 	}
 
-	source, err := models.GetSourceByID(c, sourceID, userID, models.GetDBService())
+	source, err := impl.GetSourceByID(c, sourceID, userID, impl.GetDBService())
 	if err != nil {
 		log.Printf("[GetSource] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "Source not found"})
@@ -96,8 +96,8 @@ func GetSource(c *gin.Context) {
 // @ID create-source
 // @Accept  json
 // @Produce  json
-// @Param source body models.Source true "Source info for creation"
-// @Success 200 {object} models.Source
+// @Param source body impl.Source true "Source info for creation"
+// @Success 200 {object} impl.Source
 // @Failure 400 {object} map[string]string "Invalid source data"
 // @Failure 500 {object} map[string]string "Failed to create source"
 // @Router /sources [post]
@@ -106,14 +106,14 @@ func CreateSource(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var newSource models.Source
+	var newSource impl.Source
 	if err := c.ShouldBindJSON(&newSource); err != nil {
 		log.Printf("[CreateSource] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid source data"})
 		return
 	}
 	newSource.UserID = userID
-	if err := models.InsertSource(c, &newSource, models.GetDBService()); err != nil {
+	if err := impl.InsertSource(c, &newSource, impl.GetDBService()); err != nil {
 		log.Printf("[CreateSource] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create source"})
 		return
@@ -128,8 +128,8 @@ func CreateSource(c *gin.Context) {
 // @Accept  json
 // @Produce  json
 // @Param id path int true "Source ID"
-// @Param source body models.Source true "Source info for update"
-// @Success 200 {object} models.Source
+// @Param source body impl.Source true "Source info for update"
+// @Success 200 {object} impl.Source
 // @Failure 400 {object} map[string]string "Invalid source data"
 // @Failure 500 {object} map[string]string "Failed to update source"
 // @Router /sources/{id} [put]
@@ -138,14 +138,14 @@ func UpdateSource(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var updatedSource models.Source
+	var updatedSource impl.Source
 	if err := c.ShouldBindJSON(&updatedSource); err != nil {
 		log.Printf("[UpdateSource] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid source data"})
 		return
 	}
 	updatedSource.UserID = userID
-	if err := models.UpdateSource(c, &updatedSource, models.GetDBService()); err != nil {
+	if err := impl.UpdateSource(c, &updatedSource, impl.GetDBService()); err != nil {
 		log.Printf("[UpdateSource] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update source"})
 		return
@@ -178,7 +178,7 @@ func DeleteSource(c *gin.Context) {
 		return
 	}
 
-	if err := models.DeleteSource(c, sourceID, userID, models.GetDBService()); err != nil {
+	if err := impl.DeleteSource(c, sourceID, userID, impl.GetDBService()); err != nil {
 		log.Printf("[DeleteSource] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete source"})
 		return

@@ -27,7 +27,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"xspends/models"
+	"xspends/models/impl"
 
 	"github.com/gin-gonic/gin"
 )
@@ -61,7 +61,7 @@ func getTagID(c *gin.Context) (int64, bool) {
 // @Produce  json
 // @Param limit query int false "Limit number of tags returned"
 // @Param offset query int false "Offset for tags returned"
-// @Success 200 {array} models.Tag
+// @Success 200 {array} impl.Tag
 // @Failure 500 {object} map[string]string "Unable to fetch tags"
 // @Router /tags [get]
 func ListTags(c *gin.Context) {
@@ -73,7 +73,7 @@ func ListTags(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", strconv.Itoa(defaultLimit)))
 	offset, _ := strconv.Atoi(c.Query("offset"))
 
-	tags, err := models.GetAllTags(c, userID, models.PaginationParams{Limit: limit, Offset: offset}, nil)
+	tags, err := impl.GetAllTags(c, userID, impl.PaginationParams{Limit: limit, Offset: offset}, nil)
 	if err != nil {
 		log.Printf("[ListTags] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch tags"})
@@ -95,7 +95,7 @@ func ListTags(c *gin.Context) {
 // @Accept  json
 // @Produce  json
 // @Param id path int true "Tag ID"
-// @Success 200 {object} models.Tag
+// @Success 200 {object} impl.Tag
 // @Failure 404 {object} map[string]string "Tag not found"
 // @Router /tags/{id} [get]
 func GetTag(c *gin.Context) {
@@ -109,7 +109,7 @@ func GetTag(c *gin.Context) {
 		return
 	}
 
-	tag, err := models.GetTagByID(c, tagID, userID, nil)
+	tag, err := impl.GetTagByID(c, tagID, userID, nil)
 	if err != nil {
 		log.Printf("[GetTag] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "tag not found"})
@@ -124,8 +124,8 @@ func GetTag(c *gin.Context) {
 // @ID create-tag
 // @Accept  json
 // @Produce  json
-// @Param tag body models.Tag true "Tag info for creation"
-// @Success 201 {object} models.Tag
+// @Param tag body impl.Tag true "Tag info for creation"
+// @Success 201 {object} impl.Tag
 // @Failure 400 {object} map[string]string "Invalid tag data"
 // @Failure 500 {object} map[string]string "Unable to create tag"
 // @Router /tags [post]
@@ -135,7 +135,7 @@ func CreateTag(c *gin.Context) {
 		return
 	}
 
-	var newTag models.Tag
+	var newTag impl.Tag
 	if err := c.ShouldBindJSON(&newTag); err != nil {
 		log.Printf("[CreateTag] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -147,7 +147,7 @@ func CreateTag(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "tag name exceeds maximum length"})
 		return
 	}
-	if err := models.InsertTag(c, &newTag, nil); err != nil {
+	if err := impl.InsertTag(c, &newTag, nil); err != nil {
 		log.Printf("[CreateTag] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create tag"})
 		return
@@ -162,8 +162,8 @@ func CreateTag(c *gin.Context) {
 // @Accept  json
 // @Produce  json
 // @Param id path int true "Tag ID"
-// @Param tag body models.Tag true "Tag info for update"
-// @Success 200 {object} models.Tag
+// @Param tag body impl.Tag true "Tag info for update"
+// @Success 200 {object} impl.Tag
 // @Failure 400 {object} map[string]string "Invalid tag data"
 // @Failure 500 {object} map[string]string "Unable to update tag"
 // @Router /tags/{id} [put]
@@ -173,7 +173,7 @@ func UpdateTag(c *gin.Context) {
 		return
 	}
 
-	var updatedTag models.Tag
+	var updatedTag impl.Tag
 	if err := c.ShouldBindJSON(&updatedTag); err != nil {
 		log.Printf("[UpdateTag] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -185,7 +185,7 @@ func UpdateTag(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "tag name exceeds maximum length"})
 		return
 	}
-	if err := models.UpdateTag(c, &updatedTag, nil); err != nil {
+	if err := impl.UpdateTag(c, &updatedTag, nil); err != nil {
 		log.Printf("[UpdateTag] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update tag"})
 		return
@@ -214,7 +214,7 @@ func DeleteTag(c *gin.Context) {
 		return
 	}
 
-	if err := models.DeleteTag(c, tagID, userID, nil); err != nil {
+	if err := impl.DeleteTag(c, tagID, userID, nil); err != nil {
 		log.Printf("[DeleteTag] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete tag"})
 		return

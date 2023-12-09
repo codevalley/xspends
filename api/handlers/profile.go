@@ -26,8 +26,9 @@ package handlers
 import (
 	"log"
 	"net/http"
-	"xspends/models" // Importing our data models
+	"xspends/models/impl"
 
+	// Importing our data models
 	"github.com/gin-gonic/gin"
 )
 
@@ -55,7 +56,7 @@ func GetUserProfile(c *gin.Context) {
 		return
 	}
 
-	user, err := models.GetUserByID(c, userID, nil)
+	user, err := impl.GetUserByID(c, userID, nil)
 	if err != nil {
 		log.Printf("[GetUserProfile] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
@@ -71,7 +72,7 @@ func UpdateUserProfile(c *gin.Context) {
 		return
 	}
 
-	var updatedUser models.User
+	var updatedUser impl.User
 	if err := c.ShouldBindJSON(&updatedUser); err != nil {
 		log.Printf("[UpdateUserProfile] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -80,7 +81,7 @@ func UpdateUserProfile(c *gin.Context) {
 
 	updatedUser.ID = userID
 
-	if err := models.UpdateUser(c, &updatedUser, nil); err != nil {
+	if err := impl.UpdateUser(c, &updatedUser, nil); err != nil {
 		log.Printf("[UpdateUserProfile] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update user"})
 		return
@@ -95,7 +96,7 @@ func DeleteUser(c *gin.Context) {
 		return
 	}
 
-	if err := models.DeleteUser(c, userID, nil); err != nil {
+	if err := impl.DeleteUser(c, userID, nil); err != nil {
 		log.Printf("[DeleteUser] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete user"})
 		return

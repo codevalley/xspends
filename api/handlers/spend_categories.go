@@ -27,7 +27,8 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"xspends/models"
+	"xspends/models/impl"
+	"xspends/models/interfaces"
 
 	"github.com/gin-gonic/gin"
 )
@@ -60,7 +61,7 @@ func getCategoryID(c *gin.Context) (int64, bool) {
 // @Produce  json
 // @Param page query int false "Page number"
 // @Param items_per_page query int false "Items per page"
-// @Success 200 {array} models.Category
+// @Success 200 {array} impl.Category
 // @Failure 500 {object} map[string]string "Unable to fetch categories"
 // @Router /categories [get]
 func ListCategories(c *gin.Context) {
@@ -72,7 +73,7 @@ func ListCategories(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	itemsPerPage, _ := strconv.Atoi(c.DefaultQuery("items_per_page", strconv.Itoa(defaultItemsPerPage)))
 
-	categories, err := models.GetModelsService().CategoryModel.GetPagedCategories(c, page, itemsPerPage, userID, nil)
+	categories, err := impl.GetModelsService().CategoryModel.GetPagedCategories(c, page, itemsPerPage, userID, nil)
 	if err != nil {
 		log.Printf("[ListCategories] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch categories"})
@@ -94,7 +95,7 @@ func ListCategories(c *gin.Context) {
 // @Accept  json
 // @Produce  json
 // @Param id path int true "Category ID"
-// @Success 200 {object} models.Category
+// @Success 200 {object} impl.Category
 // @Failure 404 {object} map[string]string "Category not found"
 // @Router /categories/{id} [get]
 func GetCategory(c *gin.Context) {
@@ -108,7 +109,7 @@ func GetCategory(c *gin.Context) {
 		return
 	}
 
-	category, err := models.GetModelsService().CategoryModel.GetCategoryByID(c, categoryID, userID, nil)
+	category, err := impl.GetModelsService().CategoryModel.GetCategoryByID(c, categoryID, userID, nil)
 	if err != nil {
 		log.Printf("[GetCategory] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "category not found"})
@@ -124,8 +125,8 @@ func GetCategory(c *gin.Context) {
 // @ID create-category
 // @Accept  json
 // @Produce  json
-// @Param category body models.Category true "Category info for creation"
-// @Success 201 {object} models.Category
+// @Param category body impl.Category true "Category info for creation"
+// @Success 201 {object} impl.Category
 // @Failure 400 {object} map[string]string "Invalid category data"
 // @Failure 500 {object} map[string]string "Unable to create category"
 // @Router /categories [post]
@@ -135,14 +136,14 @@ func CreateCategory(c *gin.Context) {
 		return
 	}
 
-	var newCategory models.Category
+	var newCategory interfaces.Category
 	if err := c.ShouldBindJSON(&newCategory); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	newCategory.UserID = userID
-	if err := models.GetModelsService().CategoryModel.InsertCategory(c, &newCategory, nil); err != nil {
+	if err := impl.GetModelsService().CategoryModel.InsertCategory(c, &newCategory, nil); err != nil {
 		log.Printf("[CreateCategory] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create category"})
 		return
@@ -158,8 +159,8 @@ func CreateCategory(c *gin.Context) {
 // @Accept  json
 // @Produce  json
 // @Param id path int true "Category ID"
-// @Param category body models.Category true "Category info for update"
-// @Success 200 {object} models.Category
+// @Param category body impl.Category true "Category info for update"
+// @Success 200 {object} impl.Category
 // @Failure 400 {object} map[string]string "Invalid category data"
 // @Failure 500 {object} map[string]string "Unable to update category"
 // @Router /categories/{id} [put]
@@ -169,7 +170,7 @@ func UpdateCategory(c *gin.Context) {
 		return
 	}
 
-	var updatedCategory models.Category
+	var updatedCategory interfaces.Category
 	if err := c.ShouldBindJSON(&updatedCategory); err != nil {
 		log.Printf("[UpdateCategory] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -177,7 +178,7 @@ func UpdateCategory(c *gin.Context) {
 	}
 
 	updatedCategory.UserID = userID
-	if err := models.GetModelsService().CategoryModel.UpdateCategory(c, &updatedCategory, nil); err != nil {
+	if err := impl.GetModelsService().CategoryModel.UpdateCategory(c, &updatedCategory, nil); err != nil {
 		log.Printf("[UpdateCategory] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update category"})
 		return
@@ -207,7 +208,7 @@ func DeleteCategory(c *gin.Context) {
 		return
 	}
 
-	if err := models.GetModelsService().CategoryModel.DeleteCategory(c, categoryID, userID, nil); err != nil {
+	if err := impl.GetModelsService().CategoryModel.DeleteCategory(c, categoryID, userID, nil); err != nil {
 		log.Printf("[DeleteCategory] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete category"})
 		return

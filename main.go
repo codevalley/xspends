@@ -28,7 +28,7 @@ import (
 	"context"
 	"xspends/api"
 	"xspends/kvstore"
-	"xspends/models"
+	"xspends/models/impl"
 	"xspends/util"
 
 	"github.com/gin-gonic/gin"
@@ -44,10 +44,10 @@ import (
 func main() {
 	r := gin.Default()
 	util.InitializeSnowflake()
-	models.InitModelsService()
+	impl.InitModelsService()
 	kvstore.SetupKV(context.Background(), false)
 	kv := kvstore.GetClientFromPool()
-	api.SetupRoutes(r, models.GetDB(), kv) // to be refactored (getDB)
+	api.SetupRoutes(r, impl.GetDB(), kv) // to be refactored (getDB)
 
 	r.Run() // Defaults to :8080
 }

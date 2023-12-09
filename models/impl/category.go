@@ -22,12 +22,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-package models
+package impl
 
 import (
 	"context"
 	"database/sql"
 	"time"
+	"xspends/models/interfaces"
 	"xspends/util"
 
 	"github.com/Masterminds/squirrel"
@@ -40,31 +41,11 @@ const (
 	ErrInvalidInput              = "invalid input: user ID must be positive, name must not be empty or exceed max length, description must not exceed max length"
 )
 
-type Category struct {
-	ID          int64     `json:"id"`
-	UserID      int64     `json:"user_id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Icon        string    `json:"icon"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
-}
-
-type CategoryService interface {
-	InsertCategory(ctx context.Context, category *Category, dbService *DBService, otx ...*sql.Tx) error
-	UpdateCategory(ctx context.Context, category *Category, dbService *DBService, otx ...*sql.Tx) error
-	DeleteCategory(ctx context.Context, categoryID int64, userID int64, dbService *DBService, otx ...*sql.Tx) error
-	GetAllCategories(ctx context.Context, userID int64, dbService *DBService, otx ...*sql.Tx) ([]Category, error)
-	GetCategoryByID(ctx context.Context, categoryID int64, userID int64, dbService *DBService, otx ...*sql.Tx) (*Category, error)
-	GetPagedCategories(ctx context.Context, page int, itemsPerPage int, userID int64, dbService *DBService, otx ...*sql.Tx) ([]Category, error)
-	CategoryIDExists(ctx context.Context, categoryID int64, userID int64, dbService *DBService, otx ...*sql.Tx) (bool, error)
-}
-
 type CategoryModel struct {
 	//nothing here.
 }
 
-func (cm *CategoryModel) validateCategoryInput(category *Category) error {
+func (cm *CategoryModel) validateCategoryInput(category *interfaces.Category) error {
 	if category.UserID <= 0 || category.Name == "" || len(category.Name) > maxCategoryNameLength || len(category.Description) > maxCategoryDescriptionLength {
 		return errors.New(ErrInvalidInput)
 	}
@@ -72,7 +53,7 @@ func (cm *CategoryModel) validateCategoryInput(category *Category) error {
 }
 
 // InsertCategory inserts a new category into the database.
-func (cm *CategoryModel) InsertCategory(ctx context.Context, category *Category, otx ...*sql.Tx) error {
+func (cm *CategoryModel) InsertCategory(ctx context.Context, category *interfaces.Category, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutorNew(otx...)
 
 	if err := cm.validateCategoryInput(category); err != nil {
@@ -101,7 +82,7 @@ func (cm *CategoryModel) InsertCategory(ctx context.Context, category *Category,
 }
 
 // UpdateCategory updates an existing category in the database.
-func (cm *CategoryModel) UpdateCategory(ctx context.Context, category *Category, otx ...*sql.Tx) error {
+func (cm *CategoryModel) UpdateCategory(ctx context.Context, category *interfaces.Category, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutorNew(otx...)
 
 	if err := cm.validateCategoryInput(category); err != nil {
@@ -150,7 +131,7 @@ func (cm *CategoryModel) DeleteCategory(ctx context.Context, categoryID int64, u
 }
 
 // GetAllCategories retrieves all categories for a user from the database.
-func (cm *CategoryModel) GetAllCategories(ctx context.Context, userID int64, otx ...*sql.Tx) ([]Category, error) {
+func (cm *CategoryModel) GetAllCategories(ctx context.Context, userID int64, otx ...*sql.Tx) ([]interfaces.Category, error) {
 	_, executor := getExecutorNew(otx...)
 
 	query, args, err := SQLBuilder.Select("id", "user_id", "name", "description", "icon", "created_at", "updated_at").
@@ -167,9 +148,9 @@ func (cm *CategoryModel) GetAllCategories(ctx context.Context, userID int64, otx
 	}
 	defer rows.Close()
 
-	var categories []Category
+	var categories []interfaces.Category
 	for rows.Next() {
-		category := Category{}
+		category := interfaces.Category{}
 		if err := rows.Scan(&category.ID, &category.UserID, &category.Name, &category.Description, &category.Icon, &category.CreatedAt, &category.UpdatedAt); err != nil {
 			return nil, errors.Wrap(err, "scanning category row failed")
 		}
@@ -180,7 +161,7 @@ func (cm *CategoryModel) GetAllCategories(ctx context.Context, userID int64, otx
 }
 
 // GetCategoryByID retrieves a category by its ID for a user from the database.
-func (cm *CategoryModel) GetCategoryByID(ctx context.Context, categoryID int64, userID int64, otx ...*sql.Tx) (*Category, error) {
+func (cm *CategoryModel) GetCategoryByID(ctx context.Context, categoryID int64, userID int64, otx ...*sql.Tx) (*interfaces.Category, error) {
 	_, executor := getExecutorNew(otx...)
 
 	query, args, err := SQLBuilder.Select("id", "user_id", "name", "description", "icon", "created_at", "updated_at").
@@ -191,7 +172,7 @@ func (cm *CategoryModel) GetCategoryByID(ctx context.Context, categoryID int64, 
 		return nil, errors.Wrap(err, "preparing select statement for a category by ID failed")
 	}
 
-	var category Category
+	var category interfaces.Category
 	err = executor.QueryRowContext(ctx, query, args...).Scan(&category.ID, &category.UserID, &category.Name, &category.Description, &category.Icon, &category.CreatedAt, &category.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -204,7 +185,7 @@ func (cm *CategoryModel) GetCategoryByID(ctx context.Context, categoryID int64, 
 }
 
 // GetPagedCategories retrieves a paginated list of categories for a user from the database.
-func (cm *CategoryModel) GetPagedCategories(ctx context.Context, page int, itemsPerPage int, userID int64, otx ...*sql.Tx) ([]Category, error) {
+func (cm *CategoryModel) GetPagedCategories(ctx context.Context, page int, itemsPerPage int, userID int64, otx ...*sql.Tx) ([]interfaces.Category, error) {
 	_, executor := getExecutorNew(otx...)
 
 	offset := (page - 1) * itemsPerPage
@@ -225,9 +206,9 @@ func (cm *CategoryModel) GetPagedCategories(ctx context.Context, page int, items
 	}
 	defer rows.Close()
 
-	var categories []Category
+	var categories []interfaces.Category
 	for rows.Next() {
-		category := Category{}
+		category := interfaces.Category{}
 		if err := rows.Scan(&category.ID, &category.UserID, &category.Name, &category.Description, &category.Icon, &category.CreatedAt, &category.UpdatedAt); err != nil {
 			return nil, errors.Wrap(err, "scanning paginated category row failed")
 		}

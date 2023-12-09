@@ -84,7 +84,7 @@ Example Usage:
     fmt.Println("User ID does not exist")
     }
 */
-package models
+package impl
 
 import (
 	"context"

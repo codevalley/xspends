@@ -28,7 +28,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"xspends/models"
+	"xspends/models/impl"
 
 	"github.com/gin-gonic/gin"
 )
@@ -58,7 +58,7 @@ func getTxnTagID(c *gin.Context) (int64, bool) {
 // @Accept  json
 // @Produce  json
 // @Param id path int true "Transaction ID"
-// @Success 200 {array} models.Tag
+// @Success 200 {array} impl.Tag
 // @Failure 500 {object} map[string]string "Unable to fetch tags for the transaction"
 // @Router /transactions/{id}/tags [get]
 
@@ -68,7 +68,7 @@ func ListTransactionTags(c *gin.Context) {
 		return
 	}
 
-	tags, err := models.GetTagsByTransactionID(c, transactionID, nil)
+	tags, err := impl.GetTagsByTransactionID(c, transactionID, nil)
 	if err != nil {
 		log.Printf("[ListTransactionTags] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch tags for the transaction"})
@@ -84,7 +84,7 @@ func ListTransactionTags(c *gin.Context) {
 // @Accept  json
 // @Produce  json
 // @Param id path int true "Transaction ID"
-// @Param tag body models.Tag true "Tag info to add"
+// @Param tag body impl.Tag true "Tag info to add"
 // @Success 200 {object} map[string]string "Message: Tag added successfully to the transaction"
 // @Failure 400 {object} map[string]string "Invalid tag data"
 // @Failure 500 {object} map[string]string "Unable to add tag to the transaction"
@@ -95,14 +95,14 @@ func AddTagToTransaction(c *gin.Context) {
 		return
 	}
 
-	var tag models.Tag
+	var tag impl.Tag
 	if err := c.ShouldBindJSON(&tag); err != nil {
 		log.Printf("[AddTagToTransaction] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if err := models.InsertTransactionTag(c, transactionID, tag.ID, nil); err != nil {
+	if err := impl.InsertTransactionTag(c, transactionID, tag.ID, nil); err != nil {
 		log.Printf("[AddTagToTransaction] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to add tag to the transaction"})
 		return
@@ -132,7 +132,7 @@ func RemoveTagFromTransaction(c *gin.Context) {
 		return
 	}
 
-	if err := models.DeleteTransactionTag(c, transactionID, tagID, nil); err != nil {
+	if err := impl.DeleteTransactionTag(c, transactionID, tagID, nil); err != nil {
 		log.Printf("[RemoveTagFromTransaction] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to remove tag from the transaction"})
 		return

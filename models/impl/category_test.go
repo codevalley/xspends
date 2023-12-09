@@ -1,11 +1,12 @@
-package models
+package impl
 
 import (
 	"context"
 	"os"
 	"testing"
 	"time"
-	"xspends/models/mock"
+	"xspends/models/interfaces"
+	mock "xspends/models/mock"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/Masterminds/squirrel"
@@ -49,7 +50,7 @@ func TestInsertCategoryWithInvalidInput(t *testing.T) {
 
 	cm := &CategoryModel{}
 
-	invalidCategories := []*Category{
+	invalidCategories := []*interfaces.Category{
 		{UserID: 0, Name: "Test Category", Description: "Description"},
 		{UserID: 1, Name: "", Description: "Description"},
 		{UserID: 1, Name: "Test Category", Description: string(make([]byte, 501))},
@@ -69,7 +70,7 @@ func TestInsertCategoryWithDatabaseError(t *testing.T) {
 	mockExecutor.EXPECT().ExecContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("database error"))
 
 	cm := &CategoryModel{}
-	category := &Category{UserID: 1, Name: "Test Category", Description: "Description"}
+	category := &interfaces.Category{UserID: 1, Name: "Test Category", Description: "Description"}
 	err := cm.InsertCategory(ctx, category, nil)
 	assert.EqualError(t, err, "executing insert statement failed: database error")
 }
@@ -82,7 +83,7 @@ func TestUpdateCategoryWithDatabaseError(t *testing.T) {
 	mockExecutor.EXPECT().ExecContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("database error"))
 
 	cm := &CategoryModel{}
-	category := &Category{ID: 1, UserID: 1, Name: "Updated Category", Description: "Updated Description"}
+	category := &interfaces.Category{ID: 1, UserID: 1, Name: "Updated Category", Description: "Updated Description"}
 	err := cm.UpdateCategory(ctx, category, nil)
 	assert.EqualError(t, err, "executing update statement failed: database error")
 }
@@ -213,7 +214,7 @@ func TestGetCategoryByIDWithEmptyIcon(t *testing.T) {
 
 	mockDBService.Executor = db
 
-	expectedCategory := &Category{
+	expectedCategory := &interfaces.Category{
 		ID:          1,
 		UserID:      1,
 		Name:        "Test Category",
@@ -325,7 +326,7 @@ func TestGetCategoryByIDWithDatabase(t *testing.T) {
 	categoryID := int64(1)
 	userID := int64(1)
 
-	expectedCategory := &Category{
+	expectedCategory := &interfaces.Category{
 		ID:          categoryID,
 		UserID:      userID,
 		Name:        "Test Category",
@@ -413,7 +414,7 @@ func TestUpdateCategoryWithValidInput(t *testing.T) {
 
 	mockDBService.Executor = db
 
-	category := &Category{ID: 1, UserID: 1, Name: "Updated Category", Description: "Updated Description"}
+	category := &interfaces.Category{ID: 1, UserID: 1, Name: "Updated Category", Description: "Updated Description"}
 
 	mock.ExpectExec("^UPDATE categories SET").WithArgs(category.Name, category.Description, category.Icon, sqlmock.AnyArg(), category.ID, category.UserID).WillReturnResult(sqlmock.NewResult(1, 1))
 

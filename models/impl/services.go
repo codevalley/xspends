@@ -1,8 +1,12 @@
-package models
+package impl
+
+import (
+	"xspends/models/interfaces"
+)
 
 type ModelsServiceContainer struct {
 	DBService     *DBService
-	CategoryModel *CategoryModel
+	CategoryModel interfaces.CategoryService
 	// other models...
 }
 
