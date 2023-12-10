@@ -1,11 +1,17 @@
 package handlers
 
 import (
+	"context"
+	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
+	"xspends/models/interfaces"
+	"xspends/testutils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 // TestGetCategoryID tests the getCategoryID function
@@ -45,4 +51,63 @@ func TestGetCategoryID(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestListCategories tests the ListCategories handler
+func TestListCategories(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	_, _, _, _, tearDown := testutils.SetupModelTestEnvironment(t)
+	defer tearDown()
+
+	mockCategoryModel := testutils.MockCategoryModel
+	defer mockCategoryModel.AssertExpectations(t)
+	isContext := mock.MatchedBy(func(ctx context.Context) bool { return true })
+
+	tests := []struct {
+		name           string
+		setupMock      func()
+		userID         int64
+		page           string
+		itemsPerPage   string
+		expectedStatus int
+		expectedBody   string
+	}{
+		{
+			name: "Successful retrieval",
+			setupMock: func() {
+				page, _ := strconv.Atoi("1")
+				itemsPerPage, _ := strconv.Atoi("10")
+				mockCategoryModel.On("GetPagedCategories", isContext, page, itemsPerPage, int64(1), mock.AnythingOfType("[]*sql.Tx")).Return([]interfaces.Category{{ID: 1, Name: "Category 1"}}, nil)
+
+			},
+			userID:         1,
+			page:           "1",
+			itemsPerPage:   "10",
+			expectedStatus: http.StatusOK,
+			expectedBody:   "Category 1",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest("GET", "/dummy-url", nil) // Create a dummy HTTP request
+			c, _ := gin.CreateTestContext(w)
+			c.Request = r
+			c.Params = gin.Params{gin.Param{Key: "user_id", Value: strconv.FormatInt(tc.userID, 10)}}
+			c.Set("userID", tc.userID)
+
+			q := c.Request.URL.Query()
+			q.Add("page", tc.page)
+			q.Add("items_per_page", tc.itemsPerPage)
+			c.Request.URL.RawQuery = q.Encode()
+
+			tc.setupMock()
+			ListCategories(c)
+			assert.Equal(t, tc.expectedStatus, w.Code)
+			assert.Contains(t, w.Body.String(), tc.expectedBody)
+		})
+	}
+
 }

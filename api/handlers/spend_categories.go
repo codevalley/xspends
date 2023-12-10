@@ -69,10 +69,9 @@ func ListCategories(c *gin.Context) {
 	if !ok {
 		return
 	}
-
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	itemsPerPage, _ := strconv.Atoi(c.DefaultQuery("items_per_page", strconv.Itoa(defaultItemsPerPage)))
-	categories, err := impl.GetModelsService().CategoryModel.GetPagedCategories(c, page, itemsPerPage, userID, nil)
+	categories, err := impl.GetModelsService().CategoryModel.GetPagedCategories(c.Request.Context(), page, itemsPerPage, userID, nil)
 	if err != nil {
 		log.Printf("[ListCategories] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch categories"})

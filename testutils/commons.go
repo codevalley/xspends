@@ -13,12 +13,12 @@ import (
 
 var (
 	MockDBService     *impl.DBService
-	MockCategoryModel mock.MockCategoryModel
-	MockUserModel     mock.MockUserModel
+	MockCategoryModel *mock.MockCategoryModel
+	MockUserModel     *mock.MockUserModel
 )
 
 func SetupModelTestEnvironment(t *testing.T) (context.Context, *impl.ModelsServiceContainer, *mock.MockDBExecutor, sqlmock.Sqlmock, func()) {
-	ctx := context.Background()
+	ctx := context.TODO()
 
 	// Set up gomock controller and mock executor
 	ctrl := gomock.NewController(t)
@@ -31,11 +31,11 @@ func SetupModelTestEnvironment(t *testing.T) (context.Context, *impl.ModelsServi
 	}
 
 	// Create mock DBService
-	MockDBService := &impl.DBService{Executor: mockExecutor}
+	MockDBService = &impl.DBService{Executor: mockExecutor}
 
 	// Create a mock CategoryModel
-	MockCategoryModel := new(mock.MockCategoryModel)
-	MockUserModel := new(mock.MockUserModel)
+	MockCategoryModel = new(mock.MockCategoryModel)
+	MockUserModel = new(mock.MockUserModel)
 
 	// Create ModelsServiceContainer with mocks
 	impl.ModelsService = &impl.ModelsServiceContainer{
