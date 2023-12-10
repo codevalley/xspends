@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -78,8 +79,7 @@ func TestListCategories(t *testing.T) {
 			setupMock: func() {
 				page, _ := strconv.Atoi("1")
 				itemsPerPage, _ := strconv.Atoi("10")
-				mockCategoryModel.On("GetPagedCategories", isContext, page, itemsPerPage, int64(1), mock.AnythingOfType("[]*sql.Tx")).Return([]interfaces.Category{{ID: 1, Name: "Category 1"}}, nil)
-
+				mockCategoryModel.On("GetPagedCategories", isContext, page, itemsPerPage, int64(1), mock.AnythingOfType("[]*sql.Tx")).Return([]interfaces.Category{{ID: 1, Name: "Category 1"}}, nil).Once()
 			},
 			userID:         1,
 			page:           "1",
@@ -87,12 +87,34 @@ func TestListCategories(t *testing.T) {
 			expectedStatus: http.StatusOK,
 			expectedBody:   "Category 1",
 		},
+		{
+			name: "No categories found",
+			setupMock: func() {
+				mockCategoryModel.On("GetPagedCategories", isContext, 1, 10, int64(1), mock.AnythingOfType("[]*sql.Tx")).Return([]interfaces.Category{}, nil).Once()
+			},
+			userID:         1,
+			page:           "1",
+			itemsPerPage:   "10",
+			expectedStatus: http.StatusOK,
+			expectedBody:   "no categories found",
+		}, {
+			name: "Internal server error",
+			setupMock: func() {
+				mockCategoryModel.On("GetPagedCategories", isContext, 1, 10, int64(1), mock.AnythingOfType("[]*sql.Tx")).
+					Return([]interfaces.Category{}, errors.New("internal server error")).Once()
+			},
+			userID:         1,
+			page:           "1",
+			itemsPerPage:   "10",
+			expectedStatus: http.StatusInternalServerError,
+			expectedBody:   "unable to fetch categories",
+		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
-			r := httptest.NewRequest("GET", "/dummy-url", nil) // Create a dummy HTTP request
+			r := httptest.NewRequest("GET", "/dummy-url", nil)
 			c, _ := gin.CreateTestContext(w)
 			c.Request = r
 			c.Params = gin.Params{gin.Param{Key: "user_id", Value: strconv.FormatInt(tc.userID, 10)}}
@@ -109,5 +131,4 @@ func TestListCategories(t *testing.T) {
 			assert.Contains(t, w.Body.String(), tc.expectedBody)
 		})
 	}
-
 }
