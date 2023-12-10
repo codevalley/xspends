@@ -11,7 +11,13 @@ import (
 	"github.com/golang/mock/gomock"
 )
 
-func SetupModelTestEnvironment(t *testing.T) (context.Context, *impl.ModelsServiceContainer, *mock.MockDBExecutor, sqlmock.Sqlmock, *mock.MockCategoryModel, func()) {
+var (
+	MockDBService     *impl.DBService
+	MockCategoryModel mock.MockCategoryModel
+	MockUserModel     mock.MockUserModel
+)
+
+func SetupModelTestEnvironment(t *testing.T) (context.Context, *impl.ModelsServiceContainer, *mock.MockDBExecutor, sqlmock.Sqlmock, func()) {
 	ctx := context.Background()
 
 	// Set up gomock controller and mock executor
@@ -25,15 +31,17 @@ func SetupModelTestEnvironment(t *testing.T) (context.Context, *impl.ModelsServi
 	}
 
 	// Create mock DBService
-	mockDBService := &impl.DBService{Executor: mockExecutor}
+	MockDBService := &impl.DBService{Executor: mockExecutor}
 
 	// Create a mock CategoryModel
-	mockCategoryModel := new(mock.MockCategoryModel)
+	MockCategoryModel := new(mock.MockCategoryModel)
+	MockUserModel := new(mock.MockUserModel)
 
 	// Create ModelsServiceContainer with mocks
-	mockModelService := &impl.ModelsServiceContainer{
-		DBService:     mockDBService,
-		CategoryModel: mockCategoryModel,
+	impl.ModelsService = &impl.ModelsServiceContainer{
+		DBService:     MockDBService,
+		CategoryModel: MockCategoryModel,
+		UserModel:     MockUserModel,
 		// Initialize other services as necessary
 	}
 
@@ -43,5 +51,5 @@ func SetupModelTestEnvironment(t *testing.T) (context.Context, *impl.ModelsServi
 		db.Close()
 	}
 
-	return ctx, mockModelService, mockExecutor, sqlMock, mockCategoryModel, tearDown
+	return ctx, impl.ModelsService, mockExecutor, sqlMock, tearDown
 }

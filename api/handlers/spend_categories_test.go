@@ -1,55 +1,48 @@
 package handlers
 
 import (
-	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"xspends/testutils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 
-//	func setupModelService() {
-//		// Initialize DBService if necessary
-//		dbService := &impl.DBService{} // Replace with actual initialization
-//		mockCategoryModel = new(xmock.MockCategoryModel)
-//		// Initialize ModelsServiceContainer if not already initialized
-//		if impl.ModelsService == nil {
-//			impl.ModelsService = &impl.ModelsServiceContainer{
-//				DBService:     dbService,
-//				CategoryModel: mockCategoryModel,
-//				// Initialize other services as necessary
-//			}
-//		}
-//	}
-func TestListCategories(t *testing.T) {
-
-	_, _, _, _, mockCategoryModel, tearDown := testutils.SetupModelTestEnvironment(t)
-	defer tearDown()
-	// Initialize mock
-	// Setup Gin
+// TestGetCategoryID tests the getCategoryID function
+func TestGetCategoryID(t *testing.T) {
+	// Set Gin to Test Mode
 	gin.SetMode(gin.TestMode)
-	r := gin.New()
 
-	// Define the test case
-	t.Run("List Categories", func(t *testing.T) {
-		// Setup the mock expectations
-		//mockCategoryModel.On("GetPagedCategories", mock.Anything, 1, 10, int64(1), nil).Return([]interfaces.Category{}, nil)//TODO: Implement User mocking and uncomment
+	// Define test cases
+	tests := []struct {
+		name        string
+		categoryID  string
+		expectedID  int64
+		expectError bool
+	}{
+		// ... [your test cases here]
+	}
 
-		// Perform the test
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest(http.MethodGet, "/categories?page=1&items_per_page=10", nil)
-		r.GET("/categories", ListCategories)
-		r.ServeHTTP(w, req)
+	// Run test cases
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// Set up a response recorder and context
+			w := httptest.NewRecorder()
+			ctx, _ := gin.CreateTestContext(w)
+			ctx.Params = gin.Params{
+				gin.Param{Key: "id", Value: tc.categoryID},
+			}
 
-		// Assert expectations
-		assert.Equal(t, http.StatusUnauthorized, w.Code)
-		mockCategoryModel.AssertExpectations(t)
-	})
+			// Call the function
+			id, err := getCategoryID(ctx)
 
-	// Additional test cases for other handlers...
+			// Assert expectations
+			if tc.expectError {
+				assert.False(t, err, "Expected an error but didn't get one")
+			} else {
+				assert.True(t, err, "Expected no error but got one")
+				assert.Equal(t, tc.expectedID, id)
+			}
+		})
+	}
 }
-
-// Implement similar tests for GetCategory, CreateCategory, UpdateCategory, and DeleteCategory

@@ -72,7 +72,6 @@ func ListCategories(c *gin.Context) {
 
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	itemsPerPage, _ := strconv.Atoi(c.DefaultQuery("items_per_page", strconv.Itoa(defaultItemsPerPage)))
-
 	categories, err := impl.GetModelsService().CategoryModel.GetPagedCategories(c, page, itemsPerPage, userID, nil)
 	if err != nil {
 		log.Printf("[ListCategories] Error: %v", err)
