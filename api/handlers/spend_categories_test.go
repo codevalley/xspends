@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 	"xspends/models/interfaces"
 	"xspends/testutils"
@@ -255,6 +256,93 @@ func TestGetCategory(t *testing.T) {
 			GetCategory(c)
 			assert.Equal(t, tc.expectedStatus, w.Code)
 			assert.Contains(t, w.Body.String(), tc.expectedBody)
+		})
+	}
+}
+
+// Create a category with valid input, expect status 201 and the new category object in the response body.
+func TestCreateCategoryWithValidInput(t *testing.T) {
+	// Set up test environment
+	gin.SetMode(gin.TestMode)
+	_, _, _, _, tearDown := testutils.SetupModelTestEnvironment(t)
+	defer tearDown()
+
+	// Set up mock dependencies
+	mockCategoryModel := testutils.MockCategoryModel
+	defer mockCategoryModel.AssertExpectations(t)
+
+	// Define test cases
+	tests := []struct {
+		name           string
+		setupMock      func()
+		userID         string
+		requestBody    string
+		expectedStatus int
+		expectedBody   string
+	}{
+		{
+			name: "Successful creation",
+			setupMock: func() {
+				mockCategoryModel.On("InsertCategory", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("*interfaces.Category"), mock.AnythingOfType("[]*sql.Tx")).
+					Return(nil).Once()
+			},
+			requestBody:    `{"name": "New Category"}`,
+			userID:         "1",
+			expectedStatus: http.StatusCreated,
+			expectedBody:   `{"created_at":"0001-01-01T00:00:00Z", "description":"", "icon":"", "id":0, "name":"New Category", "updated_at":"0001-01-01T00:00:00Z", "user_id":1}`,
+		},
+		{
+			setupMock: func() {
+				// No mock setup needed as the handler should return error before reaching the model
+			},
+			name:           "Invalid JSON",
+			userID:         "1",
+			requestBody:    `{"name": "New Category",}`,
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   `{"error":"invalid JSON"}`,
+		},
+		{
+			name: "Unauthorized access",
+			setupMock: func() {
+				// No mock setup needed as the handler should return error before reaching the model
+			},
+			userID:         "", // Assuming 0 indicates unauthorized or missing user
+			requestBody:    `{"name": "New Category"}`,
+			expectedStatus: http.StatusUnauthorized,
+			expectedBody:   `{"error":"user not authenticated"}`,
+		},
+		{
+			name: "Empty body",
+			setupMock: func() {
+				// No mock setup needed as the handler should return error before reaching the model
+			},
+			userID:         "1", // Assuming 0 indicates unauthorized or missing user
+			requestBody:    "",
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   `{"error": "invalid JSON"}`,
+		},
+		//non-existing user, missing-required fields, invalid field values.
+	}
+
+	// Run test cases
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest("POST", "/categories", strings.NewReader(tc.requestBody))
+			c, _ := gin.CreateTestContext(w)
+			c.Request = r
+			// Set userID in the context
+			if tc.userID != "" {
+				userID, _ := strconv.ParseInt(tc.userID, 10, 64)
+				c.Set("userID", userID)
+			}
+			// Invoke code under test
+			tc.setupMock()
+			CreateCategory(c)
+
+			// Assert response
+			assert.Equal(t, tc.expectedStatus, w.Code)
+			assert.JSONEq(t, tc.expectedBody, w.Body.String())
 		})
 	}
 }

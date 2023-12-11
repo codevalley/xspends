@@ -141,7 +141,7 @@ func CreateCategory(c *gin.Context) {
 
 	var newCategory interfaces.Category
 	if err := c.ShouldBindJSON(&newCategory); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON"})
 		return
 	}
 
