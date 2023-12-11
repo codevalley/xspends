@@ -23,12 +23,35 @@ func TestGetCategoryID(t *testing.T) {
 
 	// Define test cases
 	tests := []struct {
-		name        string
-		categoryID  string
-		expectedID  int64
-		expectError bool
+		name           string
+		categoryID     string
+		expectedID     int64
+		expectError    bool
+		expectedStatus int
+		expectedBody   string
 	}{
-		// ... [your test cases here]
+		{
+			name:           "Valid category ID",
+			categoryID:     "123",
+			expectedID:     123,
+			expectError:    false,
+			expectedStatus: 200,
+			expectedBody:   "",
+		},
+		{
+			name:           "Invalid category ID format",
+			categoryID:     "abc",
+			expectError:    true,
+			expectedStatus: http.StatusNotFound,
+			expectedBody:   "invalid category ID format",
+		},
+		{
+			name:           "Missing category ID",
+			categoryID:     "",
+			expectError:    true,
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "category ID is required",
+		},
 	}
 
 	// Run test cases
@@ -47,6 +70,8 @@ func TestGetCategoryID(t *testing.T) {
 			// Assert expectations
 			if tc.expectError {
 				assert.False(t, err, "Expected an error but didn't get one")
+				assert.Equal(t, tc.expectedStatus, w.Code)
+				assert.Contains(t, w.Body.String(), tc.expectedBody)
 			} else {
 				assert.True(t, err, "Expected no error but got one")
 				assert.Equal(t, tc.expectedID, id)
@@ -173,17 +198,6 @@ func TestGetCategory(t *testing.T) {
 			expectedStatus: http.StatusNotFound,
 			expectedBody:   "category not found",
 		},
-		// {
-		// 	name: "Internal server error",
-		// 	setupMock: func() {
-		// 		mockCategoryModel.On("GetCategoryByID", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("int64"), mock.AnythingOfType("int64"), mock.AnythingOfType("[]*sql.Tx")).
-		// 			Return(nil, errors.New("internal server error")).Once()
-		// 	},
-		// 	userID:         "1",
-		// 	categoryID:     int64(3),
-		// 	expectedStatus: http.StatusInternalServerError,
-		// 	expectedBody:   "internal server error",
-		// },
 		{
 			name: "Invalid category ID",
 			setupMock: func() {
