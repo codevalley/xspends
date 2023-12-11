@@ -43,7 +43,7 @@ func getUserID(c *gin.Context) (int64, bool) {
 
 	intUserID, ok := userID.(int64)
 	if !ok {
-		log.Printf("[getUserID] Error: failed to convert userID to int64")
+		log.Printf("[getUserID] Error: failed to convert userID to int64 (userID: %v)", userID)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to convert userID to int64"})
 		return 0, false
 	}

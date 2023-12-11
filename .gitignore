@@ -21,3 +21,7 @@
 go.work
 xspends
 api/.DS_Store
+.idea/modules.xml
+.idea/vcs.xml
+.idea/xpends.iml
+.idea/.gitignore

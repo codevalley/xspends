@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -127,6 +128,117 @@ func TestListCategories(t *testing.T) {
 
 			tc.setupMock()
 			ListCategories(c)
+			assert.Equal(t, tc.expectedStatus, w.Code)
+			assert.Contains(t, w.Body.String(), tc.expectedBody)
+		})
+	}
+}
+
+func TestGetCategory(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	_, _, _, _, tearDown := testutils.SetupModelTestEnvironment(t)
+	defer tearDown()
+
+	mockCategoryModel := testutils.MockCategoryModel
+	defer mockCategoryModel.AssertExpectations(t)
+
+	tests := []struct {
+		name           string
+		setupMock      func()
+		userID         string
+		categoryID     string
+		expectedStatus int
+		expectedBody   string
+	}{
+		{
+			name: "Successful retrieval",
+			setupMock: func() {
+				mockCategoryModel.On("GetCategoryByID", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("int64"), mock.AnythingOfType("int64"), mock.AnythingOfType("[]*sql.Tx")).
+					Return(&interfaces.Category{ID: 1, Name: "Category 1"}, nil).Once()
+			},
+			userID:         "1",
+			categoryID:     "1",
+			expectedStatus: http.StatusOK,
+			expectedBody:   "Category 1",
+		},
+		{
+			name: "Category not found",
+			setupMock: func() {
+				mockCategoryModel.On("GetCategoryByID", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("int64"), mock.AnythingOfType("int64"), mock.AnythingOfType("[]*sql.Tx")).
+					Return((*interfaces.Category)(nil), errors.New("category not found")).Once()
+			},
+			userID:         "1",
+			categoryID:     "1",
+			expectedStatus: http.StatusNotFound,
+			expectedBody:   "category not found",
+		},
+		// {
+		// 	name: "Internal server error",
+		// 	setupMock: func() {
+		// 		mockCategoryModel.On("GetCategoryByID", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("int64"), mock.AnythingOfType("int64"), mock.AnythingOfType("[]*sql.Tx")).
+		// 			Return(nil, errors.New("internal server error")).Once()
+		// 	},
+		// 	userID:         "1",
+		// 	categoryID:     int64(3),
+		// 	expectedStatus: http.StatusInternalServerError,
+		// 	expectedBody:   "internal server error",
+		// },
+		{
+			name: "Invalid category ID",
+			setupMock: func() {
+				// No mock setup needed as the handler should return error before reaching the model
+			},
+			userID:         "1",
+			categoryID:     "NaN", // Assuming this is an invalid ID
+			expectedStatus: http.StatusNotFound,
+			expectedBody:   "invalid category ID format",
+		},
+		{
+			name: "category ID is required",
+			setupMock: func() {
+				// No mock setup needed as the handler should return error before reaching the model
+			},
+			userID:         "1",
+			categoryID:     "", // Assuming this is an invalid ID
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "category ID is required",
+		},
+		{
+			name: "Unauthorized access",
+			setupMock: func() {
+				// No mock setup needed as the handler should return error before reaching the model
+			},
+			userID:         "", // Assuming 0 indicates unauthorized or missing user
+			categoryID:     "1",
+			expectedStatus: http.StatusUnauthorized,
+			expectedBody:   "user not authenticated",
+		},
+
+		// Additional test cases...
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest("GET", fmt.Sprintf("/categories/%v", tc.categoryID), nil)
+			c, _ := gin.CreateTestContext(w)
+			c.Request = r
+
+			// Set user_id and category_id in Params
+			c.Params = gin.Params{
+				gin.Param{Key: "user_id", Value: tc.userID},
+				gin.Param{Key: "id", Value: tc.categoryID},
+			}
+
+			// Set userID in the context
+			if tc.userID != "" {
+				userID, _ := strconv.ParseInt(tc.userID, 10, 64)
+				c.Set("userID", userID)
+			}
+
+			tc.setupMock()
+			GetCategory(c)
 			assert.Equal(t, tc.expectedStatus, w.Code)
 			assert.Contains(t, w.Body.String(), tc.expectedBody)
 		})

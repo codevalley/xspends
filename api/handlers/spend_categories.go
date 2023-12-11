@@ -1,3 +1,4 @@
+// Package handlers
 /*
 MIT License
 
@@ -46,7 +47,7 @@ func getCategoryID(c *gin.Context) (int64, bool) {
 	categoryID, err := strconv.ParseInt(categoryIDStr, 10, 64)
 	if err != nil {
 		log.Printf("[getCategoryID] Error: invalid category ID format")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid category ID format"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "invalid category ID format"})
 		return 0, false
 	}
 
@@ -71,7 +72,7 @@ func ListCategories(c *gin.Context) {
 	}
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	itemsPerPage, _ := strconv.Atoi(c.DefaultQuery("items_per_page", strconv.Itoa(defaultItemsPerPage)))
-	categories, err := impl.GetModelsService().CategoryModel.GetPagedCategories(c.Request.Context(), page, itemsPerPage, userID, nil)
+	categories, err := impl.GetModelsService().CategoryModel.GetPagedCategories(c, page, itemsPerPage, userID, nil)
 	if err != nil {
 		log.Printf("[ListCategories] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch categories"})
@@ -99,11 +100,15 @@ func ListCategories(c *gin.Context) {
 func GetCategory(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {
+		//c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		//c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to convert userID to int64"})
 		return
 	}
 
 	categoryID, ok := getCategoryID(c)
 	if !ok {
+		// c.JSON(http.StatusBadRequest, gin.H{"error": "category ID is required"})
+		// c.JSON(http.StatusNotFound, gin.H{"error": "invalid category ID format"})
 		return
 	}
 
