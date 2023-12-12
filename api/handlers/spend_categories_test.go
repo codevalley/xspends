@@ -348,7 +348,7 @@ func TestCreateCategory(t *testing.T) {
 }
 
 // Successfully update a category with valid input
-func TestUpdateCategory_SuccessfulUpdate(t *testing.T) {
+func TestUpdateCategory(t *testing.T) {
 	// Set up test environment
 	gin.SetMode(gin.TestMode)
 	_, _, _, _, tearDown := testutils.SetupModelTestEnvironment(t)
@@ -438,6 +438,140 @@ func TestUpdateCategory_SuccessfulUpdate(t *testing.T) {
 			// Invoke code under test
 			tc.setupMock()
 			UpdateCategory(c)
+
+			// Assert response
+			assert.Equal(t, tc.expectedStatus, w.Code)
+			assert.JSONEq(t, tc.expectedBody, w.Body.String())
+		})
+	}
+}
+
+// The function successfully deletes a category when valid user and category IDs are provided.
+func TestDeleteCategory(t *testing.T) {
+	// Set up test environment
+	gin.SetMode(gin.TestMode)
+	_, _, _, _, tearDown := testutils.SetupModelTestEnvironment(t)
+	defer tearDown()
+
+	// Set up mock dependencies
+	mockCategoryModel := testutils.MockCategoryModel
+	defer mockCategoryModel.AssertExpectations(t)
+
+	// Define test cases
+	tests := []struct {
+		name           string
+		setupMock      func()
+		userID         string
+		categoryID     string
+		expectedStatus int
+		expectedBody   string
+	}{
+		{
+			name: "Successful deletion",
+			setupMock: func() {
+				mockCategoryModel.On("DeleteCategory", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("int64"), mock.AnythingOfType("int64"), mock.AnythingOfType("[]*sql.Tx")).
+					Return(nil).Once()
+			},
+			userID:         "1",
+			categoryID:     "1",
+			expectedStatus: http.StatusOK,
+			expectedBody:   `{"message": "category deleted successfully"}`,
+		},
+		{
+			name: "Invalid user ID",
+			setupMock: func() {
+				// No mock setup needed as the handler should return error before reaching the model
+			},
+			userID:         "",
+			categoryID:     "1",
+			expectedStatus: http.StatusUnauthorized,
+			expectedBody:   `{"error": "user not authenticated"}`,
+		},
+		{
+			name: "Invalid category ID",
+			setupMock: func() {
+				// No mock setup needed as the handler should return error before reaching the model
+			},
+			userID:         "1",
+			categoryID:     "",
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   `{"error": "category ID is required"}`,
+		},
+		{
+			name: "Error during category deletion",
+			setupMock: func() {
+				mockCategoryModel.On("DeleteCategory", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("int64"), mock.AnythingOfType("int64"), mock.AnythingOfType("[]*sql.Tx")).
+					Return(errors.New("unable to delete category")).Once()
+			},
+			userID:         "1",
+			categoryID:     "1",
+			expectedStatus: http.StatusInternalServerError,
+			expectedBody:   `{"error": "unable to delete category"}`,
+		},
+		{
+			name: "Successful response",
+			setupMock: func() {
+				mockCategoryModel.On("DeleteCategory", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("int64"), mock.AnythingOfType("int64"), mock.AnythingOfType("[]*sql.Tx")).
+					Return(nil).Once()
+			},
+			userID:         "1",
+			categoryID:     "1",
+			expectedStatus: http.StatusOK,
+			expectedBody:   `{"message": "category deleted successfully"}`,
+		},
+		{
+			name: "Invalid user ID",
+			setupMock: func() {
+				// No mock setup needed as the handler should return error before reaching the model
+			},
+			userID:         "",
+			categoryID:     "1",
+			expectedStatus: http.StatusUnauthorized,
+			expectedBody:   `{"error": "user not authenticated"}`,
+		},
+		{
+			name: "Error during category deletion",
+			setupMock: func() {
+				mockCategoryModel.On("DeleteCategory", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("int64"), mock.AnythingOfType("int64"), mock.AnythingOfType("[]*sql.Tx")).
+					Return(errors.New("unable to delete category")).Once()
+			},
+			userID:         "1",
+			categoryID:     "1",
+			expectedStatus: http.StatusInternalServerError,
+			expectedBody:   `{"error": "unable to delete category"}`,
+		},
+		{
+			name: "Missing user ID",
+			setupMock: func() {
+				// No mock setup needed as the handler should return error before reaching the model
+			},
+			userID:         "",
+			categoryID:     "1",
+			expectedStatus: http.StatusUnauthorized,
+			expectedBody:   `{"error": "user not authenticated"}`,
+		},
+	}
+
+	// Run test cases
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest("DELETE", "/categories/"+tc.categoryID, nil)
+			c, _ := gin.CreateTestContext(w)
+			c.Request = r
+			// Set userID in the context
+			if tc.userID != "" {
+				userID, _ := strconv.ParseInt(tc.userID, 10, 64)
+				c.Set("userID", userID)
+			}
+			// Set user_id and category_id in Params
+			c.Params = gin.Params{
+				gin.Param{Key: "user_id", Value: tc.userID},
+				gin.Param{Key: "id", Value: tc.categoryID},
+			}
+			// Invoke code under test
+			tc.setupMock()
+			DeleteCategory(c)
 
 			// Assert response
 			assert.Equal(t, tc.expectedStatus, w.Code)

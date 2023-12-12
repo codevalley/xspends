@@ -208,6 +208,8 @@ func DeleteCategory(c *gin.Context) {
 
 	categoryID, ok := getCategoryID(c)
 	if !ok {
+		// c.JSON(http.StatusBadRequest, gin.H{"error": "category ID is required"})
+		// c.JSON(http.StatusNotFound, gin.H{"error": "invalid category ID format"})
 		return
 	}
 
