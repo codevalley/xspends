@@ -312,6 +312,17 @@ func TestCreateCategory(t *testing.T) {
 			expectedBody:   `{"error":"user not authenticated"}`,
 		},
 		{
+			name: "Invalid category payload",
+			setupMock: func() {
+				mockCategoryModel.On("InsertCategory", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("*interfaces.Category"), mock.AnythingOfType("[]*sql.Tx")).
+					Return(errors.New("category creation fails")).Once()
+			},
+			requestBody:    `{"name": "New Category"}`,
+			userID:         "1",
+			expectedStatus: http.StatusInternalServerError,
+			expectedBody:   `{"error":"unable to create category"}`,
+		},
+		{
 			name: "Empty body",
 			setupMock: func() {
 				// No mock setup needed as the handler should return error before reaching the model
