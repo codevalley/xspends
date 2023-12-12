@@ -95,7 +95,7 @@ func TestListCategories(t *testing.T) {
 	tests := []struct {
 		name           string
 		setupMock      func()
-		userID         int64
+		userID         string
 		page           string
 		itemsPerPage   string
 		expectedStatus int
@@ -108,7 +108,7 @@ func TestListCategories(t *testing.T) {
 				itemsPerPage, _ := strconv.Atoi("10")
 				mockCategoryModel.On("GetPagedCategories", isContext, page, itemsPerPage, int64(1), mock.AnythingOfType("[]*sql.Tx")).Return([]interfaces.Category{{ID: 1, Name: "Category 1"}}, nil).Once()
 			},
-			userID:         1,
+			userID:         "1",
 			page:           "1",
 			itemsPerPage:   "10",
 			expectedStatus: http.StatusOK,
@@ -119,7 +119,7 @@ func TestListCategories(t *testing.T) {
 			setupMock: func() {
 				mockCategoryModel.On("GetPagedCategories", isContext, 1, 10, int64(1), mock.AnythingOfType("[]*sql.Tx")).Return([]interfaces.Category{}, nil).Once()
 			},
-			userID:         1,
+			userID:         "1",
 			page:           "1",
 			itemsPerPage:   "10",
 			expectedStatus: http.StatusOK,
@@ -130,11 +130,20 @@ func TestListCategories(t *testing.T) {
 				mockCategoryModel.On("GetPagedCategories", isContext, 1, 10, int64(1), mock.AnythingOfType("[]*sql.Tx")).
 					Return([]interfaces.Category{}, errors.New("internal server error")).Once()
 			},
-			userID:         1,
+			userID:         "1",
 			page:           "1",
 			itemsPerPage:   "10",
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody:   "unable to fetch categories",
+		},
+		{
+			name: "Unauthorized access",
+			setupMock: func() {
+				// No mock setup needed as the handler should return error before reaching the model
+			},
+			userID:         "", // Assuming 0 indicates unauthorized or missing user
+			expectedStatus: http.StatusUnauthorized,
+			expectedBody:   "user not authenticated",
 		},
 	}
 
@@ -144,9 +153,12 @@ func TestListCategories(t *testing.T) {
 			r := httptest.NewRequest("GET", "/dummy-url", nil)
 			c, _ := gin.CreateTestContext(w)
 			c.Request = r
-			c.Params = gin.Params{gin.Param{Key: "user_id", Value: strconv.FormatInt(tc.userID, 10)}}
-			c.Set("userID", tc.userID)
+			c.Params = gin.Params{gin.Param{Key: "user_id", Value: tc.userID}}
 
+			if tc.userID != "" {
+				userID, _ := strconv.ParseInt(tc.userID, 10, 64)
+				c.Set("userID", userID)
+			}
 			q := c.Request.URL.Query()
 			q.Add("page", tc.page)
 			q.Add("items_per_page", tc.itemsPerPage)
