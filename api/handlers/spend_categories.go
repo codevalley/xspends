@@ -176,7 +176,7 @@ func UpdateCategory(c *gin.Context) {
 	var updatedCategory interfaces.Category
 	if err := c.ShouldBindJSON(&updatedCategory); err != nil {
 		log.Printf("[UpdateCategory] Error: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON"})
 		return
 	}
 

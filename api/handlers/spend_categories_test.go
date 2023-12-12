@@ -261,7 +261,7 @@ func TestGetCategory(t *testing.T) {
 }
 
 // Create a category with valid input, expect status 201 and the new category object in the response body.
-func TestCreateCategoryWithValidInput(t *testing.T) {
+func TestCreateCategory(t *testing.T) {
 	// Set up test environment
 	gin.SetMode(gin.TestMode)
 	_, _, _, _, tearDown := testutils.SetupModelTestEnvironment(t)
@@ -339,6 +339,105 @@ func TestCreateCategoryWithValidInput(t *testing.T) {
 			// Invoke code under test
 			tc.setupMock()
 			CreateCategory(c)
+
+			// Assert response
+			assert.Equal(t, tc.expectedStatus, w.Code)
+			assert.JSONEq(t, tc.expectedBody, w.Body.String())
+		})
+	}
+}
+
+// Successfully update a category with valid input
+func TestUpdateCategory_SuccessfulUpdate(t *testing.T) {
+	// Set up test environment
+	gin.SetMode(gin.TestMode)
+	_, _, _, _, tearDown := testutils.SetupModelTestEnvironment(t)
+	defer tearDown()
+
+	// Set up mock dependencies
+	mockCategoryModel := testutils.MockCategoryModel
+	defer mockCategoryModel.AssertExpectations(t)
+
+	// Define test cases
+	tests := []struct {
+		name           string
+		setupMock      func()
+		userID         string
+		requestBody    string
+		expectedStatus int
+		expectedBody   string
+	}{
+		{
+			name: "Successful update",
+			setupMock: func() {
+				mockCategoryModel.On("UpdateCategory", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("*interfaces.Category"), mock.AnythingOfType("[]*sql.Tx")).
+					Return(nil).Once()
+			},
+			requestBody:    `{"name": "Updated Category"}`,
+			userID:         "1",
+			expectedStatus: http.StatusOK,
+			expectedBody:   `{"created_at":"0001-01-01T00:00:00Z", "description":"", "icon":"", "id":0, "name":"Updated Category", "updated_at":"0001-01-01T00:00:00Z", "user_id":1}`,
+		},
+		{
+			name: "Invalid request body",
+			setupMock: func() {
+				// No mock setup needed as the handler should return error before reaching the model
+			},
+			requestBody:    `{"name": "Updated Category",}`,
+			userID:         "1",
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   `{"error":"invalid JSON"}`,
+		},
+		{
+			name: "Unable to update category",
+			setupMock: func() {
+				mockCategoryModel.On("UpdateCategory", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("*interfaces.Category"), mock.AnythingOfType("[]*sql.Tx")).
+					Return(errors.New("unable to update category")).Once()
+			},
+			requestBody:    `{"name": "Updated Category"}`,
+			userID:         "1",
+			expectedStatus: http.StatusInternalServerError,
+			expectedBody:   `{"error":"unable to update category"}`,
+		},
+		{
+			name: "User ID not authenticated",
+			setupMock: func() {
+				// No mock setup needed as the handler should return error before reaching the model
+			},
+			requestBody:    `{"name": "Updated Category"}`,
+			userID:         "",
+			expectedStatus: http.StatusUnauthorized,
+			expectedBody:   `{"error":"user not authenticated"}`,
+		},
+		{
+			name: "Category update fails",
+			setupMock: func() {
+				mockCategoryModel.On("UpdateCategory", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("*interfaces.Category"), mock.AnythingOfType("[]*sql.Tx")).
+					Return(errors.New("category update fails")).Once()
+			},
+			requestBody:    `{"name": "Updated Category"}`,
+			userID:         "1",
+			expectedStatus: http.StatusInternalServerError,
+			expectedBody:   `{"error":"unable to update category"}`,
+		},
+		//doesn't handle the scenario where the payload is invalid.
+	}
+
+	// Run test cases
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest("PUT", "/categories/1", strings.NewReader(tc.requestBody))
+			c, _ := gin.CreateTestContext(w)
+			c.Request = r
+			// Set userID in the context
+			if tc.userID != "" {
+				userID, _ := strconv.ParseInt(tc.userID, 10, 64)
+				c.Set("userID", userID)
+			}
+			// Invoke code under test
+			tc.setupMock()
+			UpdateCategory(c)
 
 			// Assert response
 			assert.Equal(t, tc.expectedStatus, w.Code)
