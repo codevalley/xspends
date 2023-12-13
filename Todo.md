@@ -1,7 +1,6 @@
 ### Scribble pad
 - Create a Model Service wrapper for all models
 - Remove DBService param and directly access it via services file objects
-- Mock or not mock decided at init
 
 - Txn support for userstorer
 ### Logging & Monitoring
@@ -45,10 +44,6 @@
 - Implement comprehensive error handling in DB operations.
 - Define and monitor SLAs for database performance and uptime.
 
-### Testing
-    - Unit test coverage, mock methods
-    - Update or create new tests to ensure the Authboss implementation works as expected.
-    - Test edge cases, such as failed logins, expired sessions, etc.
 
 ---
 ### High priority items
