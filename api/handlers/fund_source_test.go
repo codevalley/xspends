@@ -15,6 +15,69 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+func TestGetSourceID(t *testing.T) {
+	// Set Gin to Test Mode
+	gin.SetMode(gin.TestMode)
+
+	// Define test cases
+	tests := []struct {
+		name           string
+		sourceID       string
+		expectedID     int64
+		expectError    bool
+		expectedStatus int
+		expectedBody   string
+	}{
+		{
+			name:           "Valid source ID",
+			sourceID:       "123",
+			expectedID:     123,
+			expectError:    false,
+			expectedStatus: 200,
+			expectedBody:   "",
+		},
+		{
+			name:           "Invalid source ID format",
+			sourceID:       "abc",
+			expectError:    true,
+			expectedStatus: http.StatusNotFound,
+			expectedBody:   "invalid source ID format",
+		},
+		{
+			name:           "Missing source ID",
+			sourceID:       "",
+			expectError:    true,
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "source ID is required",
+		},
+	}
+
+	// Run test cases
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// Set up a response recorder and context
+			w := httptest.NewRecorder()
+			ctx, _ := gin.CreateTestContext(w)
+			ctx.Params = gin.Params{
+				gin.Param{Key: "id", Value: tc.sourceID},
+			}
+
+			// Call the function
+			id, err := getSourceID(ctx)
+
+			// Assert expectations
+			if tc.expectError {
+				assert.False(t, err, "Expected an error but didn't get one")
+				assert.Equal(t, tc.expectedStatus, w.Code)
+				assert.Contains(t, w.Body.String(), tc.expectedBody)
+			} else {
+				assert.True(t, err, "Expected no error but got one")
+				assert.Equal(t, tc.expectedID, id)
+			}
+		})
+	}
+}
+
 // TestListSources tests the ListSources handler
 func TestListSources(t *testing.T) {
 	gin.SetMode(gin.TestMode)
