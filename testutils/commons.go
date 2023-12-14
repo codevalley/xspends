@@ -14,6 +14,7 @@ import (
 var (
 	MockDBService     *impl.DBService
 	MockCategoryModel *mock.MockCategoryModel
+	MockSourceModel   *mock.MockSourceModel
 	MockUserModel     *mock.MockUserModel
 )
 
@@ -36,12 +37,13 @@ func SetupModelTestEnvironment(t *testing.T) (context.Context, *impl.ModelsServi
 	// Create a mock CategoryModel
 	MockCategoryModel = new(mock.MockCategoryModel)
 	MockUserModel = new(mock.MockUserModel)
-
+	MockSourceModel = new(mock.MockSourceModel)
 	// Create ModelsServiceContainer with mocks
 	impl.ModelsService = &impl.ModelsServiceContainer{
 		DBService:     MockDBService,
 		CategoryModel: MockCategoryModel,
 		UserModel:     MockUserModel,
+		SourceModel:   MockSourceModel,
 		// Initialize other services as necessary
 	}
 
