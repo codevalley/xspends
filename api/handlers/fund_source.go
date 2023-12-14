@@ -28,6 +28,7 @@ import (
 	"net/http"
 	"strconv"
 	"xspends/models/impl"
+	"xspends/models/interfaces"
 
 	"github.com/gin-gonic/gin"
 )
@@ -47,7 +48,7 @@ func ListSources(c *gin.Context) {
 		return
 	}
 
-	sources, err := impl.GetSources(c, userID, impl.GetDBService())
+	sources, err := impl.GetModelsService().SourceModel.GetSources(c, userID)
 	if err != nil {
 		log.Printf("[ListSources] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to fetch sources"})
@@ -81,7 +82,7 @@ func GetSource(c *gin.Context) {
 		return
 	}
 
-	source, err := impl.GetSourceByID(c, sourceID, userID, impl.GetDBService())
+	source, err := impl.GetModelsService().SourceModel.GetSourceByID(c, sourceID, userID)
 	if err != nil {
 		log.Printf("[GetSource] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "Source not found"})
@@ -106,14 +107,14 @@ func CreateSource(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var newSource impl.Source
+	var newSource interfaces.Source
 	if err := c.ShouldBindJSON(&newSource); err != nil {
 		log.Printf("[CreateSource] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid source data"})
 		return
 	}
 	newSource.UserID = userID
-	if err := impl.InsertSource(c, &newSource, impl.GetDBService()); err != nil {
+	if err := impl.GetModelsService().SourceModel.InsertSource(c, &newSource); err != nil {
 		log.Printf("[CreateSource] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create source"})
 		return
@@ -138,14 +139,14 @@ func UpdateSource(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var updatedSource impl.Source
+	var updatedSource interfaces.Source
 	if err := c.ShouldBindJSON(&updatedSource); err != nil {
 		log.Printf("[UpdateSource] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid source data"})
 		return
 	}
 	updatedSource.UserID = userID
-	if err := impl.UpdateSource(c, &updatedSource, impl.GetDBService()); err != nil {
+	if err := impl.GetModelsService().SourceModel.UpdateSource(c, &updatedSource); err != nil {
 		log.Printf("[UpdateSource] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update source"})
 		return
@@ -178,7 +179,7 @@ func DeleteSource(c *gin.Context) {
 		return
 	}
 
-	if err := impl.DeleteSource(c, sourceID, userID, impl.GetDBService()); err != nil {
+	if err := impl.GetModelsService().SourceModel.DeleteSource(c, sourceID, userID); err != nil {
 		log.Printf("[DeleteSource] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete source"})
 		return

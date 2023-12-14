@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"testing"
 	"time"
+	"xspends/models/interfaces"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/golang/mock/gomock"
@@ -15,7 +16,7 @@ func TestInsertSource(t *testing.T) {
 	tearDown := setUp(t)
 	defer tearDown()
 
-	source := &Source{
+	source := &interfaces.Source{
 		UserID:    1,
 		Name:      "Test Source",
 		Type:      SourceTypeCredit,
@@ -23,13 +24,12 @@ func TestInsertSource(t *testing.T) {
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
-
 	mockExecutor.EXPECT().
 		ExecContext(gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(sql.Result(nil), nil).
 		Times(1)
 
-	err := InsertSource(ctx, source, mockDBService)
+	err := mockModelService.SourceModel.InsertSource(ctx, source)
 	assert.NoError(t, err)
 }
 
@@ -37,7 +37,7 @@ func TestUpdateSource(t *testing.T) {
 	tearDown := setUp(t)
 	defer tearDown()
 
-	source := &Source{
+	source := &interfaces.Source{
 		ID:        1,
 		UserID:    1,
 		Name:      "Updated Source",
@@ -51,7 +51,7 @@ func TestUpdateSource(t *testing.T) {
 		Return(sql.Result(nil), nil).
 		Times(1)
 
-	err := UpdateSource(ctx, source, mockDBService)
+	err := mockModelService.SourceModel.UpdateSource(ctx, source)
 	assert.NoError(t, err)
 }
 
@@ -67,7 +67,7 @@ func TestDeleteSource(t *testing.T) {
 		Return(sql.Result(nil), nil).
 		Times(1)
 
-	err := DeleteSource(ctx, sourceID, userID, mockDBService)
+	err := mockModelService.SourceModel.DeleteSource(ctx, sourceID, userID)
 	assert.NoError(t, err)
 }
 
@@ -79,9 +79,6 @@ func TestGetSourceByID(t *testing.T) {
 	}
 	defer db.Close()
 
-	// Create a mock DBService using the mock database connection
-	mockDBService := &DBService{Executor: db}
-
 	// Set up expectations
 	rows := sqlmock.NewRows([]string{"id", "user_id", "name", "type", "balance", "created_at", "updated_at"}).
 		AddRow(1, 1, "Test Source", SourceTypeCredit, 100.0, time.Now(), time.Now())
@@ -89,7 +86,7 @@ func TestGetSourceByID(t *testing.T) {
 
 	// Call the function under test
 	ctx := context.Background()
-	source, err := GetSourceByID(ctx, 1, 1, mockDBService)
+	source, err := mockModelService.SourceModel.GetSourceByID(ctx, 1, 1)
 
 	// Assertions
 	assert.NoError(t, err)

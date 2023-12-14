@@ -37,7 +37,9 @@ func setUp(t *testing.T) func() {
 	mockDBService = &DBService{Executor: mockExecutor}
 	mockModelService = &ModelsServiceContainer{
 		DBService:     mockDBService,
-		CategoryModel: &CategoryModel{}}
+		CategoryModel: &CategoryModel{},
+		SourceModel:   &SourceModel{},
+	}
 	ModelsService = mockModelService
 	return func() { ctrl.Finish() }
 }
@@ -48,8 +50,6 @@ func TestInsertCategoryWithInvalidInput(t *testing.T) {
 	tearDown := setUp(t)
 	defer tearDown()
 
-	cm := &CategoryModel{}
-
 	invalidCategories := []*interfaces.Category{
 		{UserID: 0, Name: "Test Category", Description: "Description"},
 		{UserID: 1, Name: "", Description: "Description"},
@@ -57,7 +57,7 @@ func TestInsertCategoryWithInvalidInput(t *testing.T) {
 	}
 
 	for _, invalidCategory := range invalidCategories {
-		err := cm.InsertCategory(ctx, invalidCategory, nil)
+		err := mockModelService.CategoryModel.InsertCategory(ctx, invalidCategory)
 		assert.EqualError(t, err, ErrInvalidInput)
 	}
 }
@@ -69,9 +69,8 @@ func TestInsertCategoryWithDatabaseError(t *testing.T) {
 
 	mockExecutor.EXPECT().ExecContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("database error"))
 
-	cm := &CategoryModel{}
 	category := &interfaces.Category{UserID: 1, Name: "Test Category", Description: "Description"}
-	err := cm.InsertCategory(ctx, category, nil)
+	err := mockModelService.CategoryModel.InsertCategory(ctx, category)
 	assert.EqualError(t, err, "executing insert statement failed: database error")
 }
 
@@ -82,9 +81,8 @@ func TestUpdateCategoryWithDatabaseError(t *testing.T) {
 
 	mockExecutor.EXPECT().ExecContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("database error"))
 
-	cm := &CategoryModel{}
 	category := &interfaces.Category{ID: 1, UserID: 1, Name: "Updated Category", Description: "Updated Description"}
-	err := cm.UpdateCategory(ctx, category, nil)
+	err := mockModelService.CategoryModel.UpdateCategory(ctx, category)
 	assert.EqualError(t, err, "executing update statement failed: database error")
 }
 
@@ -95,8 +93,7 @@ func TestDeleteCategoryWithDatabaseError(t *testing.T) {
 
 	mockExecutor.EXPECT().ExecContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("database error"))
 
-	cm := &CategoryModel{}
-	err := cm.DeleteCategory(ctx, 1, 1, nil)
+	err := mockModelService.CategoryModel.DeleteCategory(ctx, 1, 1)
 	assert.EqualError(t, err, "executing delete statement failed: database error")
 }
 
@@ -115,8 +112,7 @@ func TestGetAllCategoriesWithDatabaseError(t *testing.T) {
 
 	mock.ExpectQuery("^SELECT (.+) FROM categories WHERE").WillReturnError(errors.New("database error"))
 
-	cm := &CategoryModel{}
-	_, err = cm.GetAllCategories(ctx, 1, nil)
+	_, err = mockModelService.CategoryModel.GetAllCategories(ctx, 1)
 	assert.EqualError(t, err, "querying categories failed: database error")
 }
 
@@ -135,8 +131,7 @@ func TestGetCategoryByIDWithCategoryNotFound(t *testing.T) {
 
 	mock.ExpectQuery("^SELECT (.+) FROM categories WHERE").WillReturnRows(sqlmock.NewRows([]string{}))
 
-	cm := &CategoryModel{}
-	_, err = cm.GetCategoryByID(ctx, 1, 1, nil)
+	_, err = mockModelService.CategoryModel.GetCategoryByID(ctx, 1, 1)
 	assert.EqualError(t, err, "category not found")
 }
 
@@ -155,8 +150,7 @@ func TestGetCategoryByIDWithDatabaseError(t *testing.T) {
 
 	mock.ExpectQuery("^SELECT (.+) FROM categories WHERE").WillReturnError(errors.New("database error"))
 
-	cm := &CategoryModel{}
-	_, err = cm.GetCategoryByID(ctx, 1, 1, nil)
+	_, err = mockModelService.CategoryModel.GetCategoryByID(ctx, 1, 1)
 	assert.EqualError(t, err, "querying category by ID failed: database error")
 }
 
@@ -175,8 +169,7 @@ func TestGetPagedCategoriesWithDatabaseError(t *testing.T) {
 
 	mock.ExpectQuery("^SELECT (.+) FROM categories WHERE").WillReturnError(errors.New("database error"))
 
-	cm := &CategoryModel{}
-	_, err = cm.GetPagedCategories(ctx, 1, 10, 1, nil)
+	_, err = mockModelService.CategoryModel.GetPagedCategories(ctx, 1, 10, 1)
 	assert.EqualError(t, err, "querying paginated categories failed: database error")
 }
 
@@ -195,8 +188,7 @@ func TestCategoryIDExistsWithDatabaseError(t *testing.T) {
 
 	mock.ExpectQuery("^SELECT (.+) FROM categories WHERE").WillReturnError(errors.New("database error"))
 
-	cm := &CategoryModel{}
-	exists, err := cm.CategoryIDExists(ctx, 1, 1, nil)
+	exists, err := mockModelService.CategoryModel.CategoryIDExists(ctx, 1, 1, nil)
 	assert.EqualError(t, err, "checking category existence failed: database error")
 	assert.False(t, exists)
 }
@@ -229,8 +221,7 @@ func TestGetCategoryByIDWithEmptyIcon(t *testing.T) {
 
 	mock.ExpectQuery("^SELECT (.+) FROM categories WHERE").WillReturnRows(rows)
 
-	cm := &CategoryModel{}
-	category, err := cm.GetCategoryByID(ctx, 1, 1, nil)
+	category, err := mockModelService.CategoryModel.GetCategoryByID(ctx, 1, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedCategory, category)
 }
@@ -252,8 +243,7 @@ func TestGetAllCategoriesWithEmptyResults(t *testing.T) {
 
 	mock.ExpectQuery("^SELECT (.+) FROM categories WHERE").WillReturnRows(rows)
 
-	cm := &CategoryModel{}
-	categories, err := cm.GetAllCategories(ctx, 1, nil)
+	categories, err := mockModelService.CategoryModel.GetAllCategories(ctx, 1)
 	assert.NoError(t, err)
 	assert.Empty(t, categories)
 }
@@ -278,8 +268,7 @@ func TestCategoryIDExistsWithNonExistentCategory(t *testing.T) {
 		WithArgs(categoryID, userID).
 		WillReturnRows(sqlmock.NewRows([]string{}))
 
-	cm := &CategoryModel{}
-	actualExists, err := cm.CategoryIDExists(ctx, categoryID, userID, nil)
+	actualExists, err := mockModelService.CategoryModel.CategoryIDExists(ctx, categoryID, userID)
 	assert.NoError(t, err)
 	assert.False(t, actualExists)
 }
@@ -304,8 +293,7 @@ func TestDeleteCategoryWithDatabase(t *testing.T) {
 		WithArgs(categoryID, userID).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	cm := &CategoryModel{}
-	err = cm.DeleteCategory(ctx, categoryID, userID, nil)
+	err = mockModelService.CategoryModel.DeleteCategory(ctx, categoryID, userID)
 	assert.NoError(t, err)
 }
 
@@ -343,8 +331,7 @@ func TestGetCategoryByIDWithDatabase(t *testing.T) {
 		WithArgs(categoryID, userID).
 		WillReturnRows(rows)
 
-	cm := &CategoryModel{}
-	category, err := cm.GetCategoryByID(ctx, categoryID, userID, nil)
+	category, err := mockModelService.CategoryModel.GetCategoryByID(ctx, categoryID, userID)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedCategory, category)
 }
@@ -372,8 +359,7 @@ func TestCategoryIDExistsWithDatabase(t *testing.T) {
 		WithArgs(categoryID, userID).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(categoryID))
 
-	cm := &CategoryModel{}
-	actualExists, err := cm.CategoryIDExists(ctx, categoryID, userID, nil)
+	actualExists, err := mockModelService.CategoryModel.CategoryIDExists(ctx, categoryID, userID)
 	assert.NoError(t, err)
 	assert.Equal(t, exists, actualExists)
 }
@@ -395,8 +381,7 @@ func TestGetPagedCategoriesWithEmptyResults(t *testing.T) {
 
 	mock.ExpectQuery("^SELECT (.+) FROM categories WHERE").WillReturnRows(rows)
 
-	cm := &CategoryModel{}
-	categories, err := cm.GetPagedCategories(ctx, 1, 10, 1, nil)
+	categories, err := mockModelService.CategoryModel.GetPagedCategories(ctx, 1, 10, 1, nil)
 	assert.NoError(t, err)
 	assert.Empty(t, categories)
 }
@@ -418,8 +403,7 @@ func TestUpdateCategoryWithValidInput(t *testing.T) {
 
 	mock.ExpectExec("^UPDATE categories SET").WithArgs(category.Name, category.Description, category.Icon, sqlmock.AnyArg(), category.ID, category.UserID).WillReturnResult(sqlmock.NewResult(1, 1))
 
-	cm := &CategoryModel{}
-	err = cm.UpdateCategory(ctx, category, nil)
+	err = mockModelService.CategoryModel.UpdateCategory(ctx, category)
 	assert.NoError(t, err)
 }
 

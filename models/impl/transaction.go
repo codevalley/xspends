@@ -299,7 +299,7 @@ func validateForeignKeyReferences(ctx context.Context, txn Transaction, dbServic
 	}
 
 	// Check if the source exists
-	sourceExists, err := SourceIDExists(ctx, txn.SourceID, txn.UserID, dbService)
+	sourceExists, err := GetModelsService().SourceModel.SourceIDExists(ctx, txn.SourceID, txn.UserID)
 	if err != nil {
 		return errors.Wrap(err, "error checking if source exists")
 	}
