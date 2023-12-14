@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -41,7 +42,33 @@ func TestListSources(t *testing.T) {
 			expectedStatus: http.StatusOK,
 			expectedBody:   "Source 1",
 		},
-		// Add more test cases here
+		{
+			name: "Error fetching sources",
+			setupMock: func() {
+				mockSourceModel.On("GetSources", isContext, int64(1), mock.AnythingOfType("[]*sql.Tx")).Return([]interfaces.Source{}, errors.New("database error")).Once()
+			},
+			userID:         "1",
+			expectedStatus: http.StatusInternalServerError,
+			expectedBody:   "Unable to fetch sources",
+		},
+		{
+			name: "Unauthorized access",
+			setupMock: func() {
+				// No mock setup needed as the handler should return error before reaching the model
+			},
+			userID:         "", // Assuming empty string indicates unauthorized or missing user
+			expectedStatus: http.StatusUnauthorized,
+			expectedBody:   "user not authenticated", // or whatever your actual unauthorized response is
+		},
+		{
+			name: "No sources found",
+			setupMock: func() {
+				mockSourceModel.On("GetSources", isContext, int64(1), mock.AnythingOfType("[]*sql.Tx")).Return([]interfaces.Source{}, nil).Once()
+			},
+			userID:         "1",
+			expectedStatus: http.StatusOK,
+			expectedBody:   "[]", // Assuming an empty JSON array is returned for no sources
+		},
 	}
 
 	for _, tc := range tests {
