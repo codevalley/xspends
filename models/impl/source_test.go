@@ -78,7 +78,13 @@ func TestGetSourceByID(t *testing.T) {
 		t.Fatalf("An error '%s' was not expected when opening a stub database connection", err)
 	}
 	defer db.Close()
-
+	mockDBService := &DBService{Executor: db}
+	mockModelService = &ModelsServiceContainer{
+		DBService:     mockDBService,
+		CategoryModel: &CategoryModel{},
+		SourceModel:   &SourceModel{},
+	}
+	ModelsService = mockModelService
 	// Set up expectations
 	rows := sqlmock.NewRows([]string{"id", "user_id", "name", "type", "balance", "created_at", "updated_at"}).
 		AddRow(1, 1, "Test Source", SourceTypeCredit, 100.0, time.Now(), time.Now())

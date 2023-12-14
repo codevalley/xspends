@@ -308,7 +308,9 @@ func TestGetCategoryByIDWithDatabase(t *testing.T) {
 	mockDBService := &DBService{Executor: db}
 	mockModelService = &ModelsServiceContainer{
 		DBService:     mockDBService,
-		CategoryModel: &CategoryModel{}}
+		CategoryModel: &CategoryModel{},
+		SourceModel:   &SourceModel{},
+	}
 	ModelsService = mockModelService
 
 	categoryID := int64(1)
@@ -347,7 +349,9 @@ func TestCategoryIDExistsWithDatabase(t *testing.T) {
 	mockDBService := &DBService{Executor: db}
 	mockModelService = &ModelsServiceContainer{
 		DBService:     mockDBService,
-		CategoryModel: &CategoryModel{}}
+		CategoryModel: &CategoryModel{},
+		SourceModel:   &SourceModel{},
+	}
 	ModelsService = mockModelService
 
 	categoryID := int64(1)
