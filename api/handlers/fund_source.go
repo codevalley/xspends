@@ -74,14 +74,12 @@ func GetSource(c *gin.Context) {
 		return
 	}
 
-	sourceIDStr := c.Param("id")
-	sourceID, err := strconv.ParseInt(sourceIDStr, 10, 64)
-	if err != nil {
-		log.Printf("[GetSource] Error: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid source ID"})
+	sourceID, ok := getSourceID(c)
+	if !ok {
+		// c.JSON(http.StatusBadRequest, gin.H{"error": "source ID is required"})
+		// c.JSON(http.StatusNotFound, gin.H{"error": "invalid source ID format"})
 		return
 	}
-
 	source, err := impl.GetModelsService().SourceModel.GetSourceByID(c, sourceID, userID)
 	if err != nil {
 		log.Printf("[GetSource] Error: %v", err)
@@ -171,14 +169,12 @@ func DeleteSource(c *gin.Context) {
 	if !ok {
 		return
 	}
-	sourceIDStr := c.Param("id")
-	sourceID, err := strconv.ParseInt(sourceIDStr, 10, 64)
-	if err != nil {
-		log.Printf("[DeleteSource] Error: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid source ID"})
+	sourceID, ok := getSourceID(c)
+	if !ok {
+		// c.JSON(http.StatusBadRequest, gin.H{"error": "source ID is required"})
+		// c.JSON(http.StatusNotFound, gin.H{"error": "invalid source ID format"})
 		return
 	}
-
 	if err := impl.GetModelsService().SourceModel.DeleteSource(c, sourceID, userID); err != nil {
 		log.Printf("[DeleteSource] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete source"})
@@ -186,4 +182,22 @@ func DeleteSource(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Source deleted successfully"})
+}
+
+func getSourceID(c *gin.Context) (int64, bool) {
+	sourceIDStr := c.Param("id")
+	if sourceIDStr == "" {
+		log.Printf("[getSourceID] Error: source ID is required")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "source ID is required"})
+		return 0, false
+	}
+
+	sourceID, err := strconv.ParseInt(sourceIDStr, 10, 64)
+	if err != nil {
+		log.Printf("[getSourceID] Error: invalid source ID format")
+		c.JSON(http.StatusNotFound, gin.H{"error": "invalid source ID format"})
+		return 0, false
+	}
+
+	return sourceID, true
 }
