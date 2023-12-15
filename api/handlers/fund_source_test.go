@@ -157,7 +157,6 @@ func TestListSources(t *testing.T) {
 	}
 }
 
-// TestGetSource tests the GetSource handler
 func TestGetSource(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -178,7 +177,7 @@ func TestGetSource(t *testing.T) {
 		{
 			name: "Successful retrieval",
 			setupMock: func() {
-				mockSourceModel.On("GetSourceID", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("int64"), mock.AnythingOfType("int64"), mock.AnythingOfType("[]*sql.Tx")).
+				mockSourceModel.On("GetSourceByID", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("int64"), mock.AnythingOfType("int64"), mock.AnythingOfType("[]*sql.Tx")).
 					Return(&interfaces.Source{ID: 1, Name: "Source 1"}, nil).Once()
 			},
 			userID:         "1",
@@ -195,7 +194,7 @@ func TestGetSource(t *testing.T) {
 			userID:         "1",
 			sourceID:       "1",
 			expectedStatus: http.StatusNotFound,
-			expectedBody:   "source not found",
+			expectedBody:   "Source not found",
 		},
 		{
 			name: "Invalid source ID",
@@ -227,14 +226,13 @@ func TestGetSource(t *testing.T) {
 			expectedStatus: http.StatusUnauthorized,
 			expectedBody:   "user not authenticated",
 		},
-
 		// Additional test cases...
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
-			r := httptest.NewRequest("GET", fmt.Sprintf("/sources/%v", tc.sourceID), nil)
+			r := httptest.NewRequest("GET", fmt.Sprintf("/categories/%v", tc.sourceID), nil)
 			c, _ := gin.CreateTestContext(w)
 			c.Request = r
 
