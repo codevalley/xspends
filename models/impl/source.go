@@ -55,7 +55,11 @@ func (sm *SourceModel) InsertSource(ctx context.Context, source *interfaces.Sour
 		return errors.New("invalid type: type must be CREDIT or SAVINGS")
 	}
 
-	source.ID, _ = util.GenerateSnowflakeID()
+	var err error
+	source.ID, err = util.GenerateSnowflakeID() //no checks here. If it fails, it fails.
+	if err != nil {
+		return errors.Wrap(err, "generating Snowflake ID failed")
+	}
 	source.CreatedAt = time.Now()
 	source.UpdatedAt = source.CreatedAt
 

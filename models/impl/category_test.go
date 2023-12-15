@@ -7,6 +7,7 @@ import (
 	"time"
 	"xspends/models/interfaces"
 	mock "xspends/models/mock"
+	"xspends/util"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/Masterminds/squirrel"
@@ -32,6 +33,7 @@ func TestMain(m *testing.M) {
 }
 
 func setUp(t *testing.T) func() {
+	util.InitializeSnowflake()
 	ctrl := gomock.NewController(t)
 	mockExecutor = mock.NewMockDBExecutor(ctrl)
 	mockDBService = &DBService{Executor: mockExecutor}
@@ -39,6 +41,7 @@ func setUp(t *testing.T) func() {
 		DBService:     mockDBService,
 		CategoryModel: &CategoryModel{},
 		SourceModel:   &SourceModel{},
+		UserModel:     &UserModel{},
 	}
 	ModelsService = mockModelService
 	return func() { ctrl.Finish() }

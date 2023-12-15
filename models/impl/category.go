@@ -60,7 +60,11 @@ func (cm *CategoryModel) InsertCategory(ctx context.Context, category *interface
 		return err
 	}
 
+	var err error
 	category.ID, _ = util.GenerateSnowflakeID()
+	if err != nil {
+		return errors.Wrap(err, "generating Snowflake ID failed")
+	}
 	category.CreatedAt, category.UpdatedAt = time.Now(), time.Now()
 
 	query, args, err := SQLBuilder.Insert("categories").
