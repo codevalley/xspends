@@ -145,7 +145,7 @@ func UpdateSource(c *gin.Context) {
 	}
 	updatedSource.UserID = userID
 	if err := impl.GetModelsService().SourceModel.UpdateSource(c, &updatedSource); err != nil {
-		log.Printf("[UpdateSource] Error: %v", err)
+		log.Printf("[UpdateSource] Error: %v", "Failed to update source")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update source"})
 		return
 	}

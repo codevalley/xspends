@@ -355,3 +355,194 @@ func TestCreateSource(t *testing.T) {
 		})
 	}
 }
+
+// Successfully update a source with valid input
+func TestUpdateSource(t *testing.T) {
+	// Set up test environment
+	gin.SetMode(gin.TestMode)
+	_, _, _, _, tearDown := testutils.SetupModelTestEnvironment(t)
+	defer tearDown()
+
+	// Set up mock dependencies
+	mockSourceModel := testutils.MockSourceModel
+	defer mockSourceModel.AssertExpectations(t)
+
+	// Define test cases
+	tests := []struct {
+		name           string
+		setupMock      func()
+		userID         string
+		requestBody    string
+		expectedStatus int
+		expectedBody   string
+	}{
+		{
+			name: "Successful update",
+			setupMock: func() {
+				mockSourceModel.On("UpdateSource", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("*interfaces.Source"), mock.AnythingOfType("[]*sql.Tx")).
+					Return(nil).Once()
+			},
+			requestBody:    `{"name": "Updated Source"}`,
+			userID:         "1",
+			expectedStatus: http.StatusOK,
+			expectedBody:   `{"balance":0, "created_at":"0001-01-01T00:00:00Z", "id":0, "name":"Updated Source", "type":"", "updated_at":"0001-01-01T00:00:00Z", "user_id":1}`,
+		},
+		{
+			name: "Invalid request body",
+			setupMock: func() {
+				// No mock setup needed as the handler should return error before reaching the model
+			},
+			requestBody:    `{"name": "Updated Source",}`,
+			userID:         "1",
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   `{"error":"Invalid source data"}`,
+		},
+		{
+			name: "Unable to update source",
+			setupMock: func() {
+				mockSourceModel.On("UpdateSource", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("*interfaces.Source"), mock.AnythingOfType("[]*sql.Tx")).
+					Return(errors.New("unable to update source")).Once()
+			},
+			requestBody:    `{"name": "Updated Source"}`,
+			userID:         "1",
+			expectedStatus: http.StatusInternalServerError,
+			expectedBody:   `{"error":"Failed to update source"}`,
+		},
+		{
+			name: "User ID not authenticated",
+			setupMock: func() {
+				// No mock setup needed as the handler should return error before reaching the model
+			},
+			requestBody:    `{"name": "Updated Source"}`,
+			userID:         "",
+			expectedStatus: http.StatusUnauthorized,
+			expectedBody:   `{"error":"user not authenticated"}`,
+		},
+		{
+			name: "Source update fails",
+			setupMock: func() {
+				mockSourceModel.On("UpdateSource", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("*interfaces.Source"), mock.AnythingOfType("[]*sql.Tx")).
+					Return(errors.New("source update fails")).Once()
+			},
+			requestBody:    `{"name": "Updated Source"}`,
+			userID:         "1",
+			expectedStatus: http.StatusInternalServerError,
+			expectedBody:   `{"error":"Failed to update source"}`,
+		},
+		//doesn't handle the scenario where the payload is invalid.
+	}
+
+	// Run test cases
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest("PUT", "/categories/1", strings.NewReader(tc.requestBody))
+			c, _ := gin.CreateTestContext(w)
+			c.Request = r
+			// Set userID in the context
+			if tc.userID != "" {
+				userID, _ := strconv.ParseInt(tc.userID, 10, 64)
+				c.Set("userID", userID)
+			}
+			// Invoke code under test
+			tc.setupMock()
+			UpdateSource(c)
+
+			// Assert response
+			assert.Equal(t, tc.expectedStatus, w.Code)
+			assert.JSONEq(t, tc.expectedBody, w.Body.String())
+		})
+	}
+}
+
+// The function successfully deletes a source when valid user and source IDs are provided.
+func TestDeleteSource(t *testing.T) {
+	// Set up test environment
+	gin.SetMode(gin.TestMode)
+	_, _, _, _, tearDown := testutils.SetupModelTestEnvironment(t)
+	defer tearDown()
+
+	// Set up mock dependencies
+	mockSourceModel := testutils.MockSourceModel
+	defer mockSourceModel.AssertExpectations(t)
+
+	// Define test cases
+	tests := []struct {
+		name           string
+		setupMock      func()
+		userID         string
+		sourceID       string
+		expectedStatus int
+		expectedBody   string
+	}{
+		{
+			name: "Successful deletion",
+			setupMock: func() {
+				mockSourceModel.On("DeleteSource", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("int64"), mock.AnythingOfType("int64"), mock.AnythingOfType("[]*sql.Tx")).
+					Return(nil).Once()
+			},
+			userID:         "1",
+			sourceID:       "1",
+			expectedStatus: http.StatusOK,
+			expectedBody:   `{"message": "Source deleted successfully"}`,
+		},
+		{
+			name: "Invalid user ID",
+			setupMock: func() {
+				// No mock setup needed as the handler should return error before reaching the model
+			},
+			userID:         "",
+			sourceID:       "1",
+			expectedStatus: http.StatusUnauthorized,
+			expectedBody:   `{"error": "user not authenticated"}`,
+		},
+		{
+			name: "Invalid source ID",
+			setupMock: func() {
+				// No mock setup needed as the handler should return error before reaching the model
+			},
+			userID:         "1",
+			sourceID:       "",
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   `{"error": "source ID is required"}`,
+		},
+		{
+			name: "Error during source deletion",
+			setupMock: func() {
+				mockSourceModel.On("DeleteSource", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("int64"), mock.AnythingOfType("int64"), mock.AnythingOfType("[]*sql.Tx")).
+					Return(errors.New("Failed to delete source")).Once()
+			},
+			userID:         "1",
+			sourceID:       "1",
+			expectedStatus: http.StatusInternalServerError,
+			expectedBody:   `{"error": "Failed to delete source"}`,
+		},
+	}
+
+	// Run test cases
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest("DELETE", "/categories/"+tc.sourceID, nil)
+			c, _ := gin.CreateTestContext(w)
+			c.Request = r
+			// Set userID in the context
+			if tc.userID != "" {
+				userID, _ := strconv.ParseInt(tc.userID, 10, 64)
+				c.Set("userID", userID)
+			}
+			// Set user_id and source_id in Params
+			c.Params = gin.Params{
+				gin.Param{Key: "user_id", Value: tc.userID},
+				gin.Param{Key: "id", Value: tc.sourceID},
+			}
+			// Invoke code under test
+			tc.setupMock()
+			DeleteSource(c)
+
+			// Assert response
+			assert.Equal(t, tc.expectedStatus, w.Code)
+			assert.JSONEq(t, tc.expectedBody, w.Body.String())
+		})
+	}
+}
