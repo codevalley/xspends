@@ -1,11 +1,13 @@
 package impl
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 	"time"
 	"xspends/models/interfaces"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
@@ -64,7 +66,45 @@ func TestDeleteUser(t *testing.T) {
 	err := mockModelService.UserModel.DeleteUser(ctx, userID)
 	assert.NoError(t, err)
 }
+func TestGetUserByID(t *testing.T) {
+	// Create a new sqlmock database connection
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("An error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+	mockDBService := &DBService{Executor: db}
+	mockModelService = &ModelsServiceContainer{
+		DBService: mockDBService,
+		UserModel: &UserModel{},
+		// Initialize other models as necessary
+	}
+	ModelsService = mockModelService
 
-// Add more test cases for GetUserByID, GetUserByUsername, UserExists, UserIDExists
+	// Set up expectations
+	userID := int64(1)
+	rows := sqlmock.NewRows([]string{"id", "username", "name", "email", "currency", "password"}).
+		AddRow(userID, "testuser", "Test User", "test@example.com", "USD", "hashedpassword")
+	mock.ExpectQuery("^SELECT (.+) FROM users WHERE").WithArgs(userID).WillReturnRows(rows)
+
+	// Call the function under test
+	ctx := context.Background()
+	user, err := mockModelService.UserModel.GetUserByID(ctx, userID)
+
+	// Assertions
+	assert.NoError(t, err)
+	assert.NotNil(t, user)
+	assert.Equal(t, userID, user.ID)
+	assert.Equal(t, "testuser", user.Username)
+	assert.Equal(t, "Test User", user.Name)
+	assert.Equal(t, "test@example.com", user.Email)
+	assert.Equal(t, "USD", user.Currency)
+	assert.Equal(t, "hashedpassword", user.Password)
+
+	// Ensure all expectations were met
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
 
 // Add more test cases for UpdateUser, DeleteUser, GetUserByUsername, UserExists, UserIDExists
