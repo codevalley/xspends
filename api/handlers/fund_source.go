@@ -107,18 +107,18 @@ func CreateSource(c *gin.Context) {
 	}
 	var newSource interfaces.Source
 	if err := c.ShouldBindJSON(&newSource); err != nil {
-		log.Printf("[CreateSource] Error: %v", err)
+		log.Printf("[CreateSource] Error: %v", "Invalid source data")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid source data"})
 		return
 	}
 	newSource.UserID = userID
 	if err := impl.GetModelsService().SourceModel.InsertSource(c, &newSource); err != nil {
-		log.Printf("[CreateSource] Error: %v", err)
+		log.Printf("[CreateSource] Error: %v", "Failed to create source")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create source"})
 		return
 	}
 
-	c.JSON(http.StatusOK, newSource)
+	c.JSON(http.StatusCreated, newSource)
 }
 
 // @Summary Update a specific source
