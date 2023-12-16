@@ -80,9 +80,8 @@ func TestGetSourceByID(t *testing.T) {
 	defer db.Close()
 	mockDBService := &DBService{Executor: db}
 	mockModelService = &ModelsServiceContainer{
-		DBService:     mockDBService,
-		CategoryModel: &CategoryModel{},
-		SourceModel:   &SourceModel{},
+		DBService:   mockDBService,
+		SourceModel: &SourceModel{},
 	}
 	ModelsService = mockModelService
 	// Set up expectations

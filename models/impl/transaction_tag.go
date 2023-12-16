@@ -116,11 +116,11 @@ func DeleteTransactionTag(ctx context.Context, transactionID, tagID int64, dbSer
 	return nil
 }
 
-func AddTagsToTransaction(ctx context.Context, transactionID int64, tags []string, userID int64, dbService *DBService, otx ...*sql.Tx) error {
+func AddTagsToTransaction(ctx context.Context, transactionID int64, tags []string, userID int64, dbService *DBService, otx ...*sql.Tx) error { //todo Remove DBService param
 	isExternalTx, executor := getExecutor(dbService, otx...)
 
 	for _, tagName := range tags {
-		tag, err := GetTagByName(ctx, tagName, userID, dbService, otx...)
+		tag, err := GetModelsService().TagModel.GetTagByName(ctx, tagName, userID, otx...)
 		if err != nil {
 			return errors.Wrap(err, "error getting tag by name")
 		}

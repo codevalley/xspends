@@ -27,7 +27,9 @@ package impl
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
+	"xspends/models/interfaces"
 	"xspends/util"
 
 	"github.com/Masterminds/squirrel"
@@ -46,13 +48,11 @@ type Tag struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-type PaginationParams struct {
-	Limit  int
-	Offset int
+type TagModel struct {
 }
 
-func InsertTag(ctx context.Context, tag *Tag, dbService *DBService, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(dbService, otx...)
+func (tm *TagModel) InsertTag(ctx context.Context, tag *interfaces.Tag, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutorNew(otx...)
 
 	if tag.UserID <= 0 || len(tag.Name) == 0 || len(tag.Name) > maxTagNameLength {
 		return errors.New("invalid input for tag")
@@ -81,8 +81,8 @@ func InsertTag(ctx context.Context, tag *Tag, dbService *DBService, otx ...*sql.
 	return nil
 }
 
-func UpdateTag(ctx context.Context, tag *Tag, dbService *DBService, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(dbService, otx...)
+func (tm *TagModel) UpdateTag(ctx context.Context, tag *interfaces.Tag, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutorNew(otx...)
 
 	if tag.UserID <= 0 || len(tag.Name) == 0 || len(tag.Name) > maxTagNameLength {
 		return errors.New("invalid input for tag")
@@ -110,8 +110,8 @@ func UpdateTag(ctx context.Context, tag *Tag, dbService *DBService, otx ...*sql.
 	return nil
 }
 
-func DeleteTag(ctx context.Context, tagID int64, userID int64, dbService *DBService, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(dbService, otx...)
+func (tm *TagModel) DeleteTag(ctx context.Context, tagID int64, userID int64, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutorNew(otx...)
 
 	query, args, err := squirrel.Delete("tags").
 		Where(squirrel.Eq{"id": tagID, "user_id": userID}).
@@ -132,8 +132,8 @@ func DeleteTag(ctx context.Context, tagID int64, userID int64, dbService *DBServ
 	return nil
 }
 
-func GetTagByID(ctx context.Context, tagID int64, userID int64, dbService *DBService, otx ...*sql.Tx) (*Tag, error) {
-	_, executor := getExecutor(dbService, otx...)
+func (tm *TagModel) GetTagByID(ctx context.Context, tagID int64, userID int64, otx ...*sql.Tx) (*interfaces.Tag, error) {
+	_, executor := getExecutorNew(otx...)
 
 	query, args, err := squirrel.Select("id", "user_id", "name", "created_at", "updated_at").
 		From("tags").
@@ -144,9 +144,9 @@ func GetTagByID(ctx context.Context, tagID int64, userID int64, dbService *DBSer
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build query for retrieving tag by ID")
 	}
-
+	fmt.Printf("SQL Query: %s\nArguments: %v\n", query, args)
 	row := executor.QueryRowContext(ctx, query, args...)
-	tag := &Tag{}
+	tag := &interfaces.Tag{}
 	err = row.Scan(&tag.ID, &tag.UserID, &tag.Name, &tag.CreatedAt, &tag.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -158,8 +158,8 @@ func GetTagByID(ctx context.Context, tagID int64, userID int64, dbService *DBSer
 	return tag, nil
 }
 
-func GetAllTags(ctx context.Context, userID int64, pagination PaginationParams, dbService *DBService, otx ...*sql.Tx) ([]Tag, error) {
-	_, executor := getExecutor(dbService, otx...)
+func (tm *TagModel) GetAllTags(ctx context.Context, userID int64, pagination interfaces.PaginationParams, otx ...*sql.Tx) ([]interfaces.Tag, error) {
+	_, executor := getExecutorNew(otx...)
 
 	query, args, err := squirrel.Select("id", "user_id", "name", "created_at", "updated_at").
 		From("tags").
@@ -179,9 +179,9 @@ func GetAllTags(ctx context.Context, userID int64, pagination PaginationParams, 
 	}
 	defer rows.Close()
 
-	var tags []Tag
+	var tags []interfaces.Tag
 	for rows.Next() {
-		var tag Tag
+		var tag interfaces.Tag
 		err := rows.Scan(&tag.ID, &tag.UserID, &tag.Name, &tag.CreatedAt, &tag.UpdatedAt)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to scan tag")
@@ -196,8 +196,8 @@ func GetAllTags(ctx context.Context, userID int64, pagination PaginationParams, 
 	return tags, nil
 }
 
-func GetTagByName(ctx context.Context, name string, userID int64, dbService *DBService, otx ...*sql.Tx) (*Tag, error) {
-	_, executor := getExecutor(dbService, otx...)
+func (tm *TagModel) GetTagByName(ctx context.Context, name string, userID int64, otx ...*sql.Tx) (*interfaces.Tag, error) {
+	_, executor := getExecutorNew(otx...)
 
 	query, args, err := squirrel.Select("id", "user_id", "name", "created_at", "updated_at").
 		From("tags").
@@ -210,7 +210,7 @@ func GetTagByName(ctx context.Context, name string, userID int64, dbService *DBS
 	}
 
 	row := executor.QueryRowContext(ctx, query, args...)
-	tag := &Tag{}
+	tag := &interfaces.Tag{}
 	err = row.Scan(&tag.ID, &tag.UserID, &tag.Name, &tag.CreatedAt, &tag.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {

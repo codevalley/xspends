@@ -42,6 +42,7 @@ func setUp(t *testing.T) func() {
 		CategoryModel: &CategoryModel{},
 		SourceModel:   &SourceModel{},
 		UserModel:     &UserModel{},
+		TagModel:      &TagModel{},
 	}
 	ModelsService = mockModelService
 	return func() { ctrl.Finish() }
@@ -312,7 +313,6 @@ func TestGetCategoryByIDWithDatabase(t *testing.T) {
 	mockModelService = &ModelsServiceContainer{
 		DBService:     mockDBService,
 		CategoryModel: &CategoryModel{},
-		SourceModel:   &SourceModel{},
 	}
 	ModelsService = mockModelService
 
@@ -353,7 +353,6 @@ func TestCategoryIDExistsWithDatabase(t *testing.T) {
 	mockModelService = &ModelsServiceContainer{
 		DBService:     mockDBService,
 		CategoryModel: &CategoryModel{},
-		SourceModel:   &SourceModel{},
 	}
 	ModelsService = mockModelService
 

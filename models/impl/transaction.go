@@ -30,6 +30,7 @@ import (
 
 	"time"
 
+	"xspends/models/interfaces"
 	"xspends/util"
 
 	"github.com/Masterminds/squirrel"
@@ -323,15 +324,15 @@ func validateForeignKeyReferences(ctx context.Context, txn Transaction, dbServic
 func addMissingTags(ctx context.Context, transactionID int64, tagNames []string, userID int64, dbService *DBService, otx ...*sql.Tx) error {
 	// Ensure all tags are present in the database
 	for _, tagName := range tagNames {
-		tag, _ := GetTagByName(ctx, tagName, userID, dbService, otx...)
+		tag, _ := GetModelsService().TagModel.GetTagByName(ctx, tagName, userID, otx...)
 
 		if tag == nil {
 			// Tag does not exist; create it
-			newTag := Tag{
+			newTag := interfaces.Tag{
 				UserID: userID,
 				Name:   tagName,
 			}
-			if err := InsertTag(ctx, &newTag, dbService, otx...); err != nil {
+			if err := GetModelsService().TagModel.InsertTag(ctx, &newTag, otx...); err != nil {
 				return errors.Wrapf(err, "failed to insert new tag '%s'", tagName)
 			}
 		}

@@ -9,6 +9,7 @@ type ModelsServiceContainer struct {
 	CategoryModel interfaces.CategoryService
 	SourceModel   interfaces.SourceService
 	UserModel     interfaces.UserService
+	TagModel      interfaces.TagService
 	// other models...
 }
 
@@ -18,6 +19,7 @@ func NewModelsServiceContainer() *ModelsServiceContainer {
 		CategoryModel: &CategoryModel{}, // Initialize other models as needed
 		SourceModel:   &SourceModel{},
 		UserModel:     &UserModel{},
+		TagModel:      &TagModel{},
 		// initialize other models...
 	}
 }

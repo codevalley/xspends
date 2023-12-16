@@ -28,6 +28,7 @@ import (
 	"net/http"
 	"strconv"
 	"xspends/models/impl"
+	"xspends/models/interfaces"
 
 	"github.com/gin-gonic/gin"
 )
@@ -73,7 +74,7 @@ func ListTags(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", strconv.Itoa(defaultLimit)))
 	offset, _ := strconv.Atoi(c.Query("offset"))
 
-	tags, err := impl.GetAllTags(c, userID, impl.PaginationParams{Limit: limit, Offset: offset}, nil)
+	tags, err := impl.GetModelsService().TagModel.GetAllTags(c, userID, interfaces.PaginationParams{Limit: limit, Offset: offset}, nil)
 	if err != nil {
 		log.Printf("[ListTags] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch tags"})
@@ -109,7 +110,7 @@ func GetTag(c *gin.Context) {
 		return
 	}
 
-	tag, err := impl.GetTagByID(c, tagID, userID, nil)
+	tag, err := impl.GetModelsService().TagModel.GetTagByID(c, tagID, userID, nil)
 	if err != nil {
 		log.Printf("[GetTag] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "tag not found"})
@@ -135,7 +136,7 @@ func CreateTag(c *gin.Context) {
 		return
 	}
 
-	var newTag impl.Tag
+	var newTag interfaces.Tag
 	if err := c.ShouldBindJSON(&newTag); err != nil {
 		log.Printf("[CreateTag] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -147,7 +148,7 @@ func CreateTag(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "tag name exceeds maximum length"})
 		return
 	}
-	if err := impl.InsertTag(c, &newTag, nil); err != nil {
+	if err := impl.GetModelsService().TagModel.InsertTag(c, &newTag, nil); err != nil {
 		log.Printf("[CreateTag] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create tag"})
 		return
@@ -173,7 +174,7 @@ func UpdateTag(c *gin.Context) {
 		return
 	}
 
-	var updatedTag impl.Tag
+	var updatedTag interfaces.Tag
 	if err := c.ShouldBindJSON(&updatedTag); err != nil {
 		log.Printf("[UpdateTag] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -185,7 +186,7 @@ func UpdateTag(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "tag name exceeds maximum length"})
 		return
 	}
-	if err := impl.UpdateTag(c, &updatedTag, nil); err != nil {
+	if err := impl.GetModelsService().TagModel.UpdateTag(c, &updatedTag, nil); err != nil {
 		log.Printf("[UpdateTag] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update tag"})
 		return
@@ -214,7 +215,7 @@ func DeleteTag(c *gin.Context) {
 		return
 	}
 
-	if err := impl.DeleteTag(c, tagID, userID, nil); err != nil {
+	if err := impl.GetModelsService().TagModel.DeleteTag(c, tagID, userID, nil); err != nil {
 		log.Printf("[DeleteTag] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete tag"})
 		return
