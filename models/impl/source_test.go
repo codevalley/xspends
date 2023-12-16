@@ -25,6 +25,7 @@ func TestInsertSource(t *testing.T) {
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
+
 	mockExecutor.EXPECT().
 		ExecContext(gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(sql.Result(nil), nil).
@@ -32,6 +33,27 @@ func TestInsertSource(t *testing.T) {
 
 	err := mockModelService.SourceModel.InsertSource(ctx, source)
 	assert.NoError(t, err)
+	//test for generic query error
+	mockExecutor.EXPECT().
+		ExecContext(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(sql.Result(nil), errors.New("executing insert for source")).
+		Times(1)
+
+	err = mockModelService.SourceModel.InsertSource(ctx, source)
+	assert.Error(t, err)
+	//test for invalid source type
+	source = &interfaces.Source{
+		UserID:    1,
+		Name:      "Test Source",
+		Type:      "Invalid type",
+		Balance:   100.0,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	err = mockModelService.SourceModel.InsertSource(ctx, source)
+	assert.Error(t, err)
+
 }
 
 func TestUpdateSource(t *testing.T) {
@@ -54,6 +76,27 @@ func TestUpdateSource(t *testing.T) {
 
 	err := mockModelService.SourceModel.UpdateSource(ctx, source)
 	assert.NoError(t, err)
+
+	//test for generic query error
+	mockExecutor.EXPECT().
+		ExecContext(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(sql.Result(nil), errors.New("executing insert for source")).
+		Times(1)
+
+	err = mockModelService.SourceModel.UpdateSource(ctx, source)
+	assert.Error(t, err)
+	//test for invalid source type
+	source = &interfaces.Source{
+		UserID:    1,
+		Name:      "Test Source",
+		Type:      "Invalid type",
+		Balance:   100.0,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	err = mockModelService.SourceModel.UpdateSource(ctx, source)
+	assert.Error(t, err)
 }
 
 func TestDeleteSource(t *testing.T) {
@@ -199,6 +242,22 @@ func TestGetSources(t *testing.T) {
 	_, err = mockModelService.SourceModel.GetSources(ctx, userID)
 
 	assert.Error(t, err)
+
+	//test row processing error
+	rows := sqlmock.NewRows([]string{"id", "user_id", "name", "type", "balance", "created_at", "updated_at"}).
+		AddRow(1, userID, "Source 1", "CREDIT", 100.00, time.Now(), time.Now()).
+		AddRow(2, userID, "Source 2", "SAVINGS", 200.00, time.Now(), time.Now()).
+		RowError(1, errors.New("row processing error"))
+
+	mock.ExpectQuery(`SELECT id, user_id, name, type, balance, created_at, updated_at FROM sources WHERE user_id = \?`).
+		WithArgs(userID).
+		WillReturnRows(rows)
+
+	_, err = mockModelService.SourceModel.GetSources(ctx, userID)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "during row processing for sources: row processing error")
+
 }
 
 func TestSourceIDExists(t *testing.T) {
