@@ -27,7 +27,6 @@ package impl
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"time"
 	"xspends/models/interfaces"
 	"xspends/util"
@@ -144,7 +143,7 @@ func (tm *TagModel) GetTagByID(ctx context.Context, tagID int64, userID int64, o
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build query for retrieving tag by ID")
 	}
-	fmt.Printf("SQL Query: %s\nArguments: %v\n", query, args)
+
 	row := executor.QueryRowContext(ctx, query, args...)
 	tag := &interfaces.Tag{}
 	err = row.Scan(&tag.ID, &tag.UserID, &tag.Name, &tag.CreatedAt, &tag.UpdatedAt)

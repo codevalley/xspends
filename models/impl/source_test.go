@@ -54,6 +54,31 @@ func TestInsertSource(t *testing.T) {
 	err = mockModelService.SourceModel.InsertSource(ctx, source)
 	assert.Error(t, err)
 
+	//test for missing source name
+	source = &interfaces.Source{
+		UserID:    1,
+		Name:      "",
+		Type:      "Invalid type",
+		Balance:   100.0,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	err = mockModelService.SourceModel.InsertSource(ctx, source)
+	assert.Error(t, err)
+
+	//test for missing user ID
+	source = &interfaces.Source{
+		Name:      "Source name",
+		Type:      "Invalid type",
+		Balance:   100.0,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	err = mockModelService.SourceModel.InsertSource(ctx, source)
+	assert.Error(t, err)
+
 }
 
 func TestUpdateSource(t *testing.T) {
@@ -89,6 +114,31 @@ func TestUpdateSource(t *testing.T) {
 	source = &interfaces.Source{
 		UserID:    1,
 		Name:      "Test Source",
+		Type:      "Invalid type",
+		Balance:   100.0,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	err = mockModelService.SourceModel.UpdateSource(ctx, source)
+	assert.Error(t, err)
+
+	//test for missing source name
+	source = &interfaces.Source{
+		UserID:    1,
+		Name:      "",
+		Type:      "Invalid type",
+		Balance:   100.0,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	err = mockModelService.SourceModel.UpdateSource(ctx, source)
+	assert.Error(t, err)
+
+	//test for missing user ID
+	source = &interfaces.Source{
+		Name:      "Source name",
 		Type:      "Invalid type",
 		Balance:   100.0,
 		CreatedAt: time.Now(),
