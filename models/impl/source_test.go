@@ -107,4 +107,81 @@ func TestGetSourceByID(t *testing.T) {
 	}
 }
 
-// Add similar tests for GetSources and SourceIDExists
+func TestGetSources(t *testing.T) {
+	tearDown := setUp(t)
+	defer tearDown()
+
+	userID := int64(1)
+
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("An error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	mockDBService := &DBService{Executor: db}
+	mockModelService = &ModelsServiceContainer{
+		DBService:   mockDBService,
+		SourceModel: &SourceModel{},
+	}
+	ModelsService = mockModelService
+
+	mockRows := sqlmock.NewRows([]string{"id", "user_id", "name", "type", "balance", "created_at", "updated_at"}).
+		AddRow(1, userID, "Source 1", "CREDIT", 100.00, time.Now(), time.Now()).
+		AddRow(2, userID, "Source 2", "SAVINGS", 200.00, time.Now(), time.Now())
+
+	// Set up the expected query with sqlmock
+	mock.ExpectQuery(`SELECT id, user_id, name, type, balance, created_at, updated_at FROM sources WHERE user_id = \?`).
+		WithArgs(userID).
+		WillReturnRows(mockRows)
+
+	ctx := context.Background()
+	sources, err := mockModelService.SourceModel.GetSources(ctx, userID)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, sources)
+	assert.Equal(t, 2, len(sources)) // Assuming 2 sources are returned
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestSourceIDExists(t *testing.T) {
+	tearDown := setUp(t)
+	defer tearDown()
+
+	sourceID := int64(1)
+	userID := int64(1)
+
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("An error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	mockDBService := &DBService{Executor: db}
+	mockModelService = &ModelsServiceContainer{
+		DBService:   mockDBService,
+		SourceModel: &SourceModel{},
+	}
+	ModelsService = mockModelService
+
+	// Prepare a row with a single column that represents 'exists'
+	mockRows := sqlmock.NewRows([]string{"1"}).AddRow(1) // Assuming the source exists
+
+	// Set up the expected query with sqlmock
+	mock.ExpectQuery(`SELECT 1 FROM sources WHERE id = \? AND user_id = \? LIMIT 1`).
+		WithArgs(sourceID, userID).
+		WillReturnRows(mockRows)
+
+	ctx := context.Background()
+	exists, err := mockModelService.SourceModel.SourceIDExists(ctx, sourceID, userID)
+
+	assert.NoError(t, err)
+	assert.True(t, exists) // Assuming the source exists
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}

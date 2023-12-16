@@ -187,3 +187,44 @@ func TestUpdateInvalidTag(t *testing.T) {
 	assert.NotNil(t, err, "Expected error due to invalid tag")
 	assert.Contains(t, err.Error(), "invalid input for tag", "Expected 'invalid input for tag' error")
 }
+
+func TestGetTagByName(t *testing.T) {
+	tearDown := setUp(t)
+	defer tearDown()
+
+	userID := int64(1)
+	tagName := "Test Tag"
+
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("An error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	mockDBService := &DBService{Executor: db}
+	mockModelService = &ModelsServiceContainer{
+		DBService: mockDBService,
+		TagModel:  &TagModel{},
+	}
+	ModelsService = mockModelService
+
+	mockRows := sqlmock.NewRows([]string{"id", "user_id", "name", "created_at", "updated_at"}).
+		AddRow(1, userID, tagName, time.Now(), time.Now())
+
+	// Set up the expected query with sqlmock
+	mock.ExpectQuery(`SELECT id, user_id, name, created_at, updated_at FROM tags WHERE name = \? AND user_id = \?`).
+		WithArgs(tagName, userID).
+		WillReturnRows(mockRows)
+
+	ctx := context.Background()
+	tag, err := mockModelService.TagModel.GetTagByName(ctx, tagName, userID)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, tag)
+	assert.Equal(t, tagName, tag.Name)
+	assert.Equal(t, userID, tag.UserID)
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
