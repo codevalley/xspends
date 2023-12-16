@@ -9,6 +9,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/golang/mock/gomock"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -69,6 +70,32 @@ func TestDeleteSource(t *testing.T) {
 
 	err := mockModelService.SourceModel.DeleteSource(ctx, sourceID, userID)
 	assert.NoError(t, err)
+
+	//test for generic query error
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("An error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+	mockDBService := &DBService{Executor: db}
+	mockModelService = &ModelsServiceContainer{
+		DBService:   mockDBService,
+		SourceModel: &SourceModel{},
+	}
+	ModelsService = mockModelService
+	// Set up the expected query with sqlmock to return an error
+	mock.ExpectExec(`DELETE FROM sources WHERE id = \? AND user_id = \?`).
+		WithArgs(sourceID, userID).
+		WillReturnError(errors.New("execution error"))
+
+	ctx := context.Background()
+	err = mockModelService.SourceModel.DeleteSource(ctx, sourceID, userID)
+
+	assert.Error(t, err) // Expecting an error
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
 }
 
 func TestGetSourceByID(t *testing.T) {
@@ -103,8 +130,26 @@ func TestGetSourceByID(t *testing.T) {
 
 	// Ensure all expectations were met
 	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Errorf("there were unfulfilled expectations: %s", err)
+		t.Errorf("source not found")
 	}
+
+	//test for query error with no rows found
+	mock.ExpectQuery("^SELECT (.+) FROM sources WHERE").WithArgs(1, 1).
+		WillReturnError(sql.ErrNoRows)
+
+	exists, err1 := mockModelService.SourceModel.GetSourceByID(ctx, 1, 1)
+
+	assert.Error(t, err1)
+	assert.True(t, exists == nil) // Source does not exist
+
+	//test for generic query error
+	mock.ExpectQuery("^SELECT (.+) FROM sources WHERE").WithArgs(1, 1).
+		WillReturnError(errors.New("query execution error"))
+
+	_, err = mockModelService.SourceModel.GetSourceByID(ctx, 1, 1)
+
+	assert.Error(t, err)
+
 }
 
 func TestGetSources(t *testing.T) {
@@ -145,6 +190,15 @@ func TestGetSources(t *testing.T) {
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
+
+	//test for generic query error
+	mock.ExpectQuery(`SELECT id, user_id, name, type, balance, created_at, updated_at FROM sources WHERE user_id = \?`).
+		WithArgs(userID).
+		WillReturnError(errors.New("query execution error"))
+
+	_, err = mockModelService.SourceModel.GetSources(ctx, userID)
+
+	assert.Error(t, err)
 }
 
 func TestSourceIDExists(t *testing.T) {
@@ -184,4 +238,22 @@ func TestSourceIDExists(t *testing.T) {
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
+	//test for query error with no rows found
+	mock.ExpectQuery(`SELECT 1 FROM sources WHERE id = \? AND user_id = \? LIMIT 1`).
+		WithArgs(sourceID, userID).
+		WillReturnError(sql.ErrNoRows)
+
+	exists, err = mockModelService.SourceModel.SourceIDExists(ctx, sourceID, userID)
+
+	assert.NoError(t, err)
+	assert.False(t, exists) // Source does not exist
+
+	//test for generic query error
+	mock.ExpectQuery(`SELECT 1 FROM sources WHERE id = \? AND user_id = \? LIMIT 1`).
+		WithArgs(sourceID, userID).
+		WillReturnError(errors.New("query execution error"))
+
+	_, err = mockModelService.SourceModel.SourceIDExists(ctx, sourceID, userID)
+
+	assert.Error(t, err)
 }
