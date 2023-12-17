@@ -5,21 +5,23 @@ import (
 )
 
 type ModelsServiceContainer struct {
-	DBService     *DBService
-	CategoryModel interfaces.CategoryService
-	SourceModel   interfaces.SourceService
-	UserModel     interfaces.UserService
-	TagModel      interfaces.TagService
+	DBService           *DBService
+	CategoryModel       interfaces.CategoryService
+	SourceModel         interfaces.SourceService
+	UserModel           interfaces.UserService
+	TagModel            interfaces.TagService
+	TransactionTagModel interfaces.TransactionTagService
 	// other models...
 }
 
 func NewModelsServiceContainer() *ModelsServiceContainer {
 	return &ModelsServiceContainer{
-		DBService:     GetDBService(),   // Using the existing DBService instance
-		CategoryModel: &CategoryModel{}, // Initialize other models as needed
-		SourceModel:   &SourceModel{},
-		UserModel:     &UserModel{},
-		TagModel:      &TagModel{},
+		DBService:           GetDBService(),   // Using the existing DBService instance
+		CategoryModel:       &CategoryModel{}, // Initialize other models as needed
+		SourceModel:         &SourceModel{},
+		UserModel:           &UserModel{},
+		TagModel:            &TagModel{},
+		TransactionTagModel: &TransactionTagModel{},
 		// initialize other models...
 	}
 }

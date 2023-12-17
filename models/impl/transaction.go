@@ -79,7 +79,7 @@ func InsertTransaction(ctx context.Context, txn Transaction, dbService *DBServic
 	txn.ID, _ = util.GenerateSnowflakeID()
 	txn.Timestamp = time.Now()
 
-	if err := validateForeignKeyReferences(ctx, txn, dbService, otx...); err != nil {
+	if err := validateForeignKeyReferences(ctx, txn, otx...); err != nil {
 		return errors.Wrap(err, "validating foreign key references failed")
 	}
 
@@ -100,7 +100,7 @@ func InsertTransaction(ctx context.Context, txn Transaction, dbService *DBServic
 		return errors.Wrap(err, "handling transaction tags failed")
 	}
 	// Associate tags with the transaction
-	if err := AddTagsToTransaction(ctx, txn.ID, txn.Tags, txn.UserID, dbService, otx...); err != nil {
+	if err := GetModelsService().TransactionTagModel.AddTagsToTransaction(ctx, txn.ID, txn.Tags, txn.UserID, otx...); err != nil {
 		return errors.Wrap(err, "adding tags to transaction failed")
 	}
 	commitOrRollback(executor, isExternalTx, err)
@@ -112,7 +112,7 @@ func UpdateTransaction(ctx context.Context, txn Transaction, dbService *DBServic
 	isExternalTx, executor := getExecutor(dbService, otx...)
 
 	// Validate foreign key references
-	if err := validateForeignKeyReferences(ctx, txn, dbService, otx...); err != nil {
+	if err := validateForeignKeyReferences(ctx, txn, otx...); err != nil {
 		return errors.Wrap(err, "validating foreign key references failed")
 	}
 
@@ -138,7 +138,7 @@ func UpdateTransaction(ctx context.Context, txn Transaction, dbService *DBServic
 	if err := addMissingTags(ctx, txn.ID, txn.Tags, txn.UserID, dbService, otx...); err != nil {
 		return errors.Wrap(err, "adding missing tags failed")
 	}
-	if err := UpdateTagsForTransaction(ctx, txn.ID, txn.Tags, txn.UserID, dbService, otx...); err != nil {
+	if err := GetModelsService().TransactionTagModel.UpdateTagsForTransaction(ctx, txn.ID, txn.Tags, txn.UserID, otx...); err != nil {
 		return errors.Wrap(err, "updating tags for transaction failed")
 	}
 
@@ -187,7 +187,7 @@ func GetTransactionByID(ctx context.Context, transactionID int64, userID int64, 
 		return nil, errors.Wrap(err, "get transaction by ID failed")
 	}
 
-	getTagsForTransaction(ctx, &transaction, dbService, otx...)
+	getTagsForTransaction(ctx, &transaction, otx...)
 
 	return &transaction, nil
 }
@@ -264,7 +264,7 @@ func GetTransactionsByFilter(ctx context.Context, filter TransactionFilter, dbSe
 		if err := rows.Scan(&transaction.ID, &transaction.UserID, &transaction.SourceID, &transaction.CategoryID, &transaction.Timestamp, &transaction.Amount, &transaction.Type, &transaction.Description); err != nil {
 			return nil, errors.Wrap(err, "scanning transaction failed")
 		}
-		getTagsForTransaction(ctx, &transaction, dbService, otx...)
+		getTagsForTransaction(ctx, &transaction, otx...)
 		transactions = append(transactions, transaction)
 	}
 	if err = rows.Err(); err != nil {
@@ -274,8 +274,8 @@ func GetTransactionsByFilter(ctx context.Context, filter TransactionFilter, dbSe
 	return transactions, nil
 }
 
-func getTagsForTransaction(ctx context.Context, transaction *Transaction, dbService *DBService, otx ...*sql.Tx) error {
-	tags, err := GetTagsByTransactionID(ctx, transaction.ID, dbService, otx...)
+func getTagsForTransaction(ctx context.Context, transaction *Transaction, otx ...*sql.Tx) error {
+	tags, err := GetModelsService().TransactionTagModel.GetTagsByTransactionID(ctx, transaction.ID, otx...)
 	if err != nil {
 		return errors.Wrap(err, "Couldn't fetch tags for the transaction")
 	}
@@ -289,7 +289,7 @@ func getTagsForTransaction(ctx context.Context, transaction *Transaction, dbServ
 }
 
 // validateForeignKeyReferences checks if the foreign keys in the transaction exist.
-func validateForeignKeyReferences(ctx context.Context, txn Transaction, dbService *DBService, otx ...*sql.Tx) error {
+func validateForeignKeyReferences(ctx context.Context, txn Transaction, otx ...*sql.Tx) error {
 	// Check if the user exists
 	userExists, err := GetModelsService().UserModel.UserIDExists(ctx, txn.UserID)
 	if err != nil {

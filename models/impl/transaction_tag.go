@@ -37,8 +37,8 @@ import (
 type TransactionTagModel struct {
 }
 
-func GetTagsByTransactionID(ctx context.Context, transactionID int64, dbService *DBService, otx ...*sql.Tx) ([]interfaces.Tag, error) {
-	_, executor := getExecutor(dbService, otx...)
+func (tm *TransactionTagModel) GetTagsByTransactionID(ctx context.Context, transactionID int64, otx ...*sql.Tx) ([]interfaces.Tag, error) {
+	_, executor := getExecutorNew(otx...)
 
 	query, args, err := squirrel.Select("t.id", "t.name").
 		From("tags t").
@@ -69,8 +69,8 @@ func GetTagsByTransactionID(ctx context.Context, transactionID int64, dbService 
 	return tags, nil
 }
 
-func InsertTransactionTag(ctx context.Context, transactionID, tagID int64, dbService *DBService, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(dbService, otx...)
+func (tm *TransactionTagModel) InsertTransactionTag(ctx context.Context, transactionID, tagID int64, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutorNew(otx...)
 
 	query, args, err := squirrel.Insert("transaction_tags").
 		Columns("transaction_id", "tag_id", "created_at", "updated_at").
@@ -91,8 +91,8 @@ func InsertTransactionTag(ctx context.Context, transactionID, tagID int64, dbSer
 	return nil
 }
 
-func DeleteTransactionTag(ctx context.Context, transactionID, tagID int64, dbService *DBService, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(dbService, otx...)
+func (tm *TransactionTagModel) DeleteTransactionTag(ctx context.Context, transactionID, tagID int64, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutorNew(otx...)
 
 	query, args, err := squirrel.Delete("transaction_tags").
 		Where(squirrel.Eq{"transaction_id": transactionID, "tag_id": tagID}).
@@ -113,15 +113,15 @@ func DeleteTransactionTag(ctx context.Context, transactionID, tagID int64, dbSer
 	return nil
 }
 
-func AddTagsToTransaction(ctx context.Context, transactionID int64, tags []string, userID int64, dbService *DBService, otx ...*sql.Tx) error { //todo Remove DBService param
-	isExternalTx, executor := getExecutor(dbService, otx...)
+func (tm *TransactionTagModel) AddTagsToTransaction(ctx context.Context, transactionID int64, tags []string, userID int64, otx ...*sql.Tx) error { //todo Remove DBService param
+	isExternalTx, executor := getExecutorNew(otx...)
 
 	for _, tagName := range tags {
 		tag, err := GetModelsService().TagModel.GetTagByName(ctx, tagName, userID, otx...)
 		if err != nil {
 			return errors.Wrap(err, "error getting tag by name")
 		}
-		err = InsertTransactionTag(ctx, transactionID, tag.ID, dbService, otx...)
+		err = GetModelsService().TransactionTagModel.InsertTransactionTag(ctx, transactionID, tag.ID, otx...)
 		if err != nil {
 			return errors.Wrap(err, "error associating tag with transaction")
 		}
@@ -131,15 +131,15 @@ func AddTagsToTransaction(ctx context.Context, transactionID int64, tags []strin
 	return nil
 }
 
-func UpdateTagsForTransaction(ctx context.Context, transactionID int64, tags []string, userID int64, dbService *DBService, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(dbService, otx...)
+func (tm *TransactionTagModel) UpdateTagsForTransaction(ctx context.Context, transactionID int64, tags []string, userID int64, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutorNew(otx...)
 
-	err := DeleteTagsFromTransaction(ctx, transactionID, dbService, otx...)
+	err := GetModelsService().TransactionTagModel.DeleteTagsFromTransaction(ctx, transactionID, otx...)
 	if err != nil {
 		return errors.Wrap(err, "error removing existing tags from transaction")
 	}
 
-	err = AddTagsToTransaction(ctx, transactionID, tags, userID, dbService, otx...)
+	err = GetModelsService().TransactionTagModel.AddTagsToTransaction(ctx, transactionID, tags, userID, otx...)
 	if err != nil {
 		return errors.Wrap(err, "error adding new tags to transaction")
 	}
@@ -148,8 +148,8 @@ func UpdateTagsForTransaction(ctx context.Context, transactionID int64, tags []s
 	return nil
 }
 
-func DeleteTagsFromTransaction(ctx context.Context, transactionID int64, dbService *DBService, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(dbService, otx...)
+func (tm *TransactionTagModel) DeleteTagsFromTransaction(ctx context.Context, transactionID int64, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutorNew(otx...)
 
 	query, args, err := squirrel.Delete("transaction_tags").
 		Where(squirrel.Eq{"transaction_id": transactionID}).
