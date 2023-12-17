@@ -33,13 +33,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-type TransactionTag struct {
-	TransactionID int64     `json:"transaction_id"`
-	TagID         int64     `json:"tag_id"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
-}
-
 func GetTagsByTransactionID(ctx context.Context, transactionID int64, dbService *DBService, otx ...*sql.Tx) ([]Tag, error) {
 	_, executor := getExecutor(dbService, otx...)
 
