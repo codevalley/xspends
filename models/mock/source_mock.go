@@ -45,3 +45,7 @@ func (m *MockSourceModel) SourceIDExists(ctx context.Context, sourceID int64, us
 	args := m.Called(ctx, sourceID, userID, otx)
 	return args.Bool(0), args.Error(1)
 }
+
+// Idiomatic interface compliance check.
+// Ensure SourceModel implements SourceService
+var _ interfaces.SourceService = &MockSourceModel{}

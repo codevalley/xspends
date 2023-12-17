@@ -54,3 +54,7 @@ func (m *MockUserModel) UserIDExists(ctx context.Context, id int64, otx ...*sql.
 	args := m.Called(ctx, id, otx)
 	return args.Bool(0), args.Error(1)
 }
+
+// Idiomatic interface compliance check.
+// Ensure UserModel implements UserService
+var _ interfaces.UserService = &MockUserModel{}

@@ -48,3 +48,7 @@ func (m *MockTagModel) GetTagByName(ctx context.Context, name string, userID int
 	args := m.Called(ctx, name, userID, otx)
 	return args.Get(0).(*interfaces.Tag), args.Error(1)
 }
+
+// Idiomatic interface compliance check.
+// Ensure TagModel implements TagService
+var _ interfaces.TagService = &MockTagModel{}

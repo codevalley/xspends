@@ -50,3 +50,7 @@ func (m *MockCategoryModel) CategoryIDExists(ctx context.Context, categoryID int
 	args := m.Called(ctx, categoryID, userID, otx)
 	return args.Bool(0), args.Error(1)
 }
+
+// Idiomatic interface compliance check.
+// Ensure CategoryModel implements CategoryService
+var _ interfaces.CategoryService = &MockCategoryModel{}
