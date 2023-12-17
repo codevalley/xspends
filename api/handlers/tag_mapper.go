@@ -29,6 +29,7 @@ import (
 	"net/http"
 	"strconv"
 	"xspends/models/impl"
+	"xspends/models/interfaces"
 
 	"github.com/gin-gonic/gin"
 )
@@ -95,7 +96,7 @@ func AddTagToTransaction(c *gin.Context) {
 		return
 	}
 
-	var tag impl.Tag
+	var tag interfaces.Tag
 	if err := c.ShouldBindJSON(&tag); err != nil {
 		log.Printf("[AddTagToTransaction] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

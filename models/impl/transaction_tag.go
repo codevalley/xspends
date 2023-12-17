@@ -28,12 +28,16 @@ import (
 	"context"
 	"database/sql"
 	"time"
+	"xspends/models/interfaces"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/pkg/errors"
 )
 
-func GetTagsByTransactionID(ctx context.Context, transactionID int64, dbService *DBService, otx ...*sql.Tx) ([]Tag, error) {
+type TransactionTagModel struct {
+}
+
+func GetTagsByTransactionID(ctx context.Context, transactionID int64, dbService *DBService, otx ...*sql.Tx) ([]interfaces.Tag, error) {
 	_, executor := getExecutor(dbService, otx...)
 
 	query, args, err := squirrel.Select("t.id", "t.name").
@@ -53,9 +57,9 @@ func GetTagsByTransactionID(ctx context.Context, transactionID int64, dbService 
 	}
 	defer rows.Close()
 
-	var tags []Tag
+	var tags []interfaces.Tag
 	for rows.Next() {
-		var tag Tag
+		var tag interfaces.Tag
 		if err := rows.Scan(&tag.ID, &tag.Name); err != nil {
 			return nil, errors.Wrap(err, "error scanning tag row")
 		}
