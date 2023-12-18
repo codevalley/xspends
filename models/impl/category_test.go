@@ -38,11 +38,12 @@ func setUp(t *testing.T) func() {
 	mockExecutor = mock.NewMockDBExecutor(ctrl)
 	mockDBService = &DBService{Executor: mockExecutor}
 	mockModelService = &ModelsServiceContainer{
-		DBService:     mockDBService,
-		CategoryModel: &CategoryModel{},
-		SourceModel:   &SourceModel{},
-		UserModel:     &UserModel{},
-		TagModel:      &TagModel{},
+		DBService:           mockDBService,
+		CategoryModel:       &CategoryModel{},
+		SourceModel:         &SourceModel{},
+		UserModel:           &UserModel{},
+		TagModel:            &TagModel{},
+		TransactionTagModel: &TransactionTagModel{},
 	}
 	ModelsService = mockModelService
 	return func() { ctrl.Finish() }

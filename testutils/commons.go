@@ -41,6 +41,7 @@ func SetupModelTestEnvironment(t *testing.T) (context.Context, *impl.ModelsServi
 	MockUserModel = new(mock.MockUserModel)
 	MockSourceModel = new(mock.MockSourceModel)
 	MockTagModel = new(mock.MockTagModel)
+	MockTransactionTagModel = new(mock.MockTransactionTagModel)
 	// Create ModelsServiceContainer with mocks
 	impl.ModelsService = &impl.ModelsServiceContainer{
 		DBService:           MockDBService,
