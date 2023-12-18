@@ -27,7 +27,6 @@ package impl
 import (
 	"context"
 	"database/sql"
-	"log"
 	"time"
 	"xspends/models/interfaces"
 
@@ -80,14 +79,11 @@ func (tm *TransactionTagModel) InsertTransactionTag(ctx context.Context, transac
 		ToSql()
 
 	if err != nil {
-		log.Printf("Error building SQL query for InsertTransactionTag: %s", err)
 		return errors.Wrap(err, "failed to build SQL query for InsertTransactionTag")
 	}
 
 	_, err = executor.ExecContext(ctx, query, args...)
-	log.Printf("Executing SQL query for InsertTransactionTag: %s", query)
 	if err != nil {
-		log.Printf("Error executing SQL query for InsertTransactionTag: %s", err)
 		return errors.Wrap(err, "error inserting transaction tag")
 	}
 
