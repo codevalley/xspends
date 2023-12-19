@@ -1,8 +1,4 @@
-### Scribble pad
-- Create a Model Service wrapper for all models
-- Remove DBService param and directly access it via services file objects
 
-- Txn support for userstorer
 ### Logging & Monitoring
 - Implement structured logging with different log levels (info, error, debug, etc.).
 - Integrate with monitoring tools for database metrics.
@@ -21,7 +17,7 @@
 
 ### Database
 - Plan/scripts for regular backups of the database and test the restoration process.
-
+- Txn support for userstorer
 #### Performance & Scalability
 - Implement caching mechanisms, like Redis, for frequently accessed data.
 - Review queries and add optimized indexes to frequently searched columns.
