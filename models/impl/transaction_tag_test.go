@@ -3,6 +3,7 @@ package impl
 import (
 	"database/sql"
 	"testing"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/golang/mock/gomock"
@@ -95,6 +96,55 @@ func TestGetTagsByTransactionID(t *testing.T) {
 	assert.NotNil(t, tags)
 
 	// Add assertions to validate the returned tags
+
+	// Ensure all expectations were met
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("expectations were not met: %s", err)
+	}
+}
+
+func TestUpdateTagsForTransaction(t *testing.T) {
+	tearDown := setUp(t)
+	defer tearDown()
+
+	transactionID := int64(1)
+	userID := int64(1)
+	tags := []string{"Tag1", "Tag2"}
+
+	// Create a sqlmock database connection
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("An error occurred when creating a mock database connection: %v", err)
+	}
+	defer db.Close()
+
+	// Replace the DBService Executor with the mock db
+	mockModelService.DBService.Executor = db
+
+	// Mocking the DeleteTagsFromTransaction SQL query
+	mock.ExpectExec("DELETE FROM transaction_tags WHERE transaction_id = ?").
+		WithArgs(transactionID).
+		WillReturnResult(sqlmock.NewResult(0, 1)) // assuming 1 row affected
+
+	// Mocking the GetTagByName and InsertTransactionTag SQL query for each tag
+	for _, tagName := range tags {
+		tagID := int64(1) // Mock tag ID
+
+		// Adjust the expected SQL query pattern to match the actual query
+		expectedSQLPattern := `SELECT id, user_id, name, created_at, updated_at FROM tags WHERE name = \? AND user_id = \?`
+
+		mock.ExpectQuery(expectedSQLPattern).
+			WithArgs(tagName, userID).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "name", "created_at", "updated_at"}).AddRow(tagID, userID, tagName, time.Now(), time.Now()))
+
+		// Mocking InsertTransactionTag
+		mock.ExpectExec("INSERT INTO transaction_tags").
+			WithArgs(transactionID, tagID, sqlmock.AnyArg(), sqlmock.AnyArg()).
+			WillReturnResult(sqlmock.NewResult(1, 1)) // assuming 1 row affected
+	}
+
+	err = mockModelService.TransactionTagModel.UpdateTagsForTransaction(ctx, transactionID, tags, userID)
+	assert.NoError(t, err)
 
 	// Ensure all expectations were met
 	if err := mock.ExpectationsWereMet(); err != nil {
