@@ -151,3 +151,91 @@ func TestUpdateTagsForTransaction(t *testing.T) {
 		t.Errorf("expectations were not met: %s", err)
 	}
 }
+
+func TestAddTagsToTransaction(t *testing.T) {
+	tearDown := setUp(t)
+	defer tearDown()
+
+	transactionID := int64(1)
+	userID := int64(1)
+	tags := []string{"Tag1", "Tag2"}
+
+	// Create a sqlmock database connection
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("An error occurred when creating a mock database connection: %v", err)
+	}
+	defer db.Close()
+
+	// Replace the DBService Executor with the mock db
+	mockModelService.DBService.Executor = db
+
+	// Mocking the GetTagByName and InsertTransactionTag SQL query for each tag
+	for _, tagName := range tags {
+		tagID := int64(1) // Mock tag ID
+
+		// Mocking GetTagByName
+		mock.ExpectQuery(`SELECT id, user_id, name, created_at, updated_at FROM tags WHERE name = \? AND user_id = \?`).
+			WithArgs(tagName, userID).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "name", "created_at", "updated_at"}).AddRow(tagID, userID, tagName, time.Now(), time.Now()))
+
+		// Mocking InsertTransactionTag
+		mock.ExpectExec("INSERT INTO transaction_tags").
+			WithArgs(transactionID, tagID, sqlmock.AnyArg(), sqlmock.AnyArg()).
+			WillReturnResult(sqlmock.NewResult(1, 1)) // assuming 1 row affected
+	}
+
+	err = mockModelService.TransactionTagModel.AddTagsToTransaction(ctx, transactionID, tags, userID)
+	assert.NoError(t, err)
+
+	// Testing error scenario when GetTagByName fails
+	mock.ExpectQuery(`SELECT id, user_id, name, created_at, updated_at FROM tags WHERE name = \? AND user_id = \?`).
+		WithArgs(tags[0], userID).
+		WillReturnError(errors.New("error getting tag by name"))
+
+	err = mockModelService.TransactionTagModel.AddTagsToTransaction(ctx, transactionID, tags[:1], userID)
+	assert.Error(t, err)
+
+	// Ensure all expectations were met
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("expectations were not met: %s", err)
+	}
+}
+
+func TestDeleteTagsFromTransaction(t *testing.T) {
+	tearDown := setUp(t)
+	defer tearDown()
+
+	transactionID := int64(1)
+
+	// Create a sqlmock database connection
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("An error occurred when creating a mock database connection: %v", err)
+	}
+	defer db.Close()
+
+	// Replace the DBService Executor with the mock db
+	mockModelService.DBService.Executor = db
+
+	// Mocking the DeleteTagsFromTransaction SQL query
+	mock.ExpectExec("DELETE FROM transaction_tags WHERE transaction_id = ?").
+		WithArgs(transactionID).
+		WillReturnResult(sqlmock.NewResult(0, 1)) // assuming 1 row affected
+
+	err = mockModelService.TransactionTagModel.DeleteTagsFromTransaction(ctx, transactionID)
+	assert.NoError(t, err)
+
+	// Testing error scenario for the SQL query
+	mock.ExpectExec("DELETE FROM transaction_tags WHERE transaction_id = ?").
+		WithArgs(transactionID).
+		WillReturnError(errors.New("error deleting tags from transaction"))
+
+	err = mockModelService.TransactionTagModel.DeleteTagsFromTransaction(ctx, transactionID)
+	assert.Error(t, err)
+
+	// Ensure all expectations were met
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("expectations were not met: %s", err)
+	}
+}
