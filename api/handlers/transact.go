@@ -29,6 +29,7 @@ import (
 	"net/http"
 	"strconv"
 	"xspends/models/impl"
+	"xspends/models/interfaces"
 	"xspends/util"
 
 	"github.com/gin-gonic/gin"
@@ -69,7 +70,7 @@ func CreateTransaction(c *gin.Context) {
 		return
 	}
 
-	var newTransaction impl.Transaction
+	var newTransaction interfaces.Transaction
 	if err := c.ShouldBindJSON(&newTransaction); err != nil {
 		log.Printf("[CreateTransaction] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -138,7 +139,7 @@ func UpdateTransaction(c *gin.Context) {
 		return
 	}
 
-	var uTxn impl.Transaction
+	var uTxn interfaces.Transaction
 	if err := c.ShouldBindJSON(&uTxn); err != nil {
 		log.Printf("[UpdateTransaction] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -235,7 +236,7 @@ func ListTransactions(c *gin.Context) {
 	}
 
 	// Create a filter from the query parameters.
-	filter := impl.TransactionFilter{
+	filter := interfaces.TransactionFilter{
 		UserID:       userID,
 		StartDate:    c.DefaultQuery("start_date", ""),
 		EndDate:      c.DefaultQuery("end_date", ""),

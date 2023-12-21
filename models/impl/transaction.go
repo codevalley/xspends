@@ -44,36 +44,8 @@ const (
 	SortOrderDesc          = "DESC"
 )
 
-type Transaction struct {
-	ID          int64     `json:"id"`
-	UserID      int64     `json:"user_id"`
-	SourceID    int64     `json:"source_id"`
-	Tags        []string  `json:"tags"`
-	CategoryID  int64     `json:"category_id"`
-	Timestamp   time.Time `json:"timestamp"`
-	Amount      float64   `json:"amount"`
-	Type        string    `json:"type"`
-	Description string    `json:"description"`
-}
-
-type TransactionFilter struct {
-	UserID       int64
-	StartDate    string
-	EndDate      string
-	Tags         []string
-	Category     string
-	Type         string
-	Description  string
-	MinAmount    float64
-	MaxAmount    float64
-	SortBy       string
-	SortOrder    string // "ASC" or "DESC"
-	Page         int
-	ItemsPerPage int
-}
-
 // InsertTransaction inserts a new transaction into the database.// InsertTransaction inserts a new transaction into the database.
-func InsertTransaction(ctx context.Context, txn Transaction, dbService *DBService, otx ...*sql.Tx) error {
+func InsertTransaction(ctx context.Context, txn interfaces.Transaction, dbService *DBService, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(dbService, otx...)
 
 	txn.ID, _ = util.GenerateSnowflakeID()
@@ -108,7 +80,7 @@ func InsertTransaction(ctx context.Context, txn Transaction, dbService *DBServic
 }
 
 // UpdateTransaction updates an existing transaction in the database.
-func UpdateTransaction(ctx context.Context, txn Transaction, dbService *DBService, otx ...*sql.Tx) error {
+func UpdateTransaction(ctx context.Context, txn interfaces.Transaction, dbService *DBService, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(dbService, otx...)
 
 	// Validate foreign key references
@@ -169,7 +141,7 @@ func DeleteTransaction(ctx context.Context, transactionID int64, userID int64, d
 }
 
 // GetTransactionByID retrieves a single transaction from the database by its ID.
-func GetTransactionByID(ctx context.Context, transactionID int64, userID int64, dbService *DBService, otx ...*sql.Tx) (*Transaction, error) {
+func GetTransactionByID(ctx context.Context, transactionID int64, userID int64, dbService *DBService, otx ...*sql.Tx) (*interfaces.Transaction, error) {
 	_, executor := getExecutor(dbService, otx...)
 
 	query, args, err := SQLBuilder.Select("id", "user_id", "source_id", "category_id", "timestamp", "amount", "type", "description").
@@ -182,7 +154,7 @@ func GetTransactionByID(ctx context.Context, transactionID int64, userID int64, 
 	}
 
 	row := executor.QueryRowContext(ctx, query, args...)
-	var transaction Transaction
+	var transaction interfaces.Transaction
 	if err := row.Scan(&transaction.ID, &transaction.UserID, &transaction.SourceID, &transaction.CategoryID, &transaction.Timestamp, &transaction.Amount, &transaction.Type, &transaction.Description); err != nil {
 		return nil, errors.Wrap(err, "get transaction by ID failed")
 	}
@@ -193,7 +165,7 @@ func GetTransactionByID(ctx context.Context, transactionID int64, userID int64, 
 }
 
 // GetTransactionsByFilter retrieves a list of transactions from the database based on a set of filters.
-func GetTransactionsByFilter(ctx context.Context, filter TransactionFilter, dbService *DBService, otx ...*sql.Tx) ([]Transaction, error) {
+func GetTransactionsByFilter(ctx context.Context, filter interfaces.TransactionFilter, dbService *DBService, otx ...*sql.Tx) ([]interfaces.Transaction, error) {
 	_, executor := getExecutor(dbService, otx...)
 	query := SQLBuilder.Select("id", "user_id", "source_id", "category_id", "timestamp", "amount", "type", "description").
 		From("transactions").
@@ -258,9 +230,9 @@ func GetTransactionsByFilter(ctx context.Context, filter TransactionFilter, dbSe
 	}
 	defer rows.Close()
 
-	transactions := make([]Transaction, 0)
+	transactions := make([]interfaces.Transaction, 0)
 	for rows.Next() {
-		var transaction Transaction
+		var transaction interfaces.Transaction
 		if err := rows.Scan(&transaction.ID, &transaction.UserID, &transaction.SourceID, &transaction.CategoryID, &transaction.Timestamp, &transaction.Amount, &transaction.Type, &transaction.Description); err != nil {
 			return nil, errors.Wrap(err, "scanning transaction failed")
 		}
@@ -274,7 +246,7 @@ func GetTransactionsByFilter(ctx context.Context, filter TransactionFilter, dbSe
 	return transactions, nil
 }
 
-func getTagsForTransaction(ctx context.Context, transaction *Transaction, otx ...*sql.Tx) error {
+func getTagsForTransaction(ctx context.Context, transaction *interfaces.Transaction, otx ...*sql.Tx) error {
 	tags, err := GetModelsService().TransactionTagModel.GetTagsByTransactionID(ctx, transaction.ID, otx...)
 	if err != nil {
 		return errors.Wrap(err, "Couldn't fetch tags for the transaction")
@@ -289,7 +261,7 @@ func getTagsForTransaction(ctx context.Context, transaction *Transaction, otx ..
 }
 
 // validateForeignKeyReferences checks if the foreign keys in the transaction exist.
-func validateForeignKeyReferences(ctx context.Context, txn Transaction, otx ...*sql.Tx) error {
+func validateForeignKeyReferences(ctx context.Context, txn interfaces.Transaction, otx ...*sql.Tx) error {
 	// Check if the user exists
 	userExists, err := GetModelsService().UserModel.UserIDExists(ctx, txn.UserID)
 	if err != nil {
