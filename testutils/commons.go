@@ -18,6 +18,7 @@ var (
 	MockUserModel           *mock.MockUserModel
 	MockTagModel            *mock.MockTagModel
 	MockTransactionTagModel *mock.MockTransactionTagModel
+	MockTransactionModel    *mock.MockTransactionModel
 )
 
 func SetupModelTestEnvironment(t *testing.T) (context.Context, *impl.ModelsServiceContainer, *mock.MockDBExecutor, sqlmock.Sqlmock, func()) {
@@ -42,6 +43,7 @@ func SetupModelTestEnvironment(t *testing.T) (context.Context, *impl.ModelsServi
 	MockSourceModel = new(mock.MockSourceModel)
 	MockTagModel = new(mock.MockTagModel)
 	MockTransactionTagModel = new(mock.MockTransactionTagModel)
+	MockTransactionModel = new(mock.MockTransactionModel)
 	// Create ModelsServiceContainer with mocks
 	impl.ModelsService = &impl.ModelsServiceContainer{
 		DBService:           MockDBService,
@@ -50,6 +52,7 @@ func SetupModelTestEnvironment(t *testing.T) (context.Context, *impl.ModelsServi
 		SourceModel:         MockSourceModel,
 		TagModel:            MockTagModel,
 		TransactionTagModel: MockTransactionTagModel,
+		TransactionModel:    MockTransactionModel,
 		// Initialize other services as necessary
 	}
 
