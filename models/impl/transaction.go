@@ -44,9 +44,13 @@ const (
 	SortOrderDesc          = "DESC"
 )
 
+type TransactionModel struct {
+	//nothing here.
+}
+
 // InsertTransaction inserts a new transaction into the database.// InsertTransaction inserts a new transaction into the database.
-func InsertTransaction(ctx context.Context, txn interfaces.Transaction, dbService *DBService, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(dbService, otx...)
+func (tm *TransactionModel) InsertTransaction(ctx context.Context, txn interfaces.Transaction, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutorNew(otx...)
 
 	txn.ID, _ = util.GenerateSnowflakeID()
 	txn.Timestamp = time.Now()
@@ -68,7 +72,7 @@ func InsertTransaction(ctx context.Context, txn interfaces.Transaction, dbServic
 		return errors.Wrap(err, "insert transaction failed")
 	}
 
-	if err := addMissingTags(ctx, txn.ID, txn.Tags, txn.UserID, dbService, otx...); err != nil {
+	if err := addMissingTags(ctx, txn.ID, txn.Tags, txn.UserID, otx...); err != nil {
 		return errors.Wrap(err, "handling transaction tags failed")
 	}
 	// Associate tags with the transaction
@@ -80,8 +84,8 @@ func InsertTransaction(ctx context.Context, txn interfaces.Transaction, dbServic
 }
 
 // UpdateTransaction updates an existing transaction in the database.
-func UpdateTransaction(ctx context.Context, txn interfaces.Transaction, dbService *DBService, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(dbService, otx...)
+func (tm *TransactionModel) UpdateTransaction(ctx context.Context, txn interfaces.Transaction, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutorNew(otx...)
 
 	// Validate foreign key references
 	if err := validateForeignKeyReferences(ctx, txn, otx...); err != nil {
@@ -107,7 +111,7 @@ func UpdateTransaction(ctx context.Context, txn interfaces.Transaction, dbServic
 	}
 
 	// Add any missing tags and update tags associated with the transaction
-	if err := addMissingTags(ctx, txn.ID, txn.Tags, txn.UserID, dbService, otx...); err != nil {
+	if err := addMissingTags(ctx, txn.ID, txn.Tags, txn.UserID, otx...); err != nil {
 		return errors.Wrap(err, "adding missing tags failed")
 	}
 	if err := GetModelsService().TransactionTagModel.UpdateTagsForTransaction(ctx, txn.ID, txn.Tags, txn.UserID, otx...); err != nil {
@@ -120,8 +124,8 @@ func UpdateTransaction(ctx context.Context, txn interfaces.Transaction, dbServic
 }
 
 // DeleteTransaction removes a transaction from the database.
-func DeleteTransaction(ctx context.Context, transactionID int64, userID int64, dbService *DBService, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(dbService, otx...)
+func (tm *TransactionModel) DeleteTransaction(ctx context.Context, transactionID int64, userID int64, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutorNew(otx...)
 
 	query, args, err := SQLBuilder.Delete("transactions").
 		Where(squirrel.Eq{"id": transactionID, "user_id": userID}).
@@ -141,8 +145,8 @@ func DeleteTransaction(ctx context.Context, transactionID int64, userID int64, d
 }
 
 // GetTransactionByID retrieves a single transaction from the database by its ID.
-func GetTransactionByID(ctx context.Context, transactionID int64, userID int64, dbService *DBService, otx ...*sql.Tx) (*interfaces.Transaction, error) {
-	_, executor := getExecutor(dbService, otx...)
+func (tm *TransactionModel) GetTransactionByID(ctx context.Context, transactionID int64, userID int64, otx ...*sql.Tx) (*interfaces.Transaction, error) {
+	_, executor := getExecutorNew(otx...)
 
 	query, args, err := SQLBuilder.Select("id", "user_id", "source_id", "category_id", "timestamp", "amount", "type", "description").
 		From("transactions").
@@ -165,8 +169,8 @@ func GetTransactionByID(ctx context.Context, transactionID int64, userID int64, 
 }
 
 // GetTransactionsByFilter retrieves a list of transactions from the database based on a set of filters.
-func GetTransactionsByFilter(ctx context.Context, filter interfaces.TransactionFilter, dbService *DBService, otx ...*sql.Tx) ([]interfaces.Transaction, error) {
-	_, executor := getExecutor(dbService, otx...)
+func (tm *TransactionModel) GetTransactionsByFilter(ctx context.Context, filter interfaces.TransactionFilter, otx ...*sql.Tx) ([]interfaces.Transaction, error) {
+	_, executor := getExecutorNew(otx...)
 	query := SQLBuilder.Select("id", "user_id", "source_id", "category_id", "timestamp", "amount", "type", "description").
 		From("transactions").
 		Where(squirrel.Eq{"user_id": filter.UserID})
@@ -293,7 +297,7 @@ func validateForeignKeyReferences(ctx context.Context, txn interfaces.Transactio
 }
 
 // addMissingTags ensures that all tags are present in the database and associates them with the user.
-func addMissingTags(ctx context.Context, transactionID int64, tagNames []string, userID int64, dbService *DBService, otx ...*sql.Tx) error {
+func addMissingTags(ctx context.Context, transactionID int64, tagNames []string, userID int64, otx ...*sql.Tx) error {
 	// Ensure all tags are present in the database
 	for _, tagName := range tagNames {
 		tag, _ := GetModelsService().TagModel.GetTagByName(ctx, tagName, userID, otx...)

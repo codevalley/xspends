@@ -11,6 +11,7 @@ type ModelsServiceContainer struct {
 	UserModel           interfaces.UserService
 	TagModel            interfaces.TagService
 	TransactionTagModel interfaces.TransactionTagService
+	TransactionModel    interfaces.TransactionService
 	// other models...
 }
 
@@ -22,6 +23,7 @@ func NewModelsServiceContainer() *ModelsServiceContainer {
 		UserModel:           &UserModel{},
 		TagModel:            &TagModel{},
 		TransactionTagModel: &TransactionTagModel{},
+		TransactionModel:    &TransactionModel{},
 		// initialize other models...
 	}
 }

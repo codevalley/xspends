@@ -77,7 +77,7 @@ func CreateTransaction(c *gin.Context) {
 		return
 	}
 	newTransaction.UserID = userID
-	if err := impl.InsertTransaction(c, newTransaction, nil); err != nil {
+	if err := impl.GetModelsService().TransactionModel.InsertTransaction(c, newTransaction); err != nil {
 		log.Printf("[CreateTransaction] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create transaction"})
 		return
@@ -106,7 +106,7 @@ func GetTransaction(c *gin.Context) {
 		return
 	}
 
-	transaction, err := impl.GetTransactionByID(c, transactionID, userID, nil)
+	transaction, err := impl.GetModelsService().TransactionModel.GetTransactionByID(c, transactionID, userID)
 	if err != nil {
 		log.Printf("[GetTransaction] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "transaction not found"})
@@ -147,7 +147,7 @@ func UpdateTransaction(c *gin.Context) {
 	}
 	uTxn.UserID = userID
 	uTxn.ID = transactionID
-	oTxn, err := impl.GetTransactionByID(c, transactionID, userID, nil)
+	oTxn, err := impl.GetModelsService().TransactionModel.GetTransactionByID(c, transactionID, userID)
 	if err != nil {
 		log.Printf("[UpdateTransaction] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "unable to find transaction"})
@@ -171,7 +171,7 @@ func UpdateTransaction(c *gin.Context) {
 	if uTxn.CategoryID != 0 {
 		oTxn.CategoryID = uTxn.CategoryID
 	}
-	if err := impl.UpdateTransaction(c, *oTxn, nil); err != nil {
+	if err := impl.GetModelsService().TransactionModel.UpdateTransaction(c, *oTxn); err != nil {
 		log.Printf("[UpdateTransaction] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update transaction"})
 		return
@@ -200,7 +200,7 @@ func DeleteTransaction(c *gin.Context) {
 		return
 	}
 
-	if err := impl.DeleteTransaction(c, transactionID, userID, nil); err != nil {
+	if err := impl.GetModelsService().TransactionModel.DeleteTransaction(c, transactionID, userID); err != nil {
 		log.Printf("[DeleteTransaction] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete transaction"})
 		return
@@ -251,7 +251,7 @@ func ListTransactions(c *gin.Context) {
 		ItemsPerPage: util.GetIntFromQuery(c, "items_per_page", 10), // defaulting to 10 items per page
 	}
 
-	transactions, err := impl.GetTransactionsByFilter(c, filter, nil)
+	transactions, err := impl.GetModelsService().TransactionModel.GetTransactionsByFilter(c, filter)
 	if err != nil {
 		log.Printf("[ListTransactions] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch transactions"})
