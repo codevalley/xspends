@@ -143,19 +143,6 @@ func GetContext() *context.Context {
 	return &ctx
 }
 
-// getExecutor returns the appropriate DBExecutor (transaction or standard DB connection)
-func getExecutor(dbService *DBService, otx ...*sql.Tx) (bool, DBExecutor) {
-	if len(otx) > 0 && otx[0] != nil {
-		// Use the provided transaction and mark it as external
-		return true, otx[0]
-	}
-	// Use the global DB service's executor and mark it as internal
-	if dbService == nil {
-		return false, GetDBService().Executor
-	} else {
-		return false, dbService.Executor
-	}
-}
 func getExecutorNew(otx ...*sql.Tx) (bool, DBExecutor) {
 	dbService := GetModelsService().DBService
 

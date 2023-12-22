@@ -1,53 +1,15 @@
 package impl
 
 import (
-	"context"
-	"os"
 	"testing"
 	"time"
 	"xspends/models/interfaces"
-	mock "xspends/models/mock"
-	"xspends/util"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/Masterminds/squirrel"
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
-
-var (
-	ctx              context.Context
-	mockExecutor     *mock.MockDBExecutor
-	mockDBService    *DBService
-	mockModelService *ModelsServiceContainer
-)
-
-func TestMain(m *testing.M) {
-	SQLBuilder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Question)
-	ctx = context.Background()
-
-	exitVal := m.Run()
-
-	os.Exit(exitVal)
-}
-
-func setUp(t *testing.T) func() {
-	util.InitializeSnowflake()
-	ctrl := gomock.NewController(t)
-	mockExecutor = mock.NewMockDBExecutor(ctrl)
-	mockDBService = &DBService{Executor: mockExecutor}
-	mockModelService = &ModelsServiceContainer{
-		DBService:           mockDBService,
-		CategoryModel:       &CategoryModel{},
-		SourceModel:         &SourceModel{},
-		UserModel:           &UserModel{},
-		TagModel:            &TagModel{},
-		TransactionTagModel: &TransactionTagModel{},
-	}
-	ModelsService = mockModelService
-	return func() { ctrl.Finish() }
-}
 
 // Insert your test functions here, following the pattern demonstrated below.
 
