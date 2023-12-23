@@ -286,3 +286,59 @@ func TestUpdateTransactionV2(t *testing.T) {
 		mockTransactionTagModel.AssertExpectations(t)
 	})
 }
+
+func TestDeleteTransactionV2(t *testing.T) {
+	tearDown := setUp(t)
+	defer tearDown()
+
+	transactionID := int64(1) // Assume an existing transaction ID for deletion
+	userID := int64(1)
+
+	db, mockM := setupNewMock(t)
+	defer db.Close()
+
+	t.Run("Successful Deletion", func(t *testing.T) {
+		// Set up mock for successful deletion
+		mockM.ExpectExec("DELETE FROM transactions").
+			WithArgs(transactionID, userID).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+
+		// Call the method under test
+		err := mockModelService.TransactionModel.DeleteTransaction(context.Background(), transactionID, userID)
+		assert.NoError(t, err)
+		assert.NoError(t, mockM.ExpectationsWereMet())
+	})
+
+	t.Run("Delete Transaction Execution Failure", func(t *testing.T) {
+		_, mockM = setupNewMock(t)
+
+		// Simulate a failure during the execution of the delete query
+		mockM.ExpectExec("DELETE FROM transactions").
+			WithArgs(transactionID, userID).
+			WillReturnError(sql.ErrConnDone)
+
+		// Call the delete method and expect an error
+		err := mockModelService.TransactionModel.DeleteTransaction(context.Background(), transactionID, userID)
+		assert.Error(t, err)
+		assert.NoError(t, mockM.ExpectationsWereMet())
+	})
+
+	t.Run("Delete Non-Existent Transaction", func(t *testing.T) {
+		_, mockM = setupNewMock(t)
+
+		// Set up mock for a deletion attempt on a non-existent transaction
+		mockM.ExpectExec("DELETE FROM transactions").
+			WithArgs(transactionID, userID).
+			WillReturnResult(sqlmock.NewResult(0, 0)) // Indicate no rows were affected
+
+		// Call the delete method and check if error or some indication of non-existence is handled
+		err := mockModelService.TransactionModel.DeleteTransaction(context.Background(), transactionID, userID)
+		// Assert based on how your application should behave (error or just a no-op)
+		// Here it is assumed the method won't error out if no transaction was found
+		assert.NoError(t, err)
+		assert.NoError(t, mockM.ExpectationsWereMet())
+	})
+
+	// Add more subtests for different edge cases if necessary
+	// Example: trying to delete with wrong user ID, etc.
+}
