@@ -20,6 +20,8 @@ func setupNewMock(t *testing.T) (*sql.DB, sqlmock.Sqlmock) {
 	t.Cleanup(func() {
 		db.Close() // ensure the db connection is closed after the test
 	})
+	mockModelService.DBService.Executor = db
+
 	return db, mock
 }
 func setupForeignKeyMocks(mockM sqlmock.Sqlmock, txn interfaces.Transaction) {
@@ -136,16 +138,13 @@ func TestInsertTransactionV2(t *testing.T) {
 	}
 
 	db, mockM := setupNewMock(t)
-
 	defer db.Close()
 
-	mockModelService.DBService.Executor = db
-	mockTagModel := new(xmock.MockTagModel)
-	mockTransactionTagModel := new(xmock.MockTransactionTagModel)
-	mockModelService.TransactionTagModel = mockTransactionTagModel
-	mockModelService.TagModel = mockTagModel
-
 	t.Run("Successful Insertion", func(t *testing.T) {
+		mockTagModel := new(xmock.MockTagModel)
+		mockTransactionTagModel := new(xmock.MockTransactionTagModel)
+		mockModelService.TransactionTagModel = mockTransactionTagModel
+		mockModelService.TagModel = mockTagModel
 		setupForeignKeyMocks(mockM, txn)
 		mockM.ExpectExec("INSERT INTO transactions").
 			WithArgs(sqlmock.AnyArg(), txn.UserID, txn.SourceID, txn.CategoryID, sqlmock.AnyArg(), txn.Amount, txn.Type, txn.Description).
@@ -176,5 +175,71 @@ func TestInsertTransactionV2(t *testing.T) {
 		mockTagModel.AssertExpectations(t)
 		mockTransactionTagModel.AssertExpectations(t)
 	})
+	// Subtest 2: Foreign Key Validation Failure (User does not exist)
+	t.Run("Foreign Key Validation Failure - User Not Found", func(t *testing.T) {
+		// Setup new mock database for clean expectation slate
+		_, mock1 := setupNewMock(t)
+		// Expect the user existence check query
+		mock1.ExpectQuery("^SELECT (.+) FROM users WHERE").WithArgs(txn.UserID).WillReturnRows(sqlmock.NewRows([]string{"exists"}))
 
+		err := mockModelService.TransactionModel.InsertTransaction(context.Background(), txn)
+
+		// We are expecting an error because the user is not found
+		assert.Error(t, err)
+
+		// Validate that all expectations set on the mock were met
+		assert.NoError(t, mock1.ExpectationsWereMet())
+	})
+
+	// Subtest 3: Insert Transaction Execution Failure
+	t.Run("Insert Transaction Execution Failure", func(t *testing.T) {
+		_, mockM = setupNewMock(t)
+		setupForeignKeyMocks(mockM, txn) // Assumes a function to set up foreign key validation
+
+		mockM.ExpectExec("INSERT INTO transactions").
+			WithArgs(sqlmock.AnyArg(), txn.UserID, txn.SourceID, txn.CategoryID, sqlmock.AnyArg(), txn.Amount, txn.Type, txn.Description).
+			WillReturnError(sql.ErrConnDone) // Simulate a connection error or similar
+
+		err := mockModelService.TransactionModel.InsertTransaction(context.Background(), txn)
+		assert.Error(t, err)
+		assert.NoError(t, mockM.ExpectationsWereMet())
+	})
+
+	//Subtest 4: Handling Transaction Tags Fails
+	t.Run("Handling Transaction Tags Fails", func(t *testing.T) {
+		_, mockM = setupNewMock(t)
+		mockTagModel := new(xmock.MockTagModel)
+		mockTransactionTagModel := new(xmock.MockTransactionTagModel)
+		mockModelService.TransactionTagModel = mockTransactionTagModel
+		mockModelService.TagModel = mockTagModel
+		setupForeignKeyMocks(mockM, txn) // Set up foreign key validations
+
+		// Set up mocks for successful transaction insert
+		mockM.ExpectExec("INSERT INTO transactions").
+			WithArgs(sqlmock.AnyArg(), txn.UserID, txn.SourceID, txn.CategoryID, sqlmock.AnyArg(), txn.Amount, txn.Type, txn.Description).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+
+		// Setup for tag handling
+		for _, tag := range txn.Tags {
+			mockTagModel.On(
+				"GetTagByName",
+				mock.Anything, tag, txn.UserID, mock.Anything,
+			).Return(&interfaces.Tag{ID: 1, Name: tag, UserID: txn.UserID}, nil).Once()
+
+			mockTagModel.On(
+				"InsertTag",
+				mock.Anything, mock.AnythingOfType("*interfaces.Tag"), mock.Anything,
+			).Return(nil).Maybe()
+		}
+		// Simulate a failure in AddTagsToTransaction
+		mockTransactionTagModel.On(
+			"AddTagsToTransaction",
+			mock.Anything, mock.Anything, mock.Anything, txn.UserID, mock.Anything,
+		).Return(sql.ErrConnDone).Once() // Use an appropriate error
+
+		err := mockModelService.TransactionModel.InsertTransaction(context.Background(), txn)
+		assert.Error(t, err)
+		assert.NoError(t, mockM.ExpectationsWereMet())
+		mockTransactionTagModel.AssertExpectations(t)
+	})
 }

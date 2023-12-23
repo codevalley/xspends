@@ -223,4 +223,37 @@ func TestUserIDExists(t *testing.T) {
 	}
 }
 
+func TestUserIDExists_UserIDNotFound(t *testing.T) {
+	// Create a new sqlmock database connection
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("An error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+	mockDBService := &DBService{Executor: db}
+	mockModelService = &ModelsServiceContainer{
+		DBService: mockDBService,
+		UserModel: &UserModel{},
+		// Initialize other models as necessary
+	}
+	ModelsService = mockModelService
+	userID := int64(1) // Non-existent userID
+	mock.ExpectQuery("^SELECT (.+) FROM users WHERE").WithArgs(userID).WillReturnRows(sqlmock.NewRows([]string{"exists"}))
+
+	// Call the function under test
+	exists, err := mockModelService.UserModel.UserIDExists(ctx, userID)
+
+	// Assertions
+	// 1. Ensure no error is returned (indicating a successful query)
+	assert.NoError(t, err)
+
+	// 2. Assert that 'exists' is false, indicating the userID was not found
+	assert.False(t, exists)
+
+	// Ensure all expectations were met
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
 // Add more test cases for UpdateUser, DeleteUser, GetUserByUsername, UserExists, UserIDExists
