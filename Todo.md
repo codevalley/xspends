@@ -7,7 +7,6 @@
 ### Security
 - Review database security settings, ensure limited open ports, and consider encryption for sensitive data.
 
-
 ### API & Middleware
 - Consider rate limiting on API endpoints.
 - Implement middleware for tasks like logging, CORS handling.
