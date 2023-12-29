@@ -458,3 +458,73 @@ func TestGetTransactionsByFilterV2(t *testing.T) {
 
 	// Add more subtests if needed, for example to cover different filter criteria and edge cases
 }
+
+func TestGetTagsForTransaction(t *testing.T) {
+	tearDown := setUp(t) // Set up and initialization
+	defer tearDown()     // Clean up after the test
+
+	// Assumed transaction details
+	transactionID := int64(1)
+	userID := int64(1)
+
+	// Mock transaction to use in test
+	transaction := &interfaces.Transaction{
+		ID:     transactionID,
+		UserID: userID,
+		// Other necessary fields...
+	}
+
+	// Set up the mock database connection and mock expectations
+	db, mockM := setupNewMock(t)
+	defer db.Close()
+
+	t.Run("Successful Tag Retrieval", func(t *testing.T) {
+		// Mock data for tags associated with the transaction
+		mockTags := []interfaces.Tag{
+			{ID: 1, Name: "Tag1"},
+			{ID: 2, Name: "Tag2"},
+			// Add more mock tags as necessary
+		}
+
+		// Set up SQL mock rows to simulate database response
+		rows := sqlmock.NewRows([]string{"id", "name"})
+		for _, tag := range mockTags {
+			rows.AddRow(tag.ID, tag.Name)
+		}
+
+		// Set up the mock expectation for SQL query
+		mockM.ExpectQuery("SELECT t.id, t.name FROM tags t JOIN transaction_tags tt ON t.id = tt.tag_id WHERE tt.transaction_id = ?").
+			WithArgs(transactionID).
+			WillReturnRows(rows)
+
+		// Call the function under test
+		err := getTagsForTransaction(context.Background(), transaction)
+		assert.NoError(t, err, "Fetching tags should not produce an error")
+
+		// Check if the tags are correctly assigned to the transaction
+		assert.Equal(t, len(mockTags), len(transaction.Tags), "The number of tags should match")
+		for i, tag := range mockTags {
+			assert.Equal(t, tag.Name, transaction.Tags[i], "Tag names should match")
+		}
+
+		// Ensure all expectations were met
+		assert.NoError(t, mockM.ExpectationsWereMet(), "All database expectations should be met")
+	})
+
+	t.Run("Error Fetching Tags", func(t *testing.T) {
+		// Reset mock expectations for a new subtest
+		db, mockM = setupNewMock(t)
+
+		// Set up the mock expectation for SQL query with an error
+		mockM.ExpectQuery("SELECT t.id, t.name FROM tags t JOIN transaction_tags tt ON t.id = tt.tag_id WHERE tt.transaction_id = ?").
+			WithArgs(transactionID).
+			WillReturnError(sql.ErrConnDone) // Simulate an error scenario
+
+		// Call the function under test
+		err := getTagsForTransaction(context.Background(), transaction)
+		assert.Error(t, err, "Fetching tags should produce an error")
+
+		// Ensure all expectations were met
+		assert.NoError(t, mockM.ExpectationsWereMet(), "All database expectations should be met")
+	})
+}
