@@ -70,3 +70,10 @@
 5. **Feedback and Logging Mechanism for Clients:** Allow clients/users to send feedback or errors directly through the API.
 
 Remember, while the "Must Have" features are fundamental for any production-ready application, the items in "Should Have" and "Good to Have" can elevate the quality, performance, and user experience of your application. Depending on your application's specific requirements, you might need to shuffle some items among these categories.
+
+### Test coverage
+- Models
+ - cookiestorer
+ - services
+ - sessionstorer
+ - userstorer
