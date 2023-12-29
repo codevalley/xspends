@@ -144,7 +144,7 @@ func GetContext() *context.Context {
 }
 
 func getExecutorNew(otx ...*sql.Tx) (bool, DBExecutor) {
-	dbService := GetModelsService().DBService
+	dbService := GetModelsService().DBService //TODO: this is cyclic. ModelService sets DBService from GetDBService()
 
 	if len(otx) > 0 && otx[0] != nil {
 		return true, otx[0] // Using provided transaction
