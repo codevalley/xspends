@@ -105,6 +105,54 @@ func TestUserStorer_Save(t *testing.T) {
 	}
 }
 
+func TestUserStorer_Create(t *testing.T) {
+	tearDown := setUp(t)
+	defer tearDown()
+	_, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	// Sample new user for testing
+	newUser := &interfaces.User{
+		ID:       493834716638609683, // Ensure this matches your user's ID format
+		Username: "newuser",
+		Name:     "New User",
+		Email:    "new@example.com",
+		Currency: "USD",
+		Password: "newpassword",
+		// Set CreatedAt and UpdatedAt as needed or mock them if they are set within the InsertUser method
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	// This should exactly match the actual SQL query string used in the InsertUser method
+	expectedSQL := "INSERT INTO users (id,username,name,email,currency,password,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)"
+
+	// Ensure the SQL query and other arguments match exactly with those used in the InsertUser method
+	mockExecutor.EXPECT().
+		ExecContext(
+			gomock.Any(), // The context
+			expectedSQL,  // The SQL query
+			gomock.Any(), // Match each argument
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+		).Return(sqlmock.NewResult(1, 1), nil) // Simulate successful execution
+
+	userStorer := NewUserStorer()
+	err = userStorer.Create(context.Background(), newUser)
+	assert.NoError(t, err)
+
+	// Verify that all expectations set on the mock were met
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
 func TestUserStorer_LoadByConfirmSelector(t *testing.T) {
 	userStorer := NewUserStorer()
 	_, err := userStorer.LoadByConfirmSelector(context.Background(), "selector")
