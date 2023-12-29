@@ -31,9 +31,9 @@ func setUp(t *testing.T) func() {
 	util.InitializeSnowflake()
 	ctrl := gomock.NewController(t)
 	mockExecutor = mock.NewMockDBExecutor(ctrl)
-	dbService = &DBService{Executor: mockExecutor} //bad code, this variable is in db.go
+	mockDBService = &DBService{Executor: mockExecutor} //bad code, this variable is in db.go
 	mockModelService = &ModelsServiceContainer{
-		DBService:           dbService,
+		DBService:           mockDBService,
 		CategoryModel:       &CategoryModel{},
 		SourceModel:         &SourceModel{},
 		UserModel:           &UserModel{},
@@ -41,6 +41,7 @@ func setUp(t *testing.T) func() {
 		TransactionTagModel: &TransactionTagModel{},
 		TransactionModel:    &TransactionModel{},
 	}
+	dbService = mockDBService
 	ModelsService = mockModelService
 
 	return func() { ctrl.Finish() }
