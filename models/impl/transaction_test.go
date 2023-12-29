@@ -578,3 +578,58 @@ func TestValidateForeignKeyReferences(t *testing.T) {
 
 	// ... further tests for source not found and category not found ...
 }
+
+func TestAddMissingTags(t *testing.T) {
+	// Set up the mock environment
+	tearDown := setUp(t) // Assume setUp properly initializes mocks and other necessary stuff
+	defer tearDown()
+
+	// Assuming these variables are defined and needed for the test
+	ctx := context.Background()
+	transactionID := int64(1)            // example transaction ID
+	userID := int64(1)                   // example user ID
+	tagNames := []string{"Tag1", "Tag2"} // example tag names
+
+	// Mock TagModel
+	mockTagModel := new(xmock.MockTagModel)
+	mockModelService.TagModel = mockTagModel
+
+	// Mock the behavior of GetTagByName and InsertTag
+	for _, tagName := range tagNames {
+		if tagName == "Tag1" {
+			// Assume the tag exists
+			mockTagModel.On(
+				"GetTagByName",
+				mock.Anything, // Context
+				tagName,
+				userID,
+				mock.Anything, // Transaction options (if any)
+			).Return(&interfaces.Tag{ID: 1, Name: tagName, UserID: userID}, nil).Once()
+		} else {
+			// Assume the tag does not exist and needs to be inserted
+			mockTagModel.On(
+				"GetTagByName",
+				mock.Anything,
+				tagName,
+				userID,
+				mock.Anything,
+			).Return((*interfaces.Tag)(nil), nil).Once() // Tag not found
+
+			mockTagModel.On(
+				"InsertTag",
+				mock.Anything,
+				mock.MatchedBy(func(tag *interfaces.Tag) bool { return tag.Name == tagName }), // Ensuring the tag name matches
+				mock.Anything,
+			).Return(nil).Once()
+		}
+	}
+
+	// Call the function under test
+	err := addMissingTags(ctx, transactionID, tagNames, userID, nil) // Assuming nil is a valid argument for otx
+
+	// Assertions
+	assert.NoError(t, err)
+
+	// Check that all expectations were met
+	mockTagModel.AssertExpectations(t)
+}
