@@ -401,3 +401,60 @@ func TestGetTransactionByIDV2(t *testing.T) {
 
 	// Add more subtests if needed, for example to cover the logic within getTagsForTransaction, etc.
 }
+
+func TestGetTransactionsByFilterV2(t *testing.T) {
+	tearDown := setUp(t)
+	defer tearDown()
+
+	userID := int64(1) // Assume some user ID
+	filter := interfaces.TransactionFilter{
+		UserID: userID,
+		// Set additional filter criteria as needed for testing
+	}
+
+	db, mockM := setupNewMock(t)
+	defer db.Close()
+
+	t.Run("Successful Retrieval", func(t *testing.T) {
+		// Assume mock transactions to be returned
+		mockTransactions := []interfaces.Transaction{
+			// Define one or more mock transactions as per filter criteria
+		}
+
+		rows := sqlmock.NewRows([]string{"id", "user_id", "source_id", "category_id", "timestamp", "amount", "type", "description"})
+		for _, txn := range mockTransactions {
+			rows = rows.AddRow(txn.ID, txn.UserID, txn.SourceID, txn.CategoryID, txn.Timestamp, txn.Amount, txn.Type, txn.Description)
+		}
+
+		mockM.ExpectQuery("SELECT (.+) FROM transactions").WillReturnRows(rows)
+
+		// Assume getTagsForTransaction is properly implemented or mocked
+
+		transactions, err := mockModelService.TransactionModel.GetTransactionsByFilter(context.Background(), filter)
+		assert.NoError(t, err)
+		assert.Equal(t, mockTransactions, transactions)
+		assert.NoError(t, mockM.ExpectationsWereMet())
+	})
+
+	t.Run("Query Execution Error", func(t *testing.T) {
+		mockM.ExpectQuery("SELECT (.+) FROM transactions").WillReturnError(sql.ErrConnDone) // Simulate query execution error
+
+		transactions, err := mockModelService.TransactionModel.GetTransactionsByFilter(context.Background(), filter)
+		assert.Error(t, err)
+		assert.Nil(t, transactions)
+		assert.NoError(t, mockM.ExpectationsWereMet())
+	})
+
+	t.Run("Row Scan Error", func(t *testing.T) {
+		rows := sqlmock.NewRows([]string{"id", "user_id", "source_id", "category_id", "timestamp", "amount", "type", "description"}).AddRow(1, userID, 1, 1, time.Now(), 100.0, "expense", "Description")
+		mockM.ExpectQuery("SELECT (.+) FROM transactions").WillReturnRows(rows)
+
+		_ = rows.RowError(0, sql.ErrConnDone) // Simulate row scan error on the first row
+		transactions, err := mockModelService.TransactionModel.GetTransactionsByFilter(context.Background(), filter)
+		assert.Error(t, err)
+		assert.Nil(t, transactions)
+		assert.NoError(t, mockM.ExpectationsWereMet())
+	})
+
+	// Add more subtests if needed, for example to cover different filter criteria and edge cases
+}
