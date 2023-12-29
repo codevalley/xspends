@@ -528,3 +528,53 @@ func TestGetTagsForTransaction(t *testing.T) {
 		assert.NoError(t, mockM.ExpectationsWereMet(), "All database expectations should be met")
 	})
 }
+
+func TestValidateForeignKeyReferences(t *testing.T) {
+	tearDown := setUp(t)
+	defer tearDown()
+
+	txn := interfaces.Transaction{
+		UserID:     1,
+		SourceID:   1,
+		CategoryID: 1,
+		// ... other necessary fields
+	}
+
+	db, mockM := setupNewMock(t)
+	defer db.Close()
+
+	t.Run("All References Valid", func(t *testing.T) {
+		setupForeignKeyMocks(mockM, txn)
+
+		err := validateForeignKeyReferences(context.Background(), txn)
+		assert.NoError(t, err)
+
+		// Ensure all expectations were met (general for sqlmock)
+		if err := mockM.ExpectationsWereMet(); err != nil {
+			t.Errorf("there were unfulfilled expectations: %s", err)
+		}
+	})
+
+	// Additional tests for each failure case: User not found, source not found, category not found
+	// Example for user not found:
+	t.Run("User Not Found", func(t *testing.T) {
+		// Setup new mock database for clean expectation slate
+		_, mockM := setupNewMock(t)
+
+		// Mock the user existence check to return no rows, indicating user not found
+		mockM.ExpectQuery("^SELECT (.+) FROM users WHERE").WithArgs(txn.UserID).WillReturnRows(sqlmock.NewRows([]string{"1"}))
+
+		err := validateForeignKeyReferences(context.Background(), txn)
+
+		// We are expecting an error because the user is not found
+		assert.Error(t, err)
+		assert.EqualError(t, err, "user does not exist")
+
+		// Validate that all expectations set on the mock were met
+		if err := mockM.ExpectationsWereMet(); err != nil {
+			t.Errorf("there were unfulfilled expectations: %s", err)
+		}
+	})
+
+	// ... further tests for source not found and category not found ...
+}
