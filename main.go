@@ -45,9 +45,11 @@ func main() {
 	r := gin.Default()
 	util.InitializeSnowflake()
 	impl.InitModelsService()
+
+	//TODO: Remove kvstore iniialization from here to impl.InitModelsService() maybe.
 	kvstore.SetupKV(context.Background(), false)
 	kv := kvstore.GetClientFromPool()
-	api.SetupRoutes(r, impl.GetDB(), kv) // to be refactored (getDB)
+	api.SetupRoutes(r, kv) // refactored (impl.getDB() removed)
 
 	r.Run() // Defaults to :8080
 }

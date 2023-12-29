@@ -26,7 +26,6 @@ package impl
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"log"
@@ -40,11 +39,10 @@ const (
 )
 
 type UserStorer struct {
-	db *sql.DB
 }
 
-func NewUserStorer(db *sql.DB) *UserStorer {
-	return &UserStorer{db: db}
+func NewUserStorer() *UserStorer {
+	return &UserStorer{}
 }
 
 func (s *UserStorer) Load(ctx context.Context, key string) (authboss.User, error) {

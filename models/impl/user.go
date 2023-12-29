@@ -34,6 +34,7 @@ package impl
 import (
 	"context"
 	"database/sql"
+	"log"
 
 	"strings"
 	"time"
@@ -205,6 +206,7 @@ func (um *UserModel) GetUserByUsername(ctx context.Context, username string, otx
 	}
 
 	user := &interfaces.User{}
+	log.Printf("sqlquery: %s", sqlquery)
 	err = executor.QueryRowContext(ctx, sqlquery, args...).Scan(&user.ID, &user.Username, &user.Name, &user.Email, &user.Currency, &user.Password)
 	if err != nil {
 		if err == sql.ErrNoRows {

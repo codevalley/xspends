@@ -73,7 +73,5 @@ Remember, while the "Must Have" features are fundamental for any production-read
 
 ### Test coverage
 - Models
- - cookiestorer
  - services
- - sessionstorer
  - userstorer

@@ -25,7 +25,6 @@ SOFTWARE.
 package middleware
 
 import (
-	"database/sql"
 	"net/http"
 	"strings"
 
@@ -95,11 +94,11 @@ func EnsureUserID() gin.HandlerFunc {
 	}
 }
 
-func SetupAuthBoss(router *gin.Engine, db *sql.DB, kvClient kvstore.RawKVClientInterface) *authboss.Authboss {
+func SetupAuthBoss(router *gin.Engine, kvClient kvstore.RawKVClientInterface) *authboss.Authboss {
 	// ... other setup
 	ab = authboss.New()
 	// Set up AuthBoss storage with your custom implementations
-	ab.Config.Storage.Server = impl.NewUserStorer(db)
+	ab.Config.Storage.Server = impl.NewUserStorer()
 	ab.Config.Storage.SessionState = impl.NewSessionStorer(kvClient)
 	ab.Config.Storage.CookieState = impl.NewCookieStorer(kvClient)
 

@@ -2,7 +2,6 @@ package api
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -19,14 +18,11 @@ func test_setup_auth_boss(t *testing.T) {
 	// Create a mock gin.Engine
 	router := &gin.Engine{}
 
-	// Create a mock sql.DB
-	db := &sql.DB{}
-
 	// Create a mock kvstore.RawKVClientInterface
 	kvClient := &kvstore.RawKVClientWrapper{}
 
 	// Call the code under test
-	ab := middleware.SetupAuthBoss(router, db, kvClient)
+	ab := middleware.SetupAuthBoss(router, kvClient)
 
 	// Assert that the authentication boss is set up correctly
 	assert.NotNil(t, ab)
@@ -41,7 +37,7 @@ func test_health_check_endpoint(t *testing.T) {
 	router := gin.Default()
 
 	// Call the code under test
-	SetupRoutes(router, nil, nil)
+	SetupRoutes(router, nil)
 
 	// Create a mock HTTP request to the health check endpoint
 	req, _ := http.NewRequest("GET", "/health", nil)
@@ -62,14 +58,11 @@ func test_authentication_routes(t *testing.T) {
 	// Create a mock gin.Engine
 	router := gin.Default()
 
-	// Create a mock sql.DB
-	db := &sql.DB{}
-
 	// Create a mock kvstore.RawKVClientInterface
 	kvClient := &kvstore.RawKVClientWrapper{}
 
 	// Call the code under test
-	SetupRoutes(router, db, kvClient)
+	SetupRoutes(router, kvClient)
 
 	// Create a mock HTTP request to the register endpoint
 	registerData := []byte(`{"username": "testuser", "email": "test@example.com", "password": "password"}`)

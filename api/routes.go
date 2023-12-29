@@ -47,7 +47,6 @@ Outputs:
 package api
 
 import (
-	"database/sql"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -62,8 +61,8 @@ import (
 
 // SetupRoutes sets up all the routes for the application
 // @description This function will set all routes
-func SetupRoutes(r *gin.Engine, db *sql.DB, kvClient kvstore.RawKVClientInterface) {
-	ab := middleware.SetupAuthBoss(r, db, kvClient)
+func SetupRoutes(r *gin.Engine, kvClient kvstore.RawKVClientInterface) {
+	ab := middleware.SetupAuthBoss(r, kvClient)
 
 	setupHealthEndpoint(r)
 	setupSwaggerHandler(r)
