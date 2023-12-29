@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"testing"
+	"time"
 	"xspends/models/interfaces"
 	xmock "xspends/models/mock"
 
@@ -341,4 +342,62 @@ func TestDeleteTransactionV2(t *testing.T) {
 
 	// Add more subtests for different edge cases if necessary
 	// Example: trying to delete with wrong user ID, etc.
+}
+
+func TestGetTransactionByIDV2(t *testing.T) {
+	tearDown := setUp(t)
+	defer tearDown()
+
+	transactionID := int64(1) // Assume some transaction ID
+	userID := int64(1)        // Assume some user ID
+
+	// Assume a mock transaction to be returned
+	mockTransaction := interfaces.Transaction{
+		ID:          transactionID,
+		UserID:      userID,
+		SourceID:    1,
+		CategoryID:  1,
+		Timestamp:   time.Now(),
+		Amount:      100.0,
+		Type:        "expense",
+		Description: "Mock Transaction",
+	}
+
+	db, mockM := setupNewMock(t)
+	defer db.Close()
+
+	t.Run("Successful Retrieval", func(t *testing.T) {
+		rows := sqlmock.NewRows([]string{"id", "user_id", "source_id", "category_id", "timestamp", "amount", "type", "description"}).
+			AddRow(mockTransaction.ID, mockTransaction.UserID, mockTransaction.SourceID, mockTransaction.CategoryID, mockTransaction.Timestamp, mockTransaction.Amount, mockTransaction.Type, mockTransaction.Description)
+
+		mockM.ExpectQuery("SELECT (.+) FROM transactions WHERE").WithArgs(transactionID, userID).WillReturnRows(rows)
+
+		// Assume getTagsForTransaction is properly implemented or mocked
+		// Mock the call to getTagsForTransaction if it makes an external call
+
+		transaction, err := mockModelService.TransactionModel.GetTransactionByID(context.Background(), transactionID, userID)
+		assert.NoError(t, err)
+		assert.Equal(t, mockTransaction, *transaction)
+		assert.NoError(t, mockM.ExpectationsWereMet())
+	})
+
+	t.Run("Transaction Not Found", func(t *testing.T) {
+		mockM.ExpectQuery("SELECT (.+) FROM transactions WHERE").WithArgs(transactionID, userID).WillReturnRows(sqlmock.NewRows(nil)) // Return empty result set
+
+		transaction, err := mockModelService.TransactionModel.GetTransactionByID(context.Background(), transactionID, userID)
+		assert.Error(t, err) // Assuming function returns error on not found
+		assert.Nil(t, transaction)
+		assert.NoError(t, mockM.ExpectationsWereMet())
+	})
+
+	t.Run("Query Execution Error", func(t *testing.T) {
+		mockM.ExpectQuery("SELECT (.+) FROM transactions WHERE").WithArgs(transactionID, userID).WillReturnError(sql.ErrConnDone) // Simulate query execution error
+
+		transaction, err := mockModelService.TransactionModel.GetTransactionByID(context.Background(), transactionID, userID)
+		assert.Error(t, err)
+		assert.Nil(t, transaction)
+		assert.NoError(t, mockM.ExpectationsWereMet())
+	})
+
+	// Add more subtests if needed, for example to cover the logic within getTagsForTransaction, etc.
 }
