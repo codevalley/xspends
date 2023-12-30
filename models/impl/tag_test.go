@@ -14,7 +14,10 @@ import (
 
 // Insert a valid tag with a name and user ID
 func TestInsertValidTag(t *testing.T) {
-	tearDown := setUp(t)
+	tearDown := setUp(t, func(config *ModelsConfig) {
+		// Replace the mocked CategoryModel with a real one just for this test
+		config.TagModel = &TagModel{}
+	})
 	defer tearDown()
 
 	tag := &interfaces.Tag{
@@ -29,13 +32,16 @@ func TestInsertValidTag(t *testing.T) {
 		Return(sql.Result(nil), nil).
 		Times(1)
 
-	err := mockModelService.TagModel.InsertTag(ctx, tag)
+	err := ModelsService.TagModel.InsertTag(ctx, tag)
 	assert.NoError(t, err)
 }
 
 // Update an existing tag with a valid name and user ID
 func TestUpdateExistingTag(t *testing.T) {
-	tearDown := setUp(t)
+	tearDown := setUp(t, func(config *ModelsConfig) {
+		// Replace the mocked CategoryModel with a real one just for this test
+		config.TagModel = &TagModel{}
+	})
 	defer tearDown()
 
 	tag := &interfaces.Tag{
@@ -51,13 +57,16 @@ func TestUpdateExistingTag(t *testing.T) {
 		Return(sql.Result(nil), nil).
 		Times(1)
 
-	err := mockModelService.TagModel.UpdateTag(ctx, tag)
+	err := ModelsService.TagModel.UpdateTag(ctx, tag)
 	assert.NoError(t, err)
 }
 
 // Delete an existing tag with a valid tag ID and user ID
 func TestDeleteExistingTag(t *testing.T) {
-	tearDown := setUp(t)
+	tearDown := setUp(t, func(config *ModelsConfig) {
+		// Replace the mocked CategoryModel with a real one just for this test
+		config.TagModel = &TagModel{}
+	})
 	defer tearDown()
 
 	tagID := int64(1)
@@ -68,7 +77,7 @@ func TestDeleteExistingTag(t *testing.T) {
 		Return(sql.Result(nil), nil).
 		Times(1)
 
-	err := mockModelService.TagModel.DeleteTag(ctx, tagID, userID)
+	err := ModelsService.TagModel.DeleteTag(ctx, tagID, userID)
 	assert.NoError(t, err)
 }
 
@@ -80,7 +89,7 @@ func TestRetrieveExistingTagByID(t *testing.T) {
 	}
 	defer db.Close()
 	mockDBService := &DBService{Executor: db}
-	mockModelService = &ModelsServiceContainer{
+	mockModelService := &ModelsServiceContainer{
 		DBService: mockDBService,
 		TagModel:  &TagModel{},
 	}
@@ -99,7 +108,7 @@ func TestRetrieveExistingTagByID(t *testing.T) {
 
 	mock.ExpectQuery(`SELECT id, user_id, name, created_at, updated_at FROM tags WHERE id = \? AND user_id = \?`).WithArgs(tagID, userID).WillReturnRows(mockRows)
 	ctx := context.Background()
-	tag, err := mockModelService.TagModel.GetTagByID(ctx, tagID, userID)
+	tag, err := ModelsService.TagModel.GetTagByID(ctx, tagID, userID)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, tag)
@@ -111,7 +120,10 @@ func TestRetrieveExistingTagByID(t *testing.T) {
 
 // Retrieve all tags for a user with a valid user ID and pagination parameters
 func TestRetrieveAllTagsForUser(t *testing.T) {
-	tearDown := setUp(t)
+	tearDown := setUp(t, func(config *ModelsConfig) {
+		// Replace the mocked CategoryModel with a real one just for this test
+		config.TagModel = &TagModel{}
+	})
 	defer tearDown()
 
 	userID := int64(1)
@@ -127,7 +139,7 @@ func TestRetrieveAllTagsForUser(t *testing.T) {
 	defer db.Close()
 
 	mockDBService := &DBService{Executor: db}
-	mockModelService = &ModelsServiceContainer{
+	mockModelService := &ModelsServiceContainer{
 		DBService: mockDBService,
 		TagModel:  &TagModel{},
 	}
@@ -144,7 +156,7 @@ func TestRetrieveAllTagsForUser(t *testing.T) {
 		WillReturnRows(mockRows)
 
 	ctx := context.Background()
-	tags, err := mockModelService.TagModel.GetAllTags(ctx, userID, pagination)
+	tags, err := ModelsService.TagModel.GetAllTags(ctx, userID, pagination)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, tags)
@@ -157,7 +169,10 @@ func TestRetrieveAllTagsForUser(t *testing.T) {
 
 // Insert a tag with an invalid user ID or name
 func TestInsertInvalidTag(t *testing.T) {
-	tearDown := setUp(t)
+	tearDown := setUp(t, func(config *ModelsConfig) {
+		// Replace the mocked CategoryModel with a real one just for this test
+		config.TagModel = &TagModel{}
+	})
 	defer tearDown()
 
 	tag := &interfaces.Tag{
@@ -167,12 +182,15 @@ func TestInsertInvalidTag(t *testing.T) {
 		UpdatedAt: time.Now(),
 	}
 
-	err := mockModelService.TagModel.InsertTag(ctx, tag)
+	err := ModelsService.TagModel.InsertTag(ctx, tag)
 	assert.Error(t, err)
 }
 
 func TestUpdateInvalidTag(t *testing.T) {
-	tearDown := setUp(t)
+	tearDown := setUp(t, func(config *ModelsConfig) {
+		// Replace the mocked CategoryModel with a real one just for this test
+		config.TagModel = &TagModel{}
+	})
 	defer tearDown()
 
 	tag := &interfaces.Tag{
@@ -183,13 +201,16 @@ func TestUpdateInvalidTag(t *testing.T) {
 		UpdatedAt: time.Now(),
 	}
 
-	err := mockModelService.TagModel.UpdateTag(ctx, tag)
+	err := ModelsService.TagModel.UpdateTag(ctx, tag)
 	assert.NotNil(t, err, "Expected error due to invalid tag")
 	assert.Contains(t, err.Error(), "invalid input for tag", "Expected 'invalid input for tag' error")
 }
 
 func TestGetTagByName(t *testing.T) {
-	tearDown := setUp(t)
+	tearDown := setUp(t, func(config *ModelsConfig) {
+		// Replace the mocked CategoryModel with a real one just for this test
+		config.TagModel = &TagModel{}
+	})
 	defer tearDown()
 
 	userID := int64(1)
@@ -202,7 +223,7 @@ func TestGetTagByName(t *testing.T) {
 	defer db.Close()
 
 	mockDBService := &DBService{Executor: db}
-	mockModelService = &ModelsServiceContainer{
+	mockModelService := &ModelsServiceContainer{
 		DBService: mockDBService,
 		TagModel:  &TagModel{},
 	}
@@ -217,7 +238,7 @@ func TestGetTagByName(t *testing.T) {
 		WillReturnRows(mockRows)
 
 	ctx := context.Background()
-	tag, err := mockModelService.TagModel.GetTagByName(ctx, tagName, userID)
+	tag, err := ModelsService.TagModel.GetTagByName(ctx, tagName, userID)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, tag)

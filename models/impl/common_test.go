@@ -12,10 +12,8 @@ import (
 )
 
 var (
-	ctx              context.Context
-	mockExecutor     *mock.MockDBExecutor
-	mockDBService    *DBService
-	mockModelService *ModelsServiceContainer
+	ctx          context.Context
+	mockExecutor *mock.MockDBExecutor
 )
 
 func TestMain(m *testing.M) {
@@ -27,14 +25,13 @@ func TestMain(m *testing.M) {
 	os.Exit(exitVal)
 }
 
-func setUp(t *testing.T) func() {
-	util.InitializeSnowflake()
+func setUp(t *testing.T, modifyConfig func(*ModelsConfig)) func() {
 	ctrl := gomock.NewController(t)
+	util.InitializeSnowflake()
+	// Create mocks for each service
 	mockExecutor = mock.NewMockDBExecutor(ctrl)
-	mockDBService = &DBService{Executor: mockExecutor} //bad code, this variable is in db.go
-
 	mockConfig := &ModelsConfig{
-		DBService:           mockDBService,
+		DBService:           &DBService{Executor: mockExecutor},
 		CategoryModel:       new(mock.MockCategoryModel),
 		SourceModel:         new(mock.MockSourceModel),
 		UserModel:           new(mock.MockUserModel),
@@ -42,8 +39,18 @@ func setUp(t *testing.T) func() {
 		TransactionTagModel: new(mock.MockTransactionTagModel),
 		TransactionModel:    new(mock.MockTransactionModel),
 	}
-	// Initialize the models service with the mock configuration
+
+	// Allow tests to modify the mock configuration as needed
+	if modifyConfig != nil {
+		modifyConfig(mockConfig)
+	}
+	isTesting = true
+	// Initialize ModelsService with the (potentially modified) mock configuration
 	InitModelsService(mockConfig)
 
-	return func() { ctrl.Finish() }
+	// Return a function to teardown the mock controller after the test
+	return func() {
+		ctrl.Finish() // Ensure all mock expectations are met
+		// Any additional cleanup can be added here
+	}
 }

@@ -13,7 +13,10 @@ import (
 )
 
 func TestInsertUser(t *testing.T) {
-	tearDown := setUp(t)
+	tearDown := setUp(t, func(config *ModelsConfig) {
+		// Replace the mocked CategoryModel with a real one just for this test
+		config.UserModel = &UserModel{}
+	})
 	defer tearDown()
 
 	user := &interfaces.User{
@@ -27,12 +30,15 @@ func TestInsertUser(t *testing.T) {
 		ExecContext(gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(sql.Result(nil), nil).
 		Times(1)
-	err := mockModelService.UserModel.InsertUser(ctx, user)
+	err := ModelsService.UserModel.InsertUser(ctx, user)
 	assert.NoError(t, err)
 }
 
 func TestUpdateUser(t *testing.T) {
-	tearDown := setUp(t)
+	tearDown := setUp(t, func(config *ModelsConfig) {
+		// Replace the mocked CategoryModel with a real one just for this test
+		config.UserModel = &UserModel{}
+	})
 	defer tearDown()
 
 	user := &interfaces.User{
@@ -48,12 +54,15 @@ func TestUpdateUser(t *testing.T) {
 		Return(sql.Result(nil), nil).
 		Times(1)
 
-	err := mockModelService.UserModel.UpdateUser(ctx, user)
+	err := ModelsService.UserModel.UpdateUser(ctx, user)
 	assert.NoError(t, err)
 }
 
 func TestDeleteUser(t *testing.T) {
-	tearDown := setUp(t)
+	tearDown := setUp(t, func(config *ModelsConfig) {
+		// Replace the mocked CategoryModel with a real one just for this test
+		config.UserModel = &UserModel{}
+	})
 	defer tearDown()
 
 	userID := int64(1)
@@ -63,7 +72,7 @@ func TestDeleteUser(t *testing.T) {
 		Return(sql.Result(nil), nil).
 		Times(1)
 
-	err := mockModelService.UserModel.DeleteUser(ctx, userID)
+	err := ModelsService.UserModel.DeleteUser(ctx, userID)
 	assert.NoError(t, err)
 }
 func TestGetUserByID(t *testing.T) {
@@ -74,7 +83,7 @@ func TestGetUserByID(t *testing.T) {
 	}
 	defer db.Close()
 	mockDBService := &DBService{Executor: db}
-	mockModelService = &ModelsServiceContainer{
+	mockModelService := &ModelsServiceContainer{
 		DBService: mockDBService,
 		UserModel: &UserModel{},
 		// Initialize other models as necessary
@@ -89,7 +98,7 @@ func TestGetUserByID(t *testing.T) {
 
 	// Call the function under test
 	ctx := context.Background()
-	user, err := mockModelService.UserModel.GetUserByID(ctx, userID)
+	user, err := ModelsService.UserModel.GetUserByID(ctx, userID)
 
 	// Assertions
 	assert.NoError(t, err)
@@ -115,7 +124,7 @@ func TestGetUserByUsername(t *testing.T) {
 	}
 	defer db.Close()
 	mockDBService := &DBService{Executor: db}
-	mockModelService = &ModelsServiceContainer{
+	mockModelService := &ModelsServiceContainer{
 		DBService: mockDBService,
 		UserModel: &UserModel{},
 		// Initialize other models as necessary
@@ -138,7 +147,7 @@ func TestGetUserByUsername(t *testing.T) {
 	mock.ExpectQuery("^SELECT (.+) FROM users WHERE").WithArgs(username).WillReturnRows(rows)
 
 	// Call the function under test
-	user, err := mockModelService.UserModel.GetUserByUsername(ctx, username)
+	user, err := ModelsService.UserModel.GetUserByUsername(ctx, username)
 
 	// Assertions
 	assert.NoError(t, err)
@@ -163,7 +172,7 @@ func TestUserExists(t *testing.T) {
 	}
 	defer db.Close()
 	mockDBService := &DBService{Executor: db}
-	mockModelService = &ModelsServiceContainer{
+	mockModelService := &ModelsServiceContainer{
 		DBService: mockDBService,
 		UserModel: &UserModel{},
 		// Initialize other models as necessary
@@ -178,7 +187,7 @@ func TestUserExists(t *testing.T) {
 	mock.ExpectQuery("^SELECT (.+) FROM users WHERE").WithArgs(username, email).WillReturnRows(rows)
 
 	// Call the function under test
-	exists, err := mockModelService.UserModel.UserExists(ctx, username, email)
+	exists, err := ModelsService.UserModel.UserExists(ctx, username, email)
 
 	// Assertions
 	assert.NoError(t, err)
@@ -197,7 +206,7 @@ func TestUserIDExists(t *testing.T) {
 	}
 	defer db.Close()
 	mockDBService := &DBService{Executor: db}
-	mockModelService = &ModelsServiceContainer{
+	mockModelService := &ModelsServiceContainer{
 		DBService: mockDBService,
 		UserModel: &UserModel{},
 		// Initialize other models as necessary
@@ -211,7 +220,7 @@ func TestUserIDExists(t *testing.T) {
 	mock.ExpectQuery("^SELECT (.+) FROM users WHERE").WithArgs(userID).WillReturnRows(rows)
 
 	// Call the function under test
-	exists, err := mockModelService.UserModel.UserIDExists(ctx, userID)
+	exists, err := ModelsService.UserModel.UserIDExists(ctx, userID)
 
 	// Assertions
 	assert.NoError(t, err)
@@ -231,7 +240,7 @@ func TestUserIDExists_UserIDNotFound(t *testing.T) {
 	}
 	defer db.Close()
 	mockDBService := &DBService{Executor: db}
-	mockModelService = &ModelsServiceContainer{
+	mockModelService := &ModelsServiceContainer{
 		DBService: mockDBService,
 		UserModel: &UserModel{},
 		// Initialize other models as necessary
@@ -241,7 +250,7 @@ func TestUserIDExists_UserIDNotFound(t *testing.T) {
 	mock.ExpectQuery("^SELECT (.+) FROM users WHERE").WithArgs(userID).WillReturnRows(sqlmock.NewRows([]string{"exists"}))
 
 	// Call the function under test
-	exists, err := mockModelService.UserModel.UserIDExists(ctx, userID)
+	exists, err := ModelsService.UserModel.UserIDExists(ctx, userID)
 
 	// Assertions
 	// 1. Ensure no error is returned (indicating a successful query)

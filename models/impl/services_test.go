@@ -22,7 +22,7 @@ import (
 // }
 
 func TestModelsServiceSingleton(t *testing.T) {
-	tearDown := setUp(t)
+	tearDown := setUp(t, nil)
 	defer tearDown()
 
 	// Create a mock configuration for testing
@@ -47,7 +47,7 @@ func TestModelsServiceSingleton(t *testing.T) {
 }
 
 func TestModelsServiceInitialization(t *testing.T) {
-	tearDown := setUp(t)
+	tearDown := setUp(t, nil)
 	defer tearDown()
 
 	// Create mock or real instances for each service

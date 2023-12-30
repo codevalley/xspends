@@ -21,7 +21,7 @@ func setupNewMock(t *testing.T) (*sql.DB, sqlmock.Sqlmock) {
 	t.Cleanup(func() {
 		db.Close() // ensure the db connection is closed after the test
 	})
-	mockModelService.DBService.Executor = db
+	ModelsService.DBService.Executor = db
 
 	return db, mock
 }
@@ -43,7 +43,13 @@ func setupForeignKeyMocks(mockM sqlmock.Sqlmock, txn interfaces.Transaction) {
 }
 
 func TestInsertTransactionV2(t *testing.T) {
-	tearDown := setUp(t)
+	tearDown := setUp(t, func(config *ModelsConfig) {
+		// Replace the mocked CategoryModel with a real one just for this test
+		config.TransactionModel = &TransactionModel{}
+		config.UserModel = &UserModel{}
+		config.SourceModel = &SourceModel{}
+		config.CategoryModel = &CategoryModel{}
+	})
 	defer tearDown()
 
 	txn := interfaces.Transaction{
@@ -62,8 +68,8 @@ func TestInsertTransactionV2(t *testing.T) {
 	t.Run("Successful Insertion", func(t *testing.T) {
 		mockTagModel := new(xmock.MockTagModel)
 		mockTransactionTagModel := new(xmock.MockTransactionTagModel)
-		mockModelService.TransactionTagModel = mockTransactionTagModel
-		mockModelService.TagModel = mockTagModel
+		ModelsService.TransactionTagModel = mockTransactionTagModel
+		ModelsService.TagModel = mockTagModel
 		setupForeignKeyMocks(mockM, txn)
 		mockM.ExpectExec("INSERT INTO transactions").
 			WithArgs(sqlmock.AnyArg(), txn.UserID, txn.SourceID, txn.CategoryID, sqlmock.AnyArg(), txn.Amount, txn.Type, txn.Description).
@@ -88,7 +94,7 @@ func TestInsertTransactionV2(t *testing.T) {
 		).Return(nil).Once()
 
 		// Call the method under test
-		err := mockModelService.TransactionModel.InsertTransaction(context.Background(), txn)
+		err := ModelsService.TransactionModel.InsertTransaction(context.Background(), txn)
 		assert.NoError(t, err)
 		assert.NoError(t, mockM.ExpectationsWereMet())
 		mockTagModel.AssertExpectations(t)
@@ -101,7 +107,7 @@ func TestInsertTransactionV2(t *testing.T) {
 		// Expect the user existence check query
 		mock1.ExpectQuery("^SELECT (.+) FROM users WHERE").WithArgs(txn.UserID).WillReturnRows(sqlmock.NewRows([]string{"exists"}))
 
-		err := mockModelService.TransactionModel.InsertTransaction(context.Background(), txn)
+		err := ModelsService.TransactionModel.InsertTransaction(context.Background(), txn)
 
 		// We are expecting an error because the user is not found
 		assert.Error(t, err)
@@ -119,7 +125,7 @@ func TestInsertTransactionV2(t *testing.T) {
 			WithArgs(sqlmock.AnyArg(), txn.UserID, txn.SourceID, txn.CategoryID, sqlmock.AnyArg(), txn.Amount, txn.Type, txn.Description).
 			WillReturnError(sql.ErrConnDone) // Simulate a connection error or similar
 
-		err := mockModelService.TransactionModel.InsertTransaction(context.Background(), txn)
+		err := ModelsService.TransactionModel.InsertTransaction(context.Background(), txn)
 		assert.Error(t, err)
 		assert.NoError(t, mockM.ExpectationsWereMet())
 	})
@@ -129,8 +135,8 @@ func TestInsertTransactionV2(t *testing.T) {
 		_, mockM = setupNewMock(t)
 		mockTagModel := new(xmock.MockTagModel)
 		mockTransactionTagModel := new(xmock.MockTransactionTagModel)
-		mockModelService.TransactionTagModel = mockTransactionTagModel
-		mockModelService.TagModel = mockTagModel
+		ModelsService.TransactionTagModel = mockTransactionTagModel
+		ModelsService.TagModel = mockTagModel
 		setupForeignKeyMocks(mockM, txn) // Set up foreign key validations
 
 		// Set up mocks for successful transaction insert
@@ -156,7 +162,7 @@ func TestInsertTransactionV2(t *testing.T) {
 			mock.Anything, mock.Anything, mock.Anything, txn.UserID, mock.Anything,
 		).Return(sql.ErrConnDone).Once() // Use an appropriate error
 
-		err := mockModelService.TransactionModel.InsertTransaction(context.Background(), txn)
+		err := ModelsService.TransactionModel.InsertTransaction(context.Background(), txn)
 		assert.Error(t, err)
 		assert.NoError(t, mockM.ExpectationsWereMet())
 		mockTransactionTagModel.AssertExpectations(t)
@@ -164,7 +170,13 @@ func TestInsertTransactionV2(t *testing.T) {
 }
 
 func TestUpdateTransactionV2(t *testing.T) {
-	tearDown := setUp(t)
+	tearDown := setUp(t, func(config *ModelsConfig) {
+		// Replace the mocked CategoryModel with a real one just for this test
+		config.TransactionModel = &TransactionModel{}
+		config.UserModel = &UserModel{}
+		config.SourceModel = &SourceModel{}
+		config.CategoryModel = &CategoryModel{}
+	})
 	defer tearDown()
 
 	txn := interfaces.Transaction{
@@ -184,8 +196,8 @@ func TestUpdateTransactionV2(t *testing.T) {
 	t.Run("Successful Update", func(t *testing.T) {
 		mockTagModel := new(xmock.MockTagModel)
 		mockTransactionTagModel := new(xmock.MockTransactionTagModel)
-		mockModelService.TransactionTagModel = mockTransactionTagModel
-		mockModelService.TagModel = mockTagModel
+		ModelsService.TransactionTagModel = mockTransactionTagModel
+		ModelsService.TagModel = mockTagModel
 		setupForeignKeyMocks(mockM, txn)
 
 		// Set up mock for successful update
@@ -212,7 +224,7 @@ func TestUpdateTransactionV2(t *testing.T) {
 		).Return(nil).Once()
 
 		// Call the method under test
-		err := mockModelService.TransactionModel.UpdateTransaction(context.Background(), txn)
+		err := ModelsService.TransactionModel.UpdateTransaction(context.Background(), txn)
 		assert.NoError(t, err)
 		assert.NoError(t, mockM.ExpectationsWereMet())
 		mockTagModel.AssertExpectations(t)
@@ -228,7 +240,7 @@ func TestUpdateTransactionV2(t *testing.T) {
 			WillReturnRows(sqlmock.NewRows(nil)) // No rows returned to simulate user not found
 
 		// Call the update method and expect an error
-		err := mockModelService.TransactionModel.UpdateTransaction(context.Background(), txn)
+		err := ModelsService.TransactionModel.UpdateTransaction(context.Background(), txn)
 		assert.Error(t, err)
 		assert.NoError(t, mockM.ExpectationsWereMet())
 	})
@@ -243,7 +255,7 @@ func TestUpdateTransactionV2(t *testing.T) {
 			WillReturnError(sql.ErrConnDone)
 
 		// Call the update method and expect an error
-		err := mockModelService.TransactionModel.UpdateTransaction(context.Background(), txn)
+		err := ModelsService.TransactionModel.UpdateTransaction(context.Background(), txn)
 		assert.Error(t, err)
 		assert.NoError(t, mockM.ExpectationsWereMet())
 	})
@@ -252,8 +264,8 @@ func TestUpdateTransactionV2(t *testing.T) {
 		_, mockM = setupNewMock(t)
 		mockTagModel := new(xmock.MockTagModel)
 		mockTransactionTagModel := new(xmock.MockTransactionTagModel)
-		mockModelService.TransactionTagModel = mockTransactionTagModel
-		mockModelService.TagModel = mockTagModel
+		ModelsService.TransactionTagModel = mockTransactionTagModel
+		ModelsService.TagModel = mockTagModel
 		setupForeignKeyMocks(mockM, txn) // Set up foreign key validations
 
 		// Set up mocks for successful transaction update
@@ -281,7 +293,7 @@ func TestUpdateTransactionV2(t *testing.T) {
 		).Return(sql.ErrConnDone).Once() // Use an appropriate error
 
 		// Call the update method and expect an error
-		err := mockModelService.TransactionModel.UpdateTransaction(context.Background(), txn)
+		err := ModelsService.TransactionModel.UpdateTransaction(context.Background(), txn)
 		assert.Error(t, err)
 		assert.NoError(t, mockM.ExpectationsWereMet())
 		mockTransactionTagModel.AssertExpectations(t)
@@ -289,7 +301,11 @@ func TestUpdateTransactionV2(t *testing.T) {
 }
 
 func TestDeleteTransactionV2(t *testing.T) {
-	tearDown := setUp(t)
+	tearDown := setUp(t, func(config *ModelsConfig) {
+		// Replace the mocked CategoryModel with a real one just for this test
+		config.TransactionModel = &TransactionModel{}
+
+	})
 	defer tearDown()
 
 	transactionID := int64(1) // Assume an existing transaction ID for deletion
@@ -305,7 +321,7 @@ func TestDeleteTransactionV2(t *testing.T) {
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
 		// Call the method under test
-		err := mockModelService.TransactionModel.DeleteTransaction(context.Background(), transactionID, userID)
+		err := ModelsService.TransactionModel.DeleteTransaction(context.Background(), transactionID, userID)
 		assert.NoError(t, err)
 		assert.NoError(t, mockM.ExpectationsWereMet())
 	})
@@ -319,7 +335,7 @@ func TestDeleteTransactionV2(t *testing.T) {
 			WillReturnError(sql.ErrConnDone)
 
 		// Call the delete method and expect an error
-		err := mockModelService.TransactionModel.DeleteTransaction(context.Background(), transactionID, userID)
+		err := ModelsService.TransactionModel.DeleteTransaction(context.Background(), transactionID, userID)
 		assert.Error(t, err)
 		assert.NoError(t, mockM.ExpectationsWereMet())
 	})
@@ -333,7 +349,7 @@ func TestDeleteTransactionV2(t *testing.T) {
 			WillReturnResult(sqlmock.NewResult(0, 0)) // Indicate no rows were affected
 
 		// Call the delete method and check if error or some indication of non-existence is handled
-		err := mockModelService.TransactionModel.DeleteTransaction(context.Background(), transactionID, userID)
+		err := ModelsService.TransactionModel.DeleteTransaction(context.Background(), transactionID, userID)
 		// Assert based on how your application should behave (error or just a no-op)
 		// Here it is assumed the method won't error out if no transaction was found
 		assert.NoError(t, err)
@@ -345,7 +361,15 @@ func TestDeleteTransactionV2(t *testing.T) {
 }
 
 func TestGetTransactionByIDV2(t *testing.T) {
-	tearDown := setUp(t)
+	tearDown := setUp(t, func(config *ModelsConfig) {
+		// Replace the mocked CategoryModel with a real one just for this test
+		config.TransactionModel = &TransactionModel{}
+		config.UserModel = &UserModel{}
+		config.SourceModel = &SourceModel{}
+		config.CategoryModel = &CategoryModel{}
+		config.TransactionTagModel = &TransactionTagModel{}
+
+	})
 	defer tearDown()
 
 	transactionID := int64(1) // Assume some transaction ID
@@ -375,7 +399,7 @@ func TestGetTransactionByIDV2(t *testing.T) {
 		// Assume getTagsForTransaction is properly implemented or mocked
 		// Mock the call to getTagsForTransaction if it makes an external call
 
-		transaction, err := mockModelService.TransactionModel.GetTransactionByID(context.Background(), transactionID, userID)
+		transaction, err := ModelsService.TransactionModel.GetTransactionByID(context.Background(), transactionID, userID)
 		assert.NoError(t, err)
 		assert.Equal(t, mockTransaction, *transaction)
 		assert.NoError(t, mockM.ExpectationsWereMet())
@@ -384,7 +408,7 @@ func TestGetTransactionByIDV2(t *testing.T) {
 	t.Run("Transaction Not Found", func(t *testing.T) {
 		mockM.ExpectQuery("SELECT (.+) FROM transactions WHERE").WithArgs(transactionID, userID).WillReturnRows(sqlmock.NewRows(nil)) // Return empty result set
 
-		transaction, err := mockModelService.TransactionModel.GetTransactionByID(context.Background(), transactionID, userID)
+		transaction, err := ModelsService.TransactionModel.GetTransactionByID(context.Background(), transactionID, userID)
 		assert.Error(t, err) // Assuming function returns error on not found
 		assert.Nil(t, transaction)
 		assert.NoError(t, mockM.ExpectationsWereMet())
@@ -393,7 +417,7 @@ func TestGetTransactionByIDV2(t *testing.T) {
 	t.Run("Query Execution Error", func(t *testing.T) {
 		mockM.ExpectQuery("SELECT (.+) FROM transactions WHERE").WithArgs(transactionID, userID).WillReturnError(sql.ErrConnDone) // Simulate query execution error
 
-		transaction, err := mockModelService.TransactionModel.GetTransactionByID(context.Background(), transactionID, userID)
+		transaction, err := ModelsService.TransactionModel.GetTransactionByID(context.Background(), transactionID, userID)
 		assert.Error(t, err)
 		assert.Nil(t, transaction)
 		assert.NoError(t, mockM.ExpectationsWereMet())
@@ -403,7 +427,10 @@ func TestGetTransactionByIDV2(t *testing.T) {
 }
 
 func TestGetTransactionsByFilterV2(t *testing.T) {
-	tearDown := setUp(t)
+	tearDown := setUp(t, func(config *ModelsConfig) {
+		// Replace the mocked CategoryModel with a real one just for this test
+		config.TransactionModel = &TransactionModel{}
+	})
 	defer tearDown()
 
 	userID := int64(1) // Assume some user ID
@@ -430,7 +457,7 @@ func TestGetTransactionsByFilterV2(t *testing.T) {
 
 		// Assume getTagsForTransaction is properly implemented or mocked
 
-		transactions, err := mockModelService.TransactionModel.GetTransactionsByFilter(context.Background(), filter)
+		transactions, err := ModelsService.TransactionModel.GetTransactionsByFilter(context.Background(), filter)
 		assert.NoError(t, err)
 		assert.Equal(t, mockTransactions, transactions)
 		assert.NoError(t, mockM.ExpectationsWereMet())
@@ -439,7 +466,7 @@ func TestGetTransactionsByFilterV2(t *testing.T) {
 	t.Run("Query Execution Error", func(t *testing.T) {
 		mockM.ExpectQuery("SELECT (.+) FROM transactions").WillReturnError(sql.ErrConnDone) // Simulate query execution error
 
-		transactions, err := mockModelService.TransactionModel.GetTransactionsByFilter(context.Background(), filter)
+		transactions, err := ModelsService.TransactionModel.GetTransactionsByFilter(context.Background(), filter)
 		assert.Error(t, err)
 		assert.Nil(t, transactions)
 		assert.NoError(t, mockM.ExpectationsWereMet())
@@ -450,7 +477,7 @@ func TestGetTransactionsByFilterV2(t *testing.T) {
 		mockM.ExpectQuery("SELECT (.+) FROM transactions").WillReturnRows(rows)
 
 		_ = rows.RowError(0, sql.ErrConnDone) // Simulate row scan error on the first row
-		transactions, err := mockModelService.TransactionModel.GetTransactionsByFilter(context.Background(), filter)
+		transactions, err := ModelsService.TransactionModel.GetTransactionsByFilter(context.Background(), filter)
 		assert.Error(t, err)
 		assert.Nil(t, transactions)
 		assert.NoError(t, mockM.ExpectationsWereMet())
@@ -460,8 +487,15 @@ func TestGetTransactionsByFilterV2(t *testing.T) {
 }
 
 func TestGetTagsForTransaction(t *testing.T) {
-	tearDown := setUp(t) // Set up and initialization
-	defer tearDown()     // Clean up after the test
+	tearDown := setUp(t, func(config *ModelsConfig) {
+		// Replace the mocked CategoryModel with a real one just for this test
+		config.TransactionModel = &TransactionModel{}
+		config.UserModel = &UserModel{}
+		config.SourceModel = &SourceModel{}
+		config.CategoryModel = &CategoryModel{}
+		config.TransactionTagModel = &TransactionTagModel{}
+	}) // Set up and initialization
+	defer tearDown() // Clean up after the test
 
 	// Assumed transaction details
 	transactionID := int64(1)
@@ -530,7 +564,14 @@ func TestGetTagsForTransaction(t *testing.T) {
 }
 
 func TestValidateForeignKeyReferences(t *testing.T) {
-	tearDown := setUp(t)
+	tearDown := setUp(t, func(config *ModelsConfig) {
+		// Replace the mocked CategoryModel with a real one just for this test
+		config.TransactionModel = &TransactionModel{}
+		config.UserModel = &UserModel{}
+		config.SourceModel = &SourceModel{}
+		config.CategoryModel = &CategoryModel{}
+
+	})
 	defer tearDown()
 
 	txn := interfaces.Transaction{
@@ -581,7 +622,10 @@ func TestValidateForeignKeyReferences(t *testing.T) {
 
 func TestAddMissingTags(t *testing.T) {
 	// Set up the mock environment
-	tearDown := setUp(t) // Assume setUp properly initializes mocks and other necessary stuff
+	tearDown := setUp(t, func(config *ModelsConfig) {
+		// Replace the mocked CategoryModel with a real one just for this test
+		config.TransactionModel = &TransactionModel{}
+	}) // Assume setUp properly initializes mocks and other necessary stuff
 	defer tearDown()
 
 	// Assuming these variables are defined and needed for the test
@@ -592,7 +636,7 @@ func TestAddMissingTags(t *testing.T) {
 
 	// Mock TagModel
 	mockTagModel := new(xmock.MockTagModel)
-	mockModelService.TagModel = mockTagModel
+	ModelsService.TagModel = mockTagModel
 
 	// Mock the behavior of GetTagByName and InsertTag
 	for _, tagName := range tagNames {

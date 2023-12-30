@@ -14,7 +14,10 @@ import (
 )
 
 func TestInsertSource(t *testing.T) {
-	tearDown := setUp(t)
+	tearDown := setUp(t, func(config *ModelsConfig) {
+		// Replace the mocked CategoryModel with a real one just for this test
+		config.SourceModel = &SourceModel{}
+	})
 	defer tearDown()
 
 	source := &interfaces.Source{
@@ -31,7 +34,7 @@ func TestInsertSource(t *testing.T) {
 		Return(sql.Result(nil), nil).
 		Times(1)
 
-	err := mockModelService.SourceModel.InsertSource(ctx, source)
+	err := ModelsService.SourceModel.InsertSource(ctx, source)
 	assert.NoError(t, err)
 	//test for generic query error
 	mockExecutor.EXPECT().
@@ -39,7 +42,7 @@ func TestInsertSource(t *testing.T) {
 		Return(sql.Result(nil), errors.New("executing insert for source")).
 		Times(1)
 
-	err = mockModelService.SourceModel.InsertSource(ctx, source)
+	err = ModelsService.SourceModel.InsertSource(ctx, source)
 	assert.Error(t, err)
 	//test for invalid source type
 	source = &interfaces.Source{
@@ -51,7 +54,7 @@ func TestInsertSource(t *testing.T) {
 		UpdatedAt: time.Now(),
 	}
 
-	err = mockModelService.SourceModel.InsertSource(ctx, source)
+	err = ModelsService.SourceModel.InsertSource(ctx, source)
 	assert.Error(t, err)
 
 	//test for missing source name
@@ -64,7 +67,7 @@ func TestInsertSource(t *testing.T) {
 		UpdatedAt: time.Now(),
 	}
 
-	err = mockModelService.SourceModel.InsertSource(ctx, source)
+	err = ModelsService.SourceModel.InsertSource(ctx, source)
 	assert.Error(t, err)
 
 	//test for missing user ID
@@ -76,13 +79,16 @@ func TestInsertSource(t *testing.T) {
 		UpdatedAt: time.Now(),
 	}
 
-	err = mockModelService.SourceModel.InsertSource(ctx, source)
+	err = ModelsService.SourceModel.InsertSource(ctx, source)
 	assert.Error(t, err)
 
 }
 
 func TestUpdateSource(t *testing.T) {
-	tearDown := setUp(t)
+	tearDown := setUp(t, func(config *ModelsConfig) {
+		// Replace the mocked CategoryModel with a real one just for this test
+		config.SourceModel = &SourceModel{}
+	})
 	defer tearDown()
 
 	source := &interfaces.Source{
@@ -99,7 +105,7 @@ func TestUpdateSource(t *testing.T) {
 		Return(sql.Result(nil), nil).
 		Times(1)
 
-	err := mockModelService.SourceModel.UpdateSource(ctx, source)
+	err := ModelsService.SourceModel.UpdateSource(ctx, source)
 	assert.NoError(t, err)
 
 	//test for generic query error
@@ -108,7 +114,7 @@ func TestUpdateSource(t *testing.T) {
 		Return(sql.Result(nil), errors.New("executing insert for source")).
 		Times(1)
 
-	err = mockModelService.SourceModel.UpdateSource(ctx, source)
+	err = ModelsService.SourceModel.UpdateSource(ctx, source)
 	assert.Error(t, err)
 	//test for invalid source type
 	source = &interfaces.Source{
@@ -120,7 +126,7 @@ func TestUpdateSource(t *testing.T) {
 		UpdatedAt: time.Now(),
 	}
 
-	err = mockModelService.SourceModel.UpdateSource(ctx, source)
+	err = ModelsService.SourceModel.UpdateSource(ctx, source)
 	assert.Error(t, err)
 
 	//test for missing source name
@@ -133,7 +139,7 @@ func TestUpdateSource(t *testing.T) {
 		UpdatedAt: time.Now(),
 	}
 
-	err = mockModelService.SourceModel.UpdateSource(ctx, source)
+	err = ModelsService.SourceModel.UpdateSource(ctx, source)
 	assert.Error(t, err)
 
 	//test for missing user ID
@@ -145,12 +151,15 @@ func TestUpdateSource(t *testing.T) {
 		UpdatedAt: time.Now(),
 	}
 
-	err = mockModelService.SourceModel.UpdateSource(ctx, source)
+	err = ModelsService.SourceModel.UpdateSource(ctx, source)
 	assert.Error(t, err)
 }
 
 func TestDeleteSource(t *testing.T) {
-	tearDown := setUp(t)
+	tearDown := setUp(t, func(config *ModelsConfig) {
+		// Replace the mocked CategoryModel with a real one just for this test
+		config.SourceModel = &SourceModel{}
+	})
 	defer tearDown()
 
 	sourceID := int64(1)
@@ -161,7 +170,7 @@ func TestDeleteSource(t *testing.T) {
 		Return(sql.Result(nil), nil).
 		Times(1)
 
-	err := mockModelService.SourceModel.DeleteSource(ctx, sourceID, userID)
+	err := ModelsService.SourceModel.DeleteSource(ctx, sourceID, userID)
 	assert.NoError(t, err)
 
 	//test for generic query error
@@ -171,7 +180,7 @@ func TestDeleteSource(t *testing.T) {
 	}
 	defer db.Close()
 	mockDBService := &DBService{Executor: db}
-	mockModelService = &ModelsServiceContainer{
+	mockModelService := &ModelsServiceContainer{
 		DBService:   mockDBService,
 		SourceModel: &SourceModel{},
 	}
@@ -182,7 +191,7 @@ func TestDeleteSource(t *testing.T) {
 		WillReturnError(errors.New("execution error"))
 
 	ctx := context.Background()
-	err = mockModelService.SourceModel.DeleteSource(ctx, sourceID, userID)
+	err = ModelsService.SourceModel.DeleteSource(ctx, sourceID, userID)
 
 	assert.Error(t, err) // Expecting an error
 
@@ -199,7 +208,7 @@ func TestGetSourceByID(t *testing.T) {
 	}
 	defer db.Close()
 	mockDBService := &DBService{Executor: db}
-	mockModelService = &ModelsServiceContainer{
+	mockModelService := &ModelsServiceContainer{
 		DBService:   mockDBService,
 		SourceModel: &SourceModel{},
 	}
@@ -211,7 +220,7 @@ func TestGetSourceByID(t *testing.T) {
 
 	// Call the function under test
 	ctx := context.Background()
-	source, err := mockModelService.SourceModel.GetSourceByID(ctx, 1, 1)
+	source, err := ModelsService.SourceModel.GetSourceByID(ctx, 1, 1)
 
 	// Assertions
 	assert.NoError(t, err)
@@ -230,7 +239,7 @@ func TestGetSourceByID(t *testing.T) {
 	mock.ExpectQuery("^SELECT (.+) FROM sources WHERE").WithArgs(1, 1).
 		WillReturnError(sql.ErrNoRows)
 
-	exists, err1 := mockModelService.SourceModel.GetSourceByID(ctx, 1, 1)
+	exists, err1 := ModelsService.SourceModel.GetSourceByID(ctx, 1, 1)
 
 	assert.Error(t, err1)
 	assert.True(t, exists == nil) // Source does not exist
@@ -239,14 +248,17 @@ func TestGetSourceByID(t *testing.T) {
 	mock.ExpectQuery("^SELECT (.+) FROM sources WHERE").WithArgs(1, 1).
 		WillReturnError(errors.New("query execution error"))
 
-	_, err = mockModelService.SourceModel.GetSourceByID(ctx, 1, 1)
+	_, err = ModelsService.SourceModel.GetSourceByID(ctx, 1, 1)
 
 	assert.Error(t, err)
 
 }
 
 func TestGetSources(t *testing.T) {
-	tearDown := setUp(t)
+	tearDown := setUp(t, func(config *ModelsConfig) {
+		// Replace the mocked CategoryModel with a real one just for this test
+		config.SourceModel = &SourceModel{}
+	})
 	defer tearDown()
 
 	userID := int64(1)
@@ -258,7 +270,7 @@ func TestGetSources(t *testing.T) {
 	defer db.Close()
 
 	mockDBService := &DBService{Executor: db}
-	mockModelService = &ModelsServiceContainer{
+	mockModelService := &ModelsServiceContainer{
 		DBService:   mockDBService,
 		SourceModel: &SourceModel{},
 	}
@@ -274,7 +286,7 @@ func TestGetSources(t *testing.T) {
 		WillReturnRows(mockRows)
 
 	ctx := context.Background()
-	sources, err := mockModelService.SourceModel.GetSources(ctx, userID)
+	sources, err := ModelsService.SourceModel.GetSources(ctx, userID)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, sources)
@@ -289,7 +301,7 @@ func TestGetSources(t *testing.T) {
 		WithArgs(userID).
 		WillReturnError(errors.New("query execution error"))
 
-	_, err = mockModelService.SourceModel.GetSources(ctx, userID)
+	_, err = ModelsService.SourceModel.GetSources(ctx, userID)
 
 	assert.Error(t, err)
 
@@ -303,7 +315,7 @@ func TestGetSources(t *testing.T) {
 		WithArgs(userID).
 		WillReturnRows(rows)
 
-	_, err = mockModelService.SourceModel.GetSources(ctx, userID)
+	_, err = ModelsService.SourceModel.GetSources(ctx, userID)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "during row processing for sources: row processing error")
@@ -311,7 +323,10 @@ func TestGetSources(t *testing.T) {
 }
 
 func TestSourceIDExists(t *testing.T) {
-	tearDown := setUp(t)
+	tearDown := setUp(t, func(config *ModelsConfig) {
+		// Replace the mocked CategoryModel with a real one just for this test
+		config.SourceModel = &SourceModel{}
+	})
 	defer tearDown()
 
 	sourceID := int64(1)
@@ -324,7 +339,7 @@ func TestSourceIDExists(t *testing.T) {
 	defer db.Close()
 
 	mockDBService := &DBService{Executor: db}
-	mockModelService = &ModelsServiceContainer{
+	mockModelService := &ModelsServiceContainer{
 		DBService:   mockDBService,
 		SourceModel: &SourceModel{},
 	}
@@ -339,7 +354,7 @@ func TestSourceIDExists(t *testing.T) {
 		WillReturnRows(mockRows)
 
 	ctx := context.Background()
-	exists, err := mockModelService.SourceModel.SourceIDExists(ctx, sourceID, userID)
+	exists, err := ModelsService.SourceModel.SourceIDExists(ctx, sourceID, userID)
 
 	assert.NoError(t, err)
 	assert.True(t, exists) // Assuming the source exists
@@ -352,7 +367,7 @@ func TestSourceIDExists(t *testing.T) {
 		WithArgs(sourceID, userID).
 		WillReturnError(sql.ErrNoRows)
 
-	exists, err = mockModelService.SourceModel.SourceIDExists(ctx, sourceID, userID)
+	exists, err = ModelsService.SourceModel.SourceIDExists(ctx, sourceID, userID)
 
 	assert.NoError(t, err)
 	assert.False(t, exists) // Source does not exist
@@ -362,7 +377,7 @@ func TestSourceIDExists(t *testing.T) {
 		WithArgs(sourceID, userID).
 		WillReturnError(errors.New("query execution error"))
 
-	_, err = mockModelService.SourceModel.SourceIDExists(ctx, sourceID, userID)
+	_, err = ModelsService.SourceModel.SourceIDExists(ctx, sourceID, userID)
 
 	assert.Error(t, err)
 }

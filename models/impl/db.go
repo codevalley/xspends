@@ -44,8 +44,8 @@ const (
 	maxConnLifetimeMin = 5 * time.Minute
 )
 
-var DB *sql.DB
-var SQLBuilder squirrel.StatementBuilderType
+var DB *sql.DB                               //can be local variable?
+var SQLBuilder squirrel.StatementBuilderType //can be local variable?
 
 type DBExecutor interface {
 	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)

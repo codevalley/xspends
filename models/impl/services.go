@@ -31,20 +31,30 @@ type ModelsConfig struct {
 	TransactionModel    interfaces.TransactionService
 }
 
+var isTesting bool
+
 // InitModelsService is now a function that takes a ModelsConfig struct
 func InitModelsService(config *ModelsConfig) {
+	if isTesting {
+		initializeModelsService(config)
+		return
+	}
 	once.Do(func() {
-		ModelsService = &ModelsServiceContainer{
-			DBService:           config.DBService,
-			CategoryModel:       config.CategoryModel,
-			SourceModel:         config.SourceModel,
-			UserModel:           config.UserModel,
-			TagModel:            config.TagModel,
-			TransactionTagModel: config.TransactionTagModel,
-			TransactionModel:    config.TransactionModel,
-			// initialize other models...
-		}
+		initializeModelsService(config)
 	})
+}
+
+func initializeModelsService(config *ModelsConfig) {
+	ModelsService = &ModelsServiceContainer{
+		DBService:           config.DBService,
+		CategoryModel:       config.CategoryModel,
+		SourceModel:         config.SourceModel,
+		UserModel:           config.UserModel,
+		TagModel:            config.TagModel,
+		TransactionTagModel: config.TransactionTagModel,
+		TransactionModel:    config.TransactionModel,
+		// initialize other models...
+	}
 }
 
 func GetModelsService() *ModelsServiceContainer {

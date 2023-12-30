@@ -12,7 +12,10 @@ import (
 )
 
 func TestUserStorer_Load(t *testing.T) {
-	tearDown := setUp(t)
+	tearDown := setUp(t, func(config *ModelsConfig) {
+		// Replace the mocked CategoryModel with a real one just for this test
+		config.UserModel = &UserModel{}
+	}) // Assume setUp properly initializes mocks and other necessary stuff
 	defer tearDown()
 	// Set up SQL Mock
 	db, mock, err := sqlmock.New()
@@ -42,7 +45,7 @@ func TestUserStorer_Load(t *testing.T) {
 
 	// Inject the mock executor into your UserModel or database service as needed.
 	// Assuming ModelsService is where the UserModel exists and it has a method to set the executor.
-	mockModelService.DBService.Executor = db
+	ModelsService.DBService.Executor = db
 	userStorer := NewUserStorer()
 
 	// Call the Load method which internally calls GetUserByUsername
@@ -62,7 +65,10 @@ func TestUserStorer_Load(t *testing.T) {
 }
 
 func TestUserStorer_Save(t *testing.T) {
-	tearDown := setUp(t)
+	tearDown := setUp(t, func(config *ModelsConfig) {
+		// Replace the mocked CategoryModel with a real one just for this test
+		config.UserModel = &UserModel{}
+	}) // Assume setUp properly initializes mocks and other necessary stuff
 	defer tearDown()
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -106,7 +112,10 @@ func TestUserStorer_Save(t *testing.T) {
 }
 
 func TestUserStorer_Create(t *testing.T) {
-	tearDown := setUp(t)
+	tearDown := setUp(t, func(config *ModelsConfig) {
+		// Replace the mocked CategoryModel with a real one just for this test
+		config.UserModel = &UserModel{}
+	}) // Assume setUp properly initializes mocks and other necessary stuff
 	defer tearDown()
 	_, mock, err := sqlmock.New()
 	if err != nil {
