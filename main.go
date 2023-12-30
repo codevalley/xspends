@@ -26,6 +26,7 @@ package main
 
 import (
 	"context"
+	"log"
 	"xspends/api"
 	"xspends/kvstore"
 	"xspends/models/impl"
@@ -44,9 +45,25 @@ import (
 func main() {
 	r := gin.Default()
 	util.InitializeSnowflake()
-	impl.InitModelsService()
 
-	//TODO: Remove kvstore iniialization from here to impl.InitModelsService() maybe.
+	// Initialize the real database and other services...
+	dbService, err := impl.InitDB()
+	if err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+	}
+	realConfig := &impl.ModelsConfig{
+		DBService:           dbService,
+		CategoryModel:       &impl.CategoryModel{}, // Initialize other models as needed
+		SourceModel:         &impl.SourceModel{},
+		UserModel:           &impl.UserModel{},
+		TagModel:            &impl.TagModel{},
+		TransactionTagModel: &impl.TransactionTagModel{},
+		TransactionModel:    &impl.TransactionModel{},
+	}
+
+	// Initialize ModelsService with real configuration
+	impl.InitModelsService(realConfig)
+	//TODO: Should move the KVstore initialization inside model ?
 	kvstore.SetupKV(context.Background(), false)
 	kv := kvstore.GetClientFromPool()
 	api.SetupRoutes(r, kv) // refactored (impl.getDB() removed)

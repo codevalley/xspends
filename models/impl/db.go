@@ -47,7 +47,6 @@ const (
 var DB *sql.DB
 var SQLBuilder squirrel.StatementBuilderType
 
-var dbService *DBService // dbService will hold the instance of DBService
 type DBExecutor interface {
 	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
 	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
@@ -63,8 +62,12 @@ func GetDB() *sql.DB {
 }
 
 // GetDBService provides access to the initialized DBService.
+// Modified GetDBService in impl package
 func GetDBService() *DBService {
-	return dbService
+	if ModelsService != nil {
+		return ModelsService.DBService
+	}
+	return nil // or handle the error/nil case appropriately
 }
 
 // CloseDB safely closes the database connection.
@@ -74,24 +77,24 @@ func CloseDB() {
 	}
 }
 
-func InitDB() error {
+func InitDB() (*DBService, error) {
 	var err error
 	dsn := os.Getenv("DB_DSN")
 	fmt.Println(dsn)
 	if dsn == "" {
-		return errors.New("DB_DSN environment variable not set.")
+		return nil, errors.New("DB_DSN environment variable not set.")
 	}
 
 	DB, err = sql.Open("mysql", dsn)
 	if err != nil {
-		return errors.Wrap(err, "Error initializing database")
+		return nil, errors.Wrap(err, "Error initializing database")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	err = DB.PingContext(ctx)
 	if err != nil {
-		return errors.Wrap(err, "Error connecting to the database")
+		return nil, errors.Wrap(err, "Error connecting to the database")
 	}
 	log.Println("Successfully connected to the database")
 
@@ -126,12 +129,12 @@ func InitDB() error {
 		}
 	}
 
-	dbService = &DBService{
+	db := &DBService{
 		Executor: DB,
 	}
 
 	SQLBuilder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Question)
-	return nil
+	return db, nil
 }
 
 func GetQueryBuilder() *squirrel.StatementBuilderType {

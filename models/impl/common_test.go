@@ -32,17 +32,18 @@ func setUp(t *testing.T) func() {
 	ctrl := gomock.NewController(t)
 	mockExecutor = mock.NewMockDBExecutor(ctrl)
 	mockDBService = &DBService{Executor: mockExecutor} //bad code, this variable is in db.go
-	mockModelService = &ModelsServiceContainer{
+
+	mockConfig := &ModelsConfig{
 		DBService:           mockDBService,
-		CategoryModel:       &CategoryModel{},
-		SourceModel:         &SourceModel{},
-		UserModel:           &UserModel{},
-		TagModel:            &TagModel{},
-		TransactionTagModel: &TransactionTagModel{},
-		TransactionModel:    &TransactionModel{},
+		CategoryModel:       new(mock.MockCategoryModel),
+		SourceModel:         new(mock.MockSourceModel),
+		UserModel:           new(mock.MockUserModel),
+		TagModel:            new(mock.MockTagModel),
+		TransactionTagModel: new(mock.MockTransactionTagModel),
+		TransactionModel:    new(mock.MockTransactionModel),
 	}
-	dbService = mockDBService
-	ModelsService = mockModelService
+	// Initialize the models service with the mock configuration
+	InitModelsService(mockConfig)
 
 	return func() { ctrl.Finish() }
 }
