@@ -10,12 +10,23 @@ import (
 	"strings"
 	"testing"
 	"xspends/models/interfaces"
+	xmock "xspends/models/mock"
 	"xspends/testutils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
+
+func initCategoryTest(t *testing.T) *xmock.MockCategoryModel {
+	gin.SetMode(gin.TestMode)
+	_, modelsService, _, _, tearDown := testutils.SetupModelTestEnvironment(t)
+	defer tearDown()
+
+	mockCategoryModel := new(xmock.MockCategoryModel)
+	modelsService.CategoryModel = mockCategoryModel
+	return mockCategoryModel
+}
 
 // TestGetCategoryID tests the getCategoryID function
 func TestGetCategoryID(t *testing.T) {
@@ -83,13 +94,9 @@ func TestGetCategoryID(t *testing.T) {
 
 // TestListCategories tests the ListCategories handler
 func TestListCategories(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	_, _, _, _, tearDown := testutils.SetupModelTestEnvironment(t)
-	defer tearDown()
-
-	mockCategoryModel := testutils.MockCategoryModel
+	mockCategoryModel := initCategoryTest(t)
 	defer mockCategoryModel.AssertExpectations(t)
+
 	isContext := mock.MatchedBy(func(ctx context.Context) bool { return true })
 
 	tests := []struct {
@@ -173,12 +180,7 @@ func TestListCategories(t *testing.T) {
 }
 
 func TestGetCategory(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	_, _, _, _, tearDown := testutils.SetupModelTestEnvironment(t)
-	defer tearDown()
-
-	mockCategoryModel := testutils.MockCategoryModel
+	mockCategoryModel := initCategoryTest(t)
 	defer mockCategoryModel.AssertExpectations(t)
 
 	tests := []struct {
@@ -275,14 +277,8 @@ func TestGetCategory(t *testing.T) {
 // Create a category with valid input, expect status 201 and the new category object in the response body.
 func TestCreateCategory(t *testing.T) {
 	// Set up test environment
-	gin.SetMode(gin.TestMode)
-	_, _, _, _, tearDown := testutils.SetupModelTestEnvironment(t)
-	defer tearDown()
-
-	// Set up mock dependencies
-	mockCategoryModel := testutils.MockCategoryModel
+	mockCategoryModel := initCategoryTest(t)
 	defer mockCategoryModel.AssertExpectations(t)
-
 	// Define test cases
 	tests := []struct {
 		name           string
@@ -373,12 +369,7 @@ func TestCreateCategory(t *testing.T) {
 // Successfully update a category with valid input
 func TestUpdateCategory(t *testing.T) {
 	// Set up test environment
-	gin.SetMode(gin.TestMode)
-	_, _, _, _, tearDown := testutils.SetupModelTestEnvironment(t)
-	defer tearDown()
-
-	// Set up mock dependencies
-	mockCategoryModel := testutils.MockCategoryModel
+	mockCategoryModel := initCategoryTest(t)
 	defer mockCategoryModel.AssertExpectations(t)
 
 	// Define test cases
@@ -472,12 +463,7 @@ func TestUpdateCategory(t *testing.T) {
 // The function successfully deletes a category when valid user and category IDs are provided.
 func TestDeleteCategory(t *testing.T) {
 	// Set up test environment
-	gin.SetMode(gin.TestMode)
-	_, _, _, _, tearDown := testutils.SetupModelTestEnvironment(t)
-	defer tearDown()
-
-	// Set up mock dependencies
-	mockCategoryModel := testutils.MockCategoryModel
+	mockCategoryModel := initCategoryTest(t)
 	defer mockCategoryModel.AssertExpectations(t)
 
 	// Define test cases

@@ -10,12 +10,23 @@ import (
 	"strings"
 	"testing"
 	"xspends/models/interfaces"
+	xmock "xspends/models/mock"
 	"xspends/testutils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
+
+func initSourceTest(t *testing.T) *xmock.MockSourceModel {
+	gin.SetMode(gin.TestMode)
+	_, modelsService, _, _, tearDown := testutils.SetupModelTestEnvironment(t)
+	defer tearDown()
+
+	mockSourceModel := new(xmock.MockSourceModel)
+	modelsService.SourceModel = mockSourceModel
+	return mockSourceModel
+}
 
 func TestGetSourceID(t *testing.T) {
 	// Set Gin to Test Mode
@@ -82,13 +93,9 @@ func TestGetSourceID(t *testing.T) {
 
 // TestListSources tests the ListSources handler
 func TestListSources(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	_, _, _, _, tearDown := testutils.SetupModelTestEnvironment(t)
-	defer tearDown()
-
-	mockSourceModel := testutils.MockSourceModel
+	mockSourceModel := initSourceTest(t)
 	defer mockSourceModel.AssertExpectations(t)
+
 	isContext := mock.MatchedBy(func(ctx context.Context) bool { return true })
 
 	tests := []struct {
@@ -158,12 +165,7 @@ func TestListSources(t *testing.T) {
 }
 
 func TestGetSource(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	_, _, _, _, tearDown := testutils.SetupModelTestEnvironment(t)
-	defer tearDown()
-
-	mockSourceModel := testutils.MockSourceModel
+	mockSourceModel := initSourceTest(t)
 	defer mockSourceModel.AssertExpectations(t)
 
 	tests := []struct {
@@ -259,12 +261,7 @@ func TestGetSource(t *testing.T) {
 // Create a source with valid input, expect status 201 and the new source object in the response body.
 func TestCreateSource(t *testing.T) {
 	// Set up test environment
-	gin.SetMode(gin.TestMode)
-	_, _, _, _, tearDown := testutils.SetupModelTestEnvironment(t)
-	defer tearDown()
-
-	// Set up mock dependencies
-	mockSourceModel := testutils.MockSourceModel
+	mockSourceModel := initSourceTest(t)
 	defer mockSourceModel.AssertExpectations(t)
 
 	// Define test cases
@@ -357,12 +354,7 @@ func TestCreateSource(t *testing.T) {
 // Successfully update a source with valid input
 func TestUpdateSource(t *testing.T) {
 	// Set up test environment
-	gin.SetMode(gin.TestMode)
-	_, _, _, _, tearDown := testutils.SetupModelTestEnvironment(t)
-	defer tearDown()
-
-	// Set up mock dependencies
-	mockSourceModel := testutils.MockSourceModel
+	mockSourceModel := initSourceTest(t)
 	defer mockSourceModel.AssertExpectations(t)
 
 	// Define test cases
@@ -456,12 +448,7 @@ func TestUpdateSource(t *testing.T) {
 // The function successfully deletes a source when valid user and source IDs are provided.
 func TestDeleteSource(t *testing.T) {
 	// Set up test environment
-	gin.SetMode(gin.TestMode)
-	_, _, _, _, tearDown := testutils.SetupModelTestEnvironment(t)
-	defer tearDown()
-
-	// Set up mock dependencies
-	mockSourceModel := testutils.MockSourceModel
+	mockSourceModel := initSourceTest(t)
 	defer mockSourceModel.AssertExpectations(t)
 
 	// Define test cases

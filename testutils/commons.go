@@ -11,16 +11,6 @@ import (
 	"github.com/golang/mock/gomock"
 )
 
-var (
-	MockDBService           *impl.DBService
-	MockCategoryModel       *mock.MockCategoryModel
-	MockSourceModel         *mock.MockSourceModel
-	MockUserModel           *mock.MockUserModel
-	MockTagModel            *mock.MockTagModel
-	MockTransactionTagModel *mock.MockTransactionTagModel
-	MockTransactionModel    *mock.MockTransactionModel
-)
-
 func SetupModelTestEnvironment(t *testing.T) (context.Context, *impl.ModelsServiceContainer, *mock.MockDBExecutor, sqlmock.Sqlmock, func()) {
 	ctx := context.TODO()
 
@@ -34,28 +24,25 @@ func SetupModelTestEnvironment(t *testing.T) (context.Context, *impl.ModelsServi
 		t.Fatalf("Failed to create sqlmock: %s", err)
 	}
 
-	// Create mock DBService
-	MockDBService = &impl.DBService{Executor: mockExecutor}
-
 	// Create a mock CategoryModel
-	MockCategoryModel = new(mock.MockCategoryModel)
-	MockUserModel = new(mock.MockUserModel)
-	MockSourceModel = new(mock.MockSourceModel)
-	MockTagModel = new(mock.MockTagModel)
-	MockTransactionTagModel = new(mock.MockTransactionTagModel)
-	MockTransactionModel = new(mock.MockTransactionModel)
-	// Create ModelsServiceContainer with mocks
-	impl.ModelsService = &impl.ModelsServiceContainer{
-		DBService:           MockDBService,
-		CategoryModel:       MockCategoryModel,
-		UserModel:           MockUserModel,
-		SourceModel:         MockSourceModel,
-		TagModel:            MockTagModel,
-		TransactionTagModel: MockTransactionTagModel,
-		TransactionModel:    MockTransactionModel,
-		// Initialize other services as necessary
+	mockCategoryModel := new(mock.MockCategoryModel)
+	mockUserModel := new(mock.MockUserModel)
+	mockSourceModel := new(mock.MockSourceModel)
+	mockTagModel := new(mock.MockTagModel)
+	mockTransactionTagModel := new(mock.MockTransactionTagModel)
+	mockTransactionModel := new(mock.MockTransactionModel)
+	//create mockconfigs
+	mockConfig := &impl.ModelsConfig{
+		DBService:           &impl.DBService{Executor: mockExecutor},
+		CategoryModel:       mockCategoryModel,
+		SourceModel:         mockSourceModel,
+		UserModel:           mockUserModel,
+		TagModel:            mockTagModel,
+		TransactionTagModel: mockTransactionTagModel,
+		TransactionModel:    mockTransactionModel,
 	}
-
+	// Initialize ModelsService with mock configuration
+	impl.InitModelsService(mockConfig)
 	// Teardown function
 	tearDown := func() {
 		ctrl.Finish()
