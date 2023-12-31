@@ -44,8 +44,7 @@ const (
 	maxConnLifetimeMin = 5 * time.Minute
 )
 
-var DB *sql.DB                               //can be local variable?
-var SQLBuilder squirrel.StatementBuilderType //can be local variable?
+var sqlBuilder squirrel.StatementBuilderType
 
 type DBExecutor interface {
 	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
@@ -57,10 +56,6 @@ type DBService struct {
 	Executor DBExecutor
 }
 
-func GetDB() *sql.DB {
-	return DB
-}
-
 // GetDBService provides access to the initialized DBService.
 // Modified GetDBService in impl package
 func GetDBService() *DBService {
@@ -70,22 +65,15 @@ func GetDBService() *DBService {
 	return nil // or handle the error/nil case appropriately
 }
 
-// CloseDB safely closes the database connection.
-func CloseDB() {
-	if DB != nil {
-		DB.Close()
-	}
-}
-
 func InitDB() (*DBService, error) {
-	var err error
+
 	dsn := os.Getenv("DB_DSN")
 	fmt.Println(dsn)
 	if dsn == "" {
 		return nil, errors.New("DB_DSN environment variable not set.")
 	}
 
-	DB, err = sql.Open("mysql", dsn)
+	DB, err := sql.Open("mysql", dsn)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error initializing database")
 	}
@@ -133,12 +121,12 @@ func InitDB() (*DBService, error) {
 		Executor: DB,
 	}
 
-	SQLBuilder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Question)
+	sqlBuilder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Question)
 	return db, nil
 }
 
 func GetQueryBuilder() *squirrel.StatementBuilderType {
-	return &SQLBuilder
+	return &sqlBuilder
 }
 
 func GetContext() *context.Context {
@@ -146,8 +134,8 @@ func GetContext() *context.Context {
 	return &ctx
 }
 
-func getExecutorNew(otx ...*sql.Tx) (bool, DBExecutor) {
-	dbService := GetModelsService().DBService //TODO: this is cyclic. ModelService sets DBService from GetDBService()
+func getExecutor(otx ...*sql.Tx) (bool, DBExecutor) {
+	dbService := GetModelsService().DBService
 
 	if len(otx) > 0 && otx[0] != nil {
 		return true, otx[0] // Using provided transaction
@@ -156,22 +144,6 @@ func getExecutorNew(otx ...*sql.Tx) (bool, DBExecutor) {
 	}
 }
 
-func GetTxn(ctx context.Context, tx ...*sql.Tx) (isExternalTx bool, newTx *sql.Tx, err error) {
-	db := GetDB()
-
-	if len(tx) > 0 && tx[0] != nil {
-		isExternalTx = true
-		newTx = tx[0]
-	} else {
-		newTx, err = db.BeginTx(ctx, nil)
-		if err != nil {
-			err = errors.Wrap(err, "Error starting a new transaction")
-			return
-		}
-	}
-
-	return
-}
 func commitOrRollback(executor DBExecutor, isExternalTx bool, actionErr error) error {
 	if !isExternalTx {
 		tx, ok := executor.(*sql.Tx)

@@ -43,7 +43,7 @@ type TagModel struct {
 }
 
 func (tm *TagModel) InsertTag(ctx context.Context, tag *interfaces.Tag, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutorNew(otx...)
+	isExternalTx, executor := getExecutor(otx...)
 
 	if tag.UserID <= 0 || len(tag.Name) == 0 || len(tag.Name) > maxTagNameLength {
 		return errors.New("invalid input for tag")
@@ -73,7 +73,7 @@ func (tm *TagModel) InsertTag(ctx context.Context, tag *interfaces.Tag, otx ...*
 }
 
 func (tm *TagModel) UpdateTag(ctx context.Context, tag *interfaces.Tag, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutorNew(otx...)
+	isExternalTx, executor := getExecutor(otx...)
 
 	if tag.UserID <= 0 || len(tag.Name) == 0 || len(tag.Name) > maxTagNameLength {
 		return errors.New("invalid input for tag")
@@ -102,7 +102,7 @@ func (tm *TagModel) UpdateTag(ctx context.Context, tag *interfaces.Tag, otx ...*
 }
 
 func (tm *TagModel) DeleteTag(ctx context.Context, tagID int64, userID int64, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutorNew(otx...)
+	isExternalTx, executor := getExecutor(otx...)
 
 	query, args, err := squirrel.Delete("tags").
 		Where(squirrel.Eq{"id": tagID, "user_id": userID}).
@@ -124,7 +124,7 @@ func (tm *TagModel) DeleteTag(ctx context.Context, tagID int64, userID int64, ot
 }
 
 func (tm *TagModel) GetTagByID(ctx context.Context, tagID int64, userID int64, otx ...*sql.Tx) (*interfaces.Tag, error) {
-	_, executor := getExecutorNew(otx...)
+	_, executor := getExecutor(otx...)
 
 	query, args, err := squirrel.Select("id", "user_id", "name", "created_at", "updated_at").
 		From("tags").
@@ -150,7 +150,7 @@ func (tm *TagModel) GetTagByID(ctx context.Context, tagID int64, userID int64, o
 }
 
 func (tm *TagModel) GetAllTags(ctx context.Context, userID int64, pagination interfaces.PaginationParams, otx ...*sql.Tx) ([]interfaces.Tag, error) {
-	_, executor := getExecutorNew(otx...)
+	_, executor := getExecutor(otx...)
 
 	query, args, err := squirrel.Select("id", "user_id", "name", "created_at", "updated_at").
 		From("tags").
@@ -188,7 +188,7 @@ func (tm *TagModel) GetAllTags(ctx context.Context, userID int64, pagination int
 }
 
 func (tm *TagModel) GetTagByName(ctx context.Context, name string, userID int64, otx ...*sql.Tx) (*interfaces.Tag, error) {
-	_, executor := getExecutorNew(otx...)
+	_, executor := getExecutor(otx...)
 
 	query, args, err := squirrel.Select("id", "user_id", "name", "created_at", "updated_at").
 		From("tags").

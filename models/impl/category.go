@@ -54,7 +54,7 @@ func (cm *CategoryModel) validateCategoryInput(category *interfaces.Category) er
 
 // InsertCategory inserts a new category into the database.
 func (cm *CategoryModel) InsertCategory(ctx context.Context, category *interfaces.Category, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutorNew(otx...)
+	isExternalTx, executor := getExecutor(otx...)
 
 	if err := cm.validateCategoryInput(category); err != nil {
 		return err
@@ -67,7 +67,7 @@ func (cm *CategoryModel) InsertCategory(ctx context.Context, category *interface
 	}
 	category.CreatedAt, category.UpdatedAt = time.Now(), time.Now()
 
-	query, args, err := SQLBuilder.Insert("categories").
+	query, args, err := GetQueryBuilder().Insert("categories").
 		Columns("id", "user_id", "name", "description", "icon", "created_at", "updated_at").
 		Values(category.ID, category.UserID, category.Name, category.Description, category.Icon, category.CreatedAt, category.UpdatedAt).
 		ToSql()
@@ -87,7 +87,7 @@ func (cm *CategoryModel) InsertCategory(ctx context.Context, category *interface
 
 // UpdateCategory updates an existing category in the database.
 func (cm *CategoryModel) UpdateCategory(ctx context.Context, category *interfaces.Category, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutorNew(otx...)
+	isExternalTx, executor := getExecutor(otx...)
 
 	if err := cm.validateCategoryInput(category); err != nil {
 		return err
@@ -95,7 +95,7 @@ func (cm *CategoryModel) UpdateCategory(ctx context.Context, category *interface
 
 	category.UpdatedAt = time.Now()
 
-	query, args, err := SQLBuilder.Update("categories").
+	query, args, err := GetQueryBuilder().Update("categories").
 		Set("name", category.Name).
 		Set("description", category.Description).
 		Set("icon", category.Icon).
@@ -117,9 +117,9 @@ func (cm *CategoryModel) UpdateCategory(ctx context.Context, category *interface
 
 // DeleteCategory deletes a category from the database.
 func (cm *CategoryModel) DeleteCategory(ctx context.Context, categoryID int64, userID int64, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutorNew(otx...)
+	isExternalTx, executor := getExecutor(otx...)
 
-	query, args, err := SQLBuilder.Delete("categories").
+	query, args, err := GetQueryBuilder().Delete("categories").
 		Where(squirrel.Eq{"id": categoryID, "user_id": userID}).
 		ToSql()
 	if err != nil {
@@ -136,9 +136,9 @@ func (cm *CategoryModel) DeleteCategory(ctx context.Context, categoryID int64, u
 
 // GetAllCategories retrieves all categories for a user from the database.
 func (cm *CategoryModel) GetAllCategories(ctx context.Context, userID int64, otx ...*sql.Tx) ([]interfaces.Category, error) {
-	_, executor := getExecutorNew(otx...)
+	_, executor := getExecutor(otx...)
 
-	query, args, err := SQLBuilder.Select("id", "user_id", "name", "description", "icon", "created_at", "updated_at").
+	query, args, err := GetQueryBuilder().Select("id", "user_id", "name", "description", "icon", "created_at", "updated_at").
 		From("categories").
 		Where(squirrel.Eq{"user_id": userID}).
 		ToSql()
@@ -166,9 +166,9 @@ func (cm *CategoryModel) GetAllCategories(ctx context.Context, userID int64, otx
 
 // GetCategoryByID retrieves a category by its ID for a user from the database.
 func (cm *CategoryModel) GetCategoryByID(ctx context.Context, categoryID int64, userID int64, otx ...*sql.Tx) (*interfaces.Category, error) {
-	_, executor := getExecutorNew(otx...)
+	_, executor := getExecutor(otx...)
 
-	query, args, err := SQLBuilder.Select("id", "user_id", "name", "description", "icon", "created_at", "updated_at").
+	query, args, err := sqlBuilder.Select("id", "user_id", "name", "description", "icon", "created_at", "updated_at").
 		From("categories").
 		Where(squirrel.Eq{"id": categoryID, "user_id": userID}).
 		ToSql()
@@ -190,11 +190,11 @@ func (cm *CategoryModel) GetCategoryByID(ctx context.Context, categoryID int64, 
 
 // GetPagedCategories retrieves a paginated list of categories for a user from the database.
 func (cm *CategoryModel) GetPagedCategories(ctx context.Context, page int, itemsPerPage int, userID int64, otx ...*sql.Tx) ([]interfaces.Category, error) {
-	_, executor := getExecutorNew(otx...)
+	_, executor := getExecutor(otx...)
 
 	offset := (page - 1) * itemsPerPage
 
-	query, args, err := SQLBuilder.Select("id", "user_id", "name", "description", "icon", "created_at", "updated_at").
+	query, args, err := sqlBuilder.Select("id", "user_id", "name", "description", "icon", "created_at", "updated_at").
 		From("categories").
 		Where(squirrel.Eq{"user_id": userID}).
 		Limit(uint64(itemsPerPage)).
@@ -224,8 +224,8 @@ func (cm *CategoryModel) GetPagedCategories(ctx context.Context, page int, items
 
 // CategoryIDExists checks if a category with the given ID exists in the database.
 func (cm *CategoryModel) CategoryIDExists(ctx context.Context, categoryID int64, userID int64, otx ...*sql.Tx) (bool, error) {
-	_, executor := getExecutorNew(otx...)
-	query, args, err := SQLBuilder.Select("1").
+	_, executor := getExecutor(otx...)
+	query, args, err := sqlBuilder.Select("1").
 		From("categories").
 		Where(squirrel.Eq{"id": categoryID, "user_id": userID}).
 		Limit(1).

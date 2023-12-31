@@ -50,7 +50,7 @@ type TransactionModel struct {
 
 // InsertTransaction inserts a new transaction into the database.// InsertTransaction inserts a new transaction into the database.
 func (tm *TransactionModel) InsertTransaction(ctx context.Context, txn interfaces.Transaction, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutorNew(otx...)
+	isExternalTx, executor := getExecutor(otx...)
 
 	txn.ID, _ = util.GenerateSnowflakeID()
 	txn.Timestamp = time.Now()
@@ -85,7 +85,7 @@ func (tm *TransactionModel) InsertTransaction(ctx context.Context, txn interface
 
 // UpdateTransaction updates an existing transaction in the database.
 func (tm *TransactionModel) UpdateTransaction(ctx context.Context, txn interfaces.Transaction, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutorNew(otx...)
+	isExternalTx, executor := getExecutor(otx...)
 
 	// Validate foreign key references
 	if err := validateForeignKeyReferences(ctx, txn, otx...); err != nil {
@@ -93,7 +93,7 @@ func (tm *TransactionModel) UpdateTransaction(ctx context.Context, txn interface
 	}
 
 	// Update transaction in the database
-	query, args, err := SQLBuilder.Update("transactions").
+	query, args, err := GetQueryBuilder().Update("transactions").
 		Set("source_id", txn.SourceID).
 		Set("category_id", txn.CategoryID).
 		Set("amount", txn.Amount).
@@ -125,9 +125,9 @@ func (tm *TransactionModel) UpdateTransaction(ctx context.Context, txn interface
 
 // DeleteTransaction removes a transaction from the database.
 func (tm *TransactionModel) DeleteTransaction(ctx context.Context, transactionID int64, userID int64, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutorNew(otx...)
+	isExternalTx, executor := getExecutor(otx...)
 
-	query, args, err := SQLBuilder.Delete("transactions").
+	query, args, err := GetQueryBuilder().Delete("transactions").
 		Where(squirrel.Eq{"id": transactionID, "user_id": userID}).
 		PlaceholderFormat(squirrel.Question).
 		ToSql()
@@ -146,9 +146,9 @@ func (tm *TransactionModel) DeleteTransaction(ctx context.Context, transactionID
 
 // GetTransactionByID retrieves a single transaction from the database by its ID.
 func (tm *TransactionModel) GetTransactionByID(ctx context.Context, transactionID int64, userID int64, otx ...*sql.Tx) (*interfaces.Transaction, error) {
-	_, executor := getExecutorNew(otx...)
+	_, executor := getExecutor(otx...)
 
-	query, args, err := SQLBuilder.Select("id", "user_id", "source_id", "category_id", "timestamp", "amount", "type", "description").
+	query, args, err := GetQueryBuilder().Select("id", "user_id", "source_id", "category_id", "timestamp", "amount", "type", "description").
 		From("transactions").
 		Where(squirrel.Eq{"id": transactionID, "user_id": userID}).
 		PlaceholderFormat(squirrel.Question).
@@ -170,8 +170,8 @@ func (tm *TransactionModel) GetTransactionByID(ctx context.Context, transactionI
 
 // GetTransactionsByFilter retrieves a list of transactions from the database based on a set of filters.
 func (tm *TransactionModel) GetTransactionsByFilter(ctx context.Context, filter interfaces.TransactionFilter, otx ...*sql.Tx) ([]interfaces.Transaction, error) {
-	_, executor := getExecutorNew(otx...)
-	query := SQLBuilder.Select("id", "user_id", "source_id", "category_id", "timestamp", "amount", "type", "description").
+	_, executor := getExecutor(otx...)
+	query := GetQueryBuilder().Select("id", "user_id", "source_id", "category_id", "timestamp", "amount", "type", "description").
 		From("transactions").
 		Where(squirrel.Eq{"user_id": filter.UserID})
 
@@ -196,7 +196,7 @@ func (tm *TransactionModel) GetTransactionsByFilter(ctx context.Context, filter 
 	}
 
 	if len(filter.Tags) > 0 {
-		tagsSubQuery := SQLBuilder.Select("transaction_id").
+		tagsSubQuery := GetQueryBuilder().Select("transaction_id").
 			From("transaction_tags").
 			Where("tag_id IN ?", filter.Tags)
 		query = query.Where("id IN ?", tagsSubQuery)

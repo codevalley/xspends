@@ -53,7 +53,6 @@ func initializeModelsService(config *ModelsConfig) {
 		TagModel:            config.TagModel,
 		TransactionTagModel: config.TransactionTagModel,
 		TransactionModel:    config.TransactionModel,
-		// initialize other models...
 	}
 }
 

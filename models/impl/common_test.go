@@ -17,7 +17,7 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	SQLBuilder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Question)
+	sqlBuilder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Question)
 	ctx = context.Background()
 
 	exitVal := m.Run()

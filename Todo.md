@@ -74,8 +74,3 @@ Remember, while the "Must Have" features are fundamental for any production-read
 ### Test coverage
 - Models
  - services: to be finished
-- db.go and DBService
- - dbService is declared in db.go 
- - getExecutorNew calls dbServcice := GetModelsService().DBService (Remember, this is a local variable with the same name)
- - service.go has NewModelsServiceContainer, which sets DBService with < DBService: GetDBService() >
- - GetDBService() returns dbService!!

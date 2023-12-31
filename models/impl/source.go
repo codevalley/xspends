@@ -46,7 +46,7 @@ type SourceModel struct {
 }
 
 func (sm *SourceModel) InsertSource(ctx context.Context, source *interfaces.Source, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutorNew(otx...)
+	isExternalTx, executor := getExecutor(otx...)
 
 	if source.Name == "" || source.UserID == 0 {
 		return errors.New("invalid input: name or user ID is empty")
@@ -63,7 +63,7 @@ func (sm *SourceModel) InsertSource(ctx context.Context, source *interfaces.Sour
 	source.CreatedAt = time.Now()
 	source.UpdatedAt = source.CreatedAt
 
-	query, args, err := SQLBuilder.Insert("sources").
+	query, args, err := GetQueryBuilder().Insert("sources").
 		Columns("id", "user_id", "name", "type", "balance", "created_at", "updated_at").
 		Values(source.ID, source.UserID, source.Name, source.Type, source.Balance, source.CreatedAt, source.UpdatedAt).
 		ToSql()
@@ -81,7 +81,7 @@ func (sm *SourceModel) InsertSource(ctx context.Context, source *interfaces.Sour
 }
 
 func (sm *SourceModel) UpdateSource(ctx context.Context, source *interfaces.Source, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutorNew(otx...)
+	isExternalTx, executor := getExecutor(otx...)
 
 	if source.Name == "" || source.UserID == 0 {
 		return errors.New("invalid input: name or user ID is empty")
@@ -92,7 +92,7 @@ func (sm *SourceModel) UpdateSource(ctx context.Context, source *interfaces.Sour
 
 	source.UpdatedAt = time.Now()
 
-	query, args, err := SQLBuilder.Update("sources").
+	query, args, err := GetQueryBuilder().Update("sources").
 		Set("name", source.Name).
 		Set("type", source.Type).
 		Set("balance", source.Balance).
@@ -113,8 +113,8 @@ func (sm *SourceModel) UpdateSource(ctx context.Context, source *interfaces.Sour
 }
 
 func (sm *SourceModel) DeleteSource(ctx context.Context, sourceID int64, userID int64, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutorNew(otx...)
-	query, args, err := SQLBuilder.Delete("sources").
+	isExternalTx, executor := getExecutor(otx...)
+	query, args, err := GetQueryBuilder().Delete("sources").
 		Where(squirrel.Eq{"id": sourceID, "user_id": userID}).
 		ToSql()
 
@@ -131,8 +131,8 @@ func (sm *SourceModel) DeleteSource(ctx context.Context, sourceID int64, userID 
 }
 
 func (sm *SourceModel) GetSourceByID(ctx context.Context, sourceID int64, userID int64, otx ...*sql.Tx) (*interfaces.Source, error) {
-	_, executor := getExecutorNew(otx...)
-	query, args, err := SQLBuilder.Select("id", "user_id", "name", "type", "balance", "created_at", "updated_at").
+	_, executor := getExecutor(otx...)
+	query, args, err := GetQueryBuilder().Select("id", "user_id", "name", "type", "balance", "created_at", "updated_at").
 		From("sources").
 		Where(squirrel.Eq{"id": sourceID, "user_id": userID}).
 		ToSql()
@@ -154,8 +154,8 @@ func (sm *SourceModel) GetSourceByID(ctx context.Context, sourceID int64, userID
 }
 
 func (sm *SourceModel) GetSources(ctx context.Context, userID int64, otx ...*sql.Tx) ([]interfaces.Source, error) {
-	_, executor := getExecutorNew(otx...)
-	query, args, err := SQLBuilder.Select("id", "user_id", "name", "type", "balance", "created_at", "updated_at").
+	_, executor := getExecutor(otx...)
+	query, args, err := GetQueryBuilder().Select("id", "user_id", "name", "type", "balance", "created_at", "updated_at").
 		From("sources").
 		Where(squirrel.Eq{"user_id": userID}).
 		ToSql()
@@ -187,9 +187,9 @@ func (sm *SourceModel) GetSources(ctx context.Context, userID int64, otx ...*sql
 }
 
 func (sm *SourceModel) SourceIDExists(ctx context.Context, sourceID int64, userID int64, otx ...*sql.Tx) (bool, error) {
-	_, executor := getExecutorNew(otx...)
+	_, executor := getExecutor(otx...)
 
-	query, args, err := SQLBuilder.Select("1").
+	query, args, err := GetQueryBuilder().Select("1").
 		From("sources").
 		Where(squirrel.Eq{"id": sourceID, "user_id": userID}).
 		Limit(1).
