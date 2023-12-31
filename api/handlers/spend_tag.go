@@ -139,7 +139,7 @@ func CreateTag(c *gin.Context) {
 	var newTag interfaces.Tag
 	if err := c.ShouldBindJSON(&newTag); err != nil {
 		log.Printf("[CreateTag] Error: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid tag data JSON"})
 		return
 	}
 	newTag.UserID = userID
@@ -153,7 +153,7 @@ func CreateTag(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create tag"})
 		return
 	}
-	c.JSON(http.StatusOK, newTag)
+	c.JSON(http.StatusCreated, newTag)
 }
 
 // UpdateTag
@@ -177,7 +177,7 @@ func UpdateTag(c *gin.Context) {
 	var updatedTag interfaces.Tag
 	if err := c.ShouldBindJSON(&updatedTag); err != nil {
 		log.Printf("[UpdateTag] Error: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid tag data JSON"})
 		return
 	}
 	updatedTag.UserID = userID
