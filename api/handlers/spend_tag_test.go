@@ -310,7 +310,7 @@ func TestCreateTag(t *testing.T) {
 			userID:         "1",
 			requestBody:    ``,
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `{"error": "Invalid tag data"}`,
+			expectedBody:   `{"error": "Invalid tag data JSON"}`,
 		},
 	}
 
