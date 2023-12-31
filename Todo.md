@@ -71,6 +71,8 @@
 
 Remember, while the "Must Have" features are fundamental for any production-ready application, the items in "Should Have" and "Good to Have" can elevate the quality, performance, and user experience of your application. Depending on your application's specific requirements, you might need to shuffle some items among these categories.
 
+### Refactor
+- Refactor user.go --> insertUser() to use interface Executor rather than using direct DB object
 ### Test coverage
 - Models
  - services: to be finished

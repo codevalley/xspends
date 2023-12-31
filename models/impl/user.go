@@ -34,6 +34,7 @@ package impl
 import (
 	"context"
 	"database/sql"
+	"log"
 
 	"strings"
 	"time"
@@ -70,33 +71,24 @@ func (um *UserModel) InsertUser(ctx context.Context, user *interfaces.User, otx 
 	}
 
 	var err error
+	user.CreatedAt, user.UpdatedAt = time.Now(), time.Now()
 	user.ID, err = util.GenerateSnowflakeID()
 	if err != nil {
 		return errors.Wrap(err, "generating Snowflake ID failed")
 	}
-	user.CreatedAt, user.UpdatedAt = time.Now(), time.Now()
 
-	// Build the SQL query using Squirrel
-	builder := squirrel.Insert("users").
+	// Build and execute the SQL query using Squirrel
+	sqlquery, args, err := squirrel.Insert("users").
 		Columns("id", "username", "name", "email", "currency", "password", "created_at", "updated_at").
 		Values(user.ID, user.Username, user.Name, user.Email, user.Currency, user.Password, user.CreatedAt, user.UpdatedAt).
-		PlaceholderFormat(squirrel.Question)
-
-	// Determine whether to use transaction or standard DB for running the query
-	var sqlquery string
-	var args []interface{}
-
-	//TODO: this code needs to be refactored, as it is not really mockable
-	if tx, ok := executor.(*sql.Tx); ok {
-		sqlquery, args, err = builder.RunWith(tx).ToSql()
-	} else if db, ok := executor.(*sql.DB); ok {
-		sqlquery, args, err = builder.RunWith(db).ToSql()
-	}
+		PlaceholderFormat(squirrel.Question).
+		ToSql()
 
 	if err != nil {
 		return errors.Wrap(err, "building SQL query for InsertUser failed")
 	}
 
+	log.Printf("SQL query: %s\n", sqlquery)
 	// Execute the query
 	_, err = executor.ExecContext(ctx, sqlquery, args...)
 	if err != nil {
