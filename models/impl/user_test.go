@@ -265,4 +265,31 @@ func TestUserIDExists_UserIDNotFound(t *testing.T) {
 	}
 }
 
+func TestPutPID(t *testing.T) {
+	var user interfaces.User
+	pid := "123"
+	user.PutPID(pid)
+	if user.ID != 123 {
+		t.Errorf("PutPID was incorrect, got: %d, want: %d.", user.ID, 123)
+	}
+}
+
+func TestGetPID(t *testing.T) {
+	user := interfaces.User{ID: 123}
+	got := user.GetPID()
+	want := "123"
+	if got != want {
+		t.Errorf("GetPID was incorrect, got: %s, want: %s.", got, want)
+	}
+}
+
+func TestPutPassword(t *testing.T) {
+	var user interfaces.User
+	password := "securepassword"
+	user.PutPassword(password)
+	if user.Password != "securepassword" {
+		t.Errorf("PutPassword was incorrect, got: %s, want: %s.", user.Password, "securepassword")
+	}
+}
+
 // Add more test cases for UpdateUser, DeleteUser, GetUserByUsername, UserExists, UserIDExists

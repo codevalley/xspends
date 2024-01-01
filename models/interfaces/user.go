@@ -18,7 +18,8 @@ type User struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-// Authboss methods
+// Authboss methods,
+// have to be implemented to maintain compatibility with the structure of the authboss.User interface
 func (u *User) PutPID(pid string) {
 	u.ID, _ = strconv.ParseInt(pid, 10, 64)
 }
