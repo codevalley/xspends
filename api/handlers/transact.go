@@ -83,7 +83,7 @@ func CreateTransaction(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, newTransaction)
+	c.JSON(http.StatusCreated, newTransaction)
 }
 
 // GetTransaction
