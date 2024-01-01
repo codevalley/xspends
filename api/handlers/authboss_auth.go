@@ -31,6 +31,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 	"xspends/models/impl"
@@ -55,6 +56,28 @@ const (
 	tokenExpiryMins        = 30
 	refreshTokenExpiryMins = 1440
 )
+
+// Error variables for common error messages
+var (
+	ErrInvalidInputData = errors.New("invalid input data")
+	ErrUserExists       = errors.New("username or email already exists")
+	ErrHashingPassword  = errors.New("error hashing password")
+	ErrInsertingUser    = errors.New("error inserting user into database")
+	ErrGeneratingToken  = errors.New("error generating token")
+)
+
+// JwtKey is the key used for signing JWTs
+var JwtKey = getJwtKey()
+
+// getJwtKey retrieves the JWT key from environment variables or uses a default key
+func getJwtKey() []byte {
+	key := os.Getenv("JWT_KEY")
+	if key == "" {
+		// Fallback to a default key
+		key = "uNauz8OMH3UzF6wum99OD6dsm1wSdMquDGkWznT6JrQ="
+	}
+	return []byte(key)
+}
 
 // generateTokenWithTTL generates a JWT with a specific time-to-live (TTL)
 func generateTokenWithTTL(userID int64, sessionID string, expiryMins int) (string, error) {

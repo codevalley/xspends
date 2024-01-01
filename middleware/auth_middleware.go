@@ -63,7 +63,7 @@ func AuthMiddleware(ab *authboss.Authboss) gin.HandlerFunc {
 		tokenStr := bearerToken[1]
 
 		// Parse and validate the token
-		claims := &handlers.Claims{}
+		claims := &handlers.JWTClaims{}
 		token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
 			return handlers.JwtKey, nil
 		})
