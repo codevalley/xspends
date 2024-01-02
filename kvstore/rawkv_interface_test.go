@@ -7,7 +7,7 @@ import (
     "github.com/golang/mock/gomock"
     "github.com/stretchr/testify/assert"
     "github.com/tikv/client-go/v2/rawkv"
-    "kvstore/mock" // assuming the mock package is in the kvstore/mock directory
+    "xspends/kvstore/mock" 
 )
 
 func TestRawKVClientInterface_Get(t *testing.T) {
