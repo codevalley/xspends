@@ -8,8 +8,10 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"xspends/kvstore/mock"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -100,4 +102,48 @@ func TestSetSwaggerHost(t *testing.T) {
 	})
 
 	// Add more test cases as needed for error conditions, missing file, etc.
+}
+
+func TestSetupRoutes(t *testing.T) {
+	// Create a new Gin engine instance
+	r := gin.New()
+
+	// Create a mock controller
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Create a mock kvClient
+	mockKVClient := mock.NewMockRawKVClientInterface(ctrl)
+
+	// Setup expected calls on the mock (if any), e.g., if your routes make any calls to the kvClient during setup
+
+	// Call SetupRoutes with the test engine and mock client
+	SetupRoutes(r, mockKVClient)
+
+	// After setting up routes, you will want to check that the routes are correctly set up.
+	// This involves checking if the paths, methods, and handlers are correctly configured.
+	// However, directly comparing handler functions in Go isn't straightforward or advisable due to function pointer equality issues.
+
+	// Instead, you might want to check for the existence of expected routes and their methods.
+	// For a more detailed test, you would integrate with the handlers and test end-to-end functionality.
+
+	// Example: Check if a specific route exists
+	expectedRoutes := []string{"/auth/register", "/auth/login", "/auth/refresh", "/auth/logout", "/sources"}
+	for _, route := range expectedRoutes {
+		found := false
+		for _, info := range r.Routes() {
+			if info.Path == route {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found, "Expected to find route: "+route)
+	}
+
+	// Similarly, you might want to check the methods (GET, POST, etc.) of these routes
+	// However, for detailed behavior, consider testing individual handlers with their own unit tests or integration tests.
+
+	// Note: This test assumes that SetupRoutes is only setting up routes and not making any initial calls to the kvClient.
+	// If SetupRoutes or any middleware/handlers it uses makes calls to the kvClient methods, you will need to set
+	// up expectations and return values for those calls on the mockKVClient.
 }
