@@ -9,6 +9,8 @@ kubectl create secret generic db-credentials --from-literal=DB_DSN="root:@tcp(ti
 #for production set these values. For local (minikube) testing we dynamically get the value.
 kubectl create secret generic app-host --from-literal=app-host="127.0.0.1"
 kubectl create secret generic app-port --from-literal=app-port="8080"
+kubectl create secret generic swagger-json-path --from-literal=swagger-json-path=""docs/swagger.json""
+
 
 #connection params
 kubectl create secret generic DB_MAX_OPEN_CONNS --from-literal=DB_MAX_OPEN_CONNS="25"

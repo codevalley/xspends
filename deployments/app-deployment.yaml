@@ -28,6 +28,8 @@ spec:
         #   value: app-host  # Replace with your domain or public IP
         # - name: SWAGGER_PORT
         #   value: app-port  # Replace with your port if needed
+        - name: SWAGGER_JSON_PATH
+          value: swagger-json-path
         - name: JWT_KEY
           valueFrom:
             secretKeyRef:

@@ -141,12 +141,11 @@ func setupHealthEndpoint(r *gin.Engine) {
 func setupSwaggerHandler(r *gin.Engine) {
 	r.GET("/swagger/*any", func(c *gin.Context) {
 		path := c.Param("any")
-
-		// Serve Swagger JSON at "/swagger/doc.json"
 		if path == "/doc.json" {
-			swaggerJSON, err := setSwaggerHost("docs/swagger.json") // Adjust the path accordingly
+			swaggerFilePath := os.Getenv("SWAGGER_JSON_PATH")
+			swaggerJSON, err := setSwaggerHost(swaggerFilePath)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load swagger file"})
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load swagger file: " + err.Error()})
 				return
 			}
 			c.Data(http.StatusOK, "application/json", swaggerJSON)
@@ -159,6 +158,7 @@ func setupSwaggerHandler(r *gin.Engine) {
 		}, swaggerFiles.Handler)(c)
 	})
 }
+
 func setSwaggerHost(filePath string) ([]byte, error) {
 	// Read the original swagger.json file
 	jsonFile, err := os.ReadFile(filePath)
