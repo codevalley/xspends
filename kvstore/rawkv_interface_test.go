@@ -127,98 +127,95 @@ func TestRawKVClientWrapper_Get(t *testing.T) {
 	assert.Equal(t, value, result)
 }
 
-func TestKVGet(t *testing.T) {
+func TestRawKVClientWrapper_Put(t *testing.T) {
+	// Setup
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockKVClient := mock.NewMockRawKVClientInterface(ctrl)
+	mockClient := mock.NewMockRawKVClientInterface(ctrl)
+	wrapper := NewRawKVClientWrapper(mockClient)
 
-	// Set up expected calls on the mock
-	testKey := []byte("key")
-	testValue := []byte("value")
-	mockKVClient.EXPECT().Get(gomock.Any(), testKey).Return(testValue, nil).Times(1)
+	ctx := context.Background()
+	key := []byte("key")
+	value := []byte("value")
 
-	// Call the method under test
-	value, err := mockKVClient.Get(context.Background(), testKey)
+	// Expectation: mockClient.Put is called once and returns nil
+	mockClient.EXPECT().Put(ctx, key, value).Return(nil).Times(1)
 
-	// Assertions
-	assert.NoError(t, err)
-	assert.Equal(t, testValue, value)
-}
+	// Act
+	err := wrapper.Put(ctx, key, value)
 
-func TestKVPut(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockKVClient := mock.NewMockRawKVClientInterface(ctrl)
-
-	// Set up expected calls on the mock
-	testKey := []byte("key")
-	testValue := []byte("value")
-	mockKVClient.EXPECT().Put(gomock.Any(), testKey, testValue).Return(nil).Times(1)
-
-	// Call the method under test
-	err := mockKVClient.Put(context.Background(), testKey, testValue)
-
-	// Assertions
+	// Assert
 	assert.NoError(t, err)
 }
 
-func TestKVPutWithTTL(t *testing.T) {
+func TestRawKVClientWrapper_PutWithTTL(t *testing.T) {
+	// Setup
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockKVClient := mock.NewMockRawKVClientInterface(ctrl)
+	mockClient := mock.NewMockRawKVClientInterface(ctrl)
+	wrapper := NewRawKVClientWrapper(mockClient)
 
-	// Set up expected calls on the mock
-	testKey := []byte("key")
-	testValue := []byte("value")
-	testTTL := uint64(100)
-	mockKVClient.EXPECT().PutWithTTL(gomock.Any(), testKey, testValue, testTTL).Return(nil).Times(1)
+	ctx := context.Background()
+	key := []byte("key")
+	value := []byte("value")
+	ttl := uint64(100)
 
-	// Call the method under test
-	err := mockKVClient.PutWithTTL(context.Background(), testKey, testValue, testTTL)
+	// Expectation: mockClient.PutWithTTL is called once and returns nil
+	mockClient.EXPECT().PutWithTTL(ctx, key, value, ttl).Return(nil).Times(1)
 
-	// Assertions
+	// Act
+	err := wrapper.PutWithTTL(ctx, key, value, ttl)
+
+	// Assert
 	assert.NoError(t, err)
 }
 
-func TestKVDelete(t *testing.T) {
+func TestRawKVClientWrapper_Delete(t *testing.T) {
+	// Setup
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockKVClient := mock.NewMockRawKVClientInterface(ctrl)
+	mockClient := mock.NewMockRawKVClientInterface(ctrl)
+	wrapper := NewRawKVClientWrapper(mockClient)
 
-	// Set up expected calls on the mock
-	testKey := []byte("key")
-	mockKVClient.EXPECT().Delete(gomock.Any(), testKey).Return(nil).Times(1)
+	ctx := context.Background()
+	key := []byte("key")
 
-	// Call the method under test
-	err := mockKVClient.Delete(context.Background(), testKey)
+	// Expectation: mockClient.Delete is called once and returns nil
+	mockClient.EXPECT().Delete(ctx, key).Return(nil).Times(1)
 
-	// Assertions
+	// Act
+	err := wrapper.Delete(ctx, key)
+
+	// Assert
 	assert.NoError(t, err)
 }
 
-func TestKVScan(t *testing.T) {
+func TestRawKVClientWrapper_Scan(t *testing.T) {
+	// Setup
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockKVClient := mock.NewMockRawKVClientInterface(ctrl)
+	mockClient := mock.NewMockRawKVClientInterface(ctrl)
+	wrapper := NewRawKVClientWrapper(mockClient)
 
-	// Set up expected calls on the mock
-	startKey := []byte("start")
-	endKey := []byte("end")
+	ctx := context.Background()
+	startKey := []byte("startKey")
+	endKey := []byte("endKey")
 	limit := 10
-	expectedKeys := [][]byte{[]byte("key1"), []byte("key2")}
-	expectedValues := [][]byte{[]byte("value1"), []byte("value2")}
-	mockKVClient.EXPECT().Scan(gomock.Any(), startKey, endKey, limit).Return(expectedKeys, expectedValues, nil).Times(1)
+	keys := [][]byte{[]byte("key1"), []byte("key2")}
+	values := [][]byte{[]byte("value1"), []byte("value2")}
 
-	// Call the method under test
-	keys, values, err := mockKVClient.Scan(context.Background(), startKey, endKey, limit)
+	// Expectation: mockClient.Scan is called once and returns keys and values
+	mockClient.EXPECT().Scan(ctx, startKey, endKey, limit).Return(keys, values, nil).Times(1)
 
-	// Assertions
+	// Act
+	resultKeys, resultValues, err := wrapper.Scan(ctx, startKey, endKey, limit)
+
+	// Assert
 	assert.NoError(t, err)
-	assert.Equal(t, expectedKeys, keys)
-	assert.Equal(t, expectedValues, values)
+	assert.Equal(t, keys, resultKeys)
+	assert.Equal(t, values, resultValues)
 }
