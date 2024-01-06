@@ -24,7 +24,6 @@ SOFTWARE.
 package handlers
 
 import (
-	"log"
 	"net/http"
 	"xspends/models/impl"
 	"xspends/models/interfaces"
@@ -36,14 +35,12 @@ import (
 func getUserID(c *gin.Context) (int64, bool) {
 	userID, exists := c.Get("userID")
 	if !exists {
-		log.Printf("[getUserID] Error: user not authenticated")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
 		return 0, false
 	}
 
 	intUserID, ok := userID.(int64)
 	if !ok {
-		log.Printf("[getUserID] Error: failed to convert userID to int64 (userID: %v)", userID)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to convert userID to int64"})
 		return 0, false
 	}
@@ -59,7 +56,6 @@ func GetUserProfile(c *gin.Context) {
 
 	user, err := impl.GetModelsService().UserModel.GetUserByID(c, userID, nil)
 	if err != nil {
-		log.Printf("[GetUserProfile] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
 		return
 	}
@@ -75,15 +71,13 @@ func UpdateUserProfile(c *gin.Context) {
 
 	var updatedUser interfaces.User
 	if err := c.ShouldBindJSON(&updatedUser); err != nil {
-		log.Printf("[UpdateUserProfile] Error: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user json"})
 		return
 	}
 
 	updatedUser.ID = userID
 
 	if err := impl.GetModelsService().UserModel.UpdateUser(c, &updatedUser, nil); err != nil {
-		log.Printf("[UpdateUserProfile] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update user"})
 		return
 	}
@@ -98,7 +92,6 @@ func DeleteUser(c *gin.Context) {
 	}
 
 	if err := impl.GetModelsService().UserModel.DeleteUser(c, userID, nil); err != nil {
-		log.Printf("[DeleteUser] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete user"})
 		return
 	}
