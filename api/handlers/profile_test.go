@@ -65,6 +65,15 @@ func TestGetUserProfile(t *testing.T) {
 				"username": ""
 			}`,
 		},
+		{
+			name:   "Invalid user ID",
+			userID: "1",
+			setupMock: func(userID int64) {
+				mockUserModel.On("GetUserByID", mock.Anything, userID, mock.Anything).Return(&interfaces.User{}, errors.New(`{"error":"user not found"}`)).Once()
+			},
+			expectedStatus: http.StatusNotFound,
+			expectedBody:   `{"error":"user not found"}`,
+		},
 
 		// ... other test cases
 	}
