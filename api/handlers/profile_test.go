@@ -171,6 +171,16 @@ func TestUpdateUserProfile(t *testing.T) {
 			assert.JSONEq(t, tc.expectedBody, w.Body.String())
 		})
 	}
+	t.Run("Invalid userID", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+
+		c.Set("userID", "invalid")
+		UpdateUserProfile(c)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.JSONEq(t, `{"error":"failed to convert userID to int64"}`, w.Body.String())
+	})
 }
 
 func TestDeleteUser(t *testing.T) {
@@ -192,6 +202,14 @@ func TestDeleteUser(t *testing.T) {
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody:   `{"message":"user deleted successfully"}`,
+		}, {
+			name:   "Failed deletion",
+			userID: "1",
+			setupMock: func(userID int64) {
+				mockUserModel.On("DeleteUser", mock.Anything, userID, mock.Anything).Return(errors.New("unable to delete user")).Once()
+			},
+			expectedStatus: http.StatusInternalServerError,
+			expectedBody:   `{"error": "unable to delete user"}`,
 		},
 		// ... other test cases
 	}
@@ -213,4 +231,14 @@ func TestDeleteUser(t *testing.T) {
 			assert.JSONEq(t, tc.expectedBody, w.Body.String())
 		})
 	}
+	t.Run("Invalid userID", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+
+		c.Set("userID", "invalid")
+		DeleteUser(c)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.JSONEq(t, `{"error":"failed to convert userID to int64"}`, w.Body.String())
+	})
 }
