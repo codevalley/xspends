@@ -54,7 +54,7 @@ func TestGenerateTokenWithTTL(t *testing.T) {
 	os.Setenv("JWT_KEY", expectedKey)
 	defer os.Unsetenv("JWT_KEY")
 
-	token, err := generateTokenWithTTL(userID, sessionID, expiryMins)
+	token, err := GenerateTokenWithTTL(userID, sessionID, expiryMins)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -238,7 +238,7 @@ func TestJWTRefreshHandler(t *testing.T) {
 	defer tearDown()
 	userID := int64(123)      // Example user ID, adjust as necessary
 	sessionID := "session123" // Example session ID, adjust as necessary
-	refreshToken, _ := generateTokenWithTTL(userID, sessionID, refreshTokenExpiryMins)
+	refreshToken, _ := GenerateTokenWithTTL(userID, sessionID, refreshTokenExpiryMins)
 	// Mock dependencies
 	mockKV.EXPECT().
 		Get(
@@ -287,7 +287,7 @@ func TestJWTLogoutHandler(t *testing.T) {
 	defer tearDown()
 	userID := int64(123)      // Example user ID, adjust as necessary
 	sessionID := "session123" // Example session ID, adjust as necessary
-	refreshToken, _ := generateTokenWithTTL(userID, sessionID, refreshTokenExpiryMins)
+	refreshToken, _ := GenerateTokenWithTTL(userID, sessionID, refreshTokenExpiryMins)
 	// Mock dependencies
 	ab := &authboss.Authboss{} // Populate with necessary mock implementation
 	ab.Config.Storage.Server = mockUserStorer
