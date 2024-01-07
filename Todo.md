@@ -1,3 +1,8 @@
+### Support multi user access to the data (txns, source, tag etc.)
+- Replace the current userID key on the data tables with a scopeID field. 
+- Create a groups table, where groups have one to many relationship with users.
+- Create a scope table which has a one to many relationship with groups
+- Identify the optimized access pattern for userID --> groupID --> scopeID(s) which may be needed for every DB operation. 
 
 ### Logging & Monitoring
 - Implement structured logging with different log levels (info, error, debug, etc.).
@@ -16,7 +21,6 @@
 
 ### Database
 - Plan/scripts for regular backups of the database and test the restoration process.
-- Txn support for userstorer
 #### Performance & Scalability
 - Implement caching mechanisms, like Redis, for frequently accessed data.
 - Review queries and add optimized indexes to frequently searched columns.
@@ -71,8 +75,4 @@
 
 Remember, while the "Must Have" features are fundamental for any production-ready application, the items in "Should Have" and "Good to Have" can elevate the quality, performance, and user experience of your application. Depending on your application's specific requirements, you might need to shuffle some items among these categories.
 
-### Refactor
-- Refactor user.go --> insertUser() to use interface Executor rather than using direct DB object
-### Test coverage
-- Models
- - services: to be finished
+
