@@ -13,9 +13,26 @@ import (
 func TestEnsureUserID(t *testing.T) {
 	// Create a gin router
 	router := gin.New()
-	router.Use(EnsureUserID())
+	router.Use(AuthMiddleware(ab)) // First apply AuthMiddleware
+	router.Use(EnsureUserID())     // Then apply EnsureUserID
 	router.GET("/test", func(c *gin.Context) {
 		c.String(http.StatusOK, "Passed")
+	})
+
+	// Generate a valid token using the existing method
+	userID := int64(123)
+	sessionID := "session123"                                             // Use an appropriate session ID or equivalent
+	validToken, _ := handlers.GenerateTokenWithTTL(userID, sessionID, 30) // 30 mins or appropriate duration
+
+	// Test the success scenario
+	t.Run("Success", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/test", nil)
+		req.Header.Set("Authorization", "Bearer "+validToken) // Set the valid token in Authorization header
+		router.ServeHTTP(w, req)
+
+		// Assertions
+		assert.Equal(t, http.StatusOK, w.Code, "Expected to pass with valid token and userID set")
 	})
 
 	// Test the failure scenario
