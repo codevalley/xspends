@@ -1,8 +1,8 @@
 ### Support multi user access to the data (txns, source, tag etc.)
-- Replace the current userID key on the data tables with a scopeID field. 
-- Create a groups table, where groups have one to many relationship with users.
-- Create a scope table which has a one to many relationship with groups
-- Identify the optimized access pattern for userID --> groupID --> scopeID(s) which may be needed for every DB operation. 
+- Introduce groups and scope concepts to enable multi-user access to txn tables (sources, categories, transactions and tags)
+- Include basic access control for group members (view, write, manage)
+- Thrive for no group overhead (DB overhead) for single user accounts.
+- Forward compatibility for more sophisticated ACLs. 
 
 ### Logging & Monitoring
 - Implement structured logging with different log levels (info, error, debug, etc.).
