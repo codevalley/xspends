@@ -54,7 +54,7 @@ func main() {
 	realConfig := &impl.ModelsConfig{
 		DBService:           dbService,
 		CategoryModel:       impl.NewCategoryModel(), // Initialize other models as needed
-		SourceModel:         &impl.SourceModel{},
+		SourceModel:         impl.NewSourceModel(),
 		UserModel:           &impl.UserModel{},
 		TagModel:            &impl.TagModel{},
 		TransactionTagModel: &impl.TransactionTagModel{},

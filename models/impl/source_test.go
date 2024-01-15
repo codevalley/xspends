@@ -16,14 +16,14 @@ import (
 func TestInsertSource(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.SourceModel = &SourceModel{}
+		config.SourceModel = NewSourceModel()
 	})
 	defer tearDown()
 
 	source := &interfaces.Source{
 		UserID:    1,
 		Name:      "Test Source",
-		Type:      SourceTypeCredit,
+		Type:      "CREDIT",
 		Balance:   100.0,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
@@ -87,7 +87,7 @@ func TestInsertSource(t *testing.T) {
 func TestUpdateSource(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.SourceModel = &SourceModel{}
+		config.SourceModel = NewSourceModel()
 	})
 	defer tearDown()
 
@@ -95,7 +95,7 @@ func TestUpdateSource(t *testing.T) {
 		ID:        1,
 		UserID:    1,
 		Name:      "Updated Source",
-		Type:      SourceTypeSavings,
+		Type:      "SAVINGS",
 		Balance:   200.0,
 		UpdatedAt: time.Now(),
 	}
@@ -158,7 +158,7 @@ func TestUpdateSource(t *testing.T) {
 func TestDeleteSource(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.SourceModel = &SourceModel{}
+		config.SourceModel = NewSourceModel()
 	})
 	defer tearDown()
 
@@ -182,7 +182,7 @@ func TestDeleteSource(t *testing.T) {
 	mockDBService := &DBService{Executor: db}
 	mockModelService := &ModelsServiceContainer{
 		DBService:   mockDBService,
-		SourceModel: &SourceModel{},
+		SourceModel: NewSourceModel(),
 	}
 	ModelsService = mockModelService
 	// Set up the expected query with sqlmock to return an error
@@ -210,12 +210,12 @@ func TestGetSourceByID(t *testing.T) {
 	mockDBService := &DBService{Executor: db}
 	mockModelService := &ModelsServiceContainer{
 		DBService:   mockDBService,
-		SourceModel: &SourceModel{},
+		SourceModel: NewSourceModel(),
 	}
 	ModelsService = mockModelService
 	// Set up expectations
 	rows := sqlmock.NewRows([]string{"id", "user_id", "name", "type", "balance", "created_at", "updated_at"}).
-		AddRow(1, 1, "Test Source", SourceTypeCredit, 100.0, time.Now(), time.Now())
+		AddRow(1, 1, "Test Source", "CREDIT", 100.0, time.Now(), time.Now())
 	mock.ExpectQuery("^SELECT (.+) FROM sources WHERE").WithArgs(1, 1).WillReturnRows(rows)
 
 	// Call the function under test
@@ -228,7 +228,7 @@ func TestGetSourceByID(t *testing.T) {
 	assert.Equal(t, int64(1), source.ID)
 	assert.Equal(t, int64(1), source.UserID)
 	assert.Equal(t, "Test Source", source.Name)
-	assert.Equal(t, SourceTypeCredit, source.Type)
+	assert.Equal(t, "CREDIT", source.Type)
 
 	// Ensure all expectations were met
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -257,7 +257,7 @@ func TestGetSourceByID(t *testing.T) {
 func TestGetSources(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.SourceModel = &SourceModel{}
+		config.SourceModel = NewSourceModel()
 	})
 	defer tearDown()
 
@@ -272,7 +272,7 @@ func TestGetSources(t *testing.T) {
 	mockDBService := &DBService{Executor: db}
 	mockModelService := &ModelsServiceContainer{
 		DBService:   mockDBService,
-		SourceModel: &SourceModel{},
+		SourceModel: NewSourceModel(),
 	}
 	ModelsService = mockModelService
 
@@ -325,7 +325,7 @@ func TestGetSources(t *testing.T) {
 func TestSourceIDExists(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.SourceModel = &SourceModel{}
+		config.SourceModel = NewSourceModel()
 	})
 	defer tearDown()
 
@@ -341,7 +341,7 @@ func TestSourceIDExists(t *testing.T) {
 	mockDBService := &DBService{Executor: db}
 	mockModelService := &ModelsServiceContainer{
 		DBService:   mockDBService,
-		SourceModel: &SourceModel{},
+		SourceModel: NewSourceModel(),
 	}
 	ModelsService = mockModelService
 

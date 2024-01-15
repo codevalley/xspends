@@ -47,7 +47,7 @@ func TestInsertTransactionV2(t *testing.T) {
 		// Replace the mocked CategoryModel with a real one just for this test
 		config.TransactionModel = &TransactionModel{}
 		config.UserModel = &UserModel{}
-		config.SourceModel = &SourceModel{}
+		config.SourceModel = NewSourceModel()
 		config.CategoryModel = NewCategoryModel()
 	})
 	defer tearDown()
@@ -174,7 +174,7 @@ func TestUpdateTransactionV2(t *testing.T) {
 		// Replace the mocked CategoryModel with a real one just for this test
 		config.TransactionModel = &TransactionModel{}
 		config.UserModel = &UserModel{}
-		config.SourceModel = &SourceModel{}
+		config.SourceModel = NewSourceModel()
 		config.CategoryModel = NewCategoryModel()
 	})
 	defer tearDown()
@@ -365,7 +365,7 @@ func TestGetTransactionByIDV2(t *testing.T) {
 		// Replace the mocked CategoryModel with a real one just for this test
 		config.TransactionModel = &TransactionModel{}
 		config.UserModel = &UserModel{}
-		config.SourceModel = &SourceModel{}
+		config.SourceModel = NewSourceModel()
 		config.CategoryModel = NewCategoryModel()
 		config.TransactionTagModel = &TransactionTagModel{}
 
@@ -491,7 +491,7 @@ func TestGetTagsForTransaction(t *testing.T) {
 		// Replace the mocked CategoryModel with a real one just for this test
 		config.TransactionModel = &TransactionModel{}
 		config.UserModel = &UserModel{}
-		config.SourceModel = &SourceModel{}
+		config.SourceModel = NewSourceModel()
 		config.CategoryModel = NewCategoryModel()
 		config.TransactionTagModel = &TransactionTagModel{}
 	}) // Set up and initialization
@@ -568,7 +568,7 @@ func TestValidateForeignKeyReferences(t *testing.T) {
 		// Replace the mocked CategoryModel with a real one just for this test
 		config.TransactionModel = &TransactionModel{}
 		config.UserModel = &UserModel{}
-		config.SourceModel = &SourceModel{}
+		config.SourceModel = NewSourceModel()
 		config.CategoryModel = NewCategoryModel()
 
 	})

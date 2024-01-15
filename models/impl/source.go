@@ -36,13 +36,32 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	SourceTypeCredit  = "CREDIT"
-	SourceTypeSavings = "SAVINGS"
-)
-
 type SourceModel struct {
-	//nothing here.
+	TableSources      string
+	ColumnID          string
+	ColumnUserID      string
+	ColumnName        string
+	ColumnType        string
+	ColumnBalance     string
+	ColumnCreatedAt   string
+	ColumnUpdatedAt   string
+	SourceTypeCredit  string
+	SourceTypeSavings string
+}
+
+func NewSourceModel() *SourceModel {
+	return &SourceModel{
+		TableSources:      "sources",
+		ColumnID:          "id",
+		ColumnUserID:      "user_id",
+		ColumnName:        "name",
+		ColumnType:        "type",
+		ColumnBalance:     "balance",
+		ColumnCreatedAt:   "created_at",
+		ColumnUpdatedAt:   "updated_at",
+		SourceTypeCredit:  "CREDIT",
+		SourceTypeSavings: "SAVINGS",
+	}
 }
 
 func (sm *SourceModel) InsertSource(ctx context.Context, source *interfaces.Source, otx ...*sql.Tx) error {
@@ -51,7 +70,7 @@ func (sm *SourceModel) InsertSource(ctx context.Context, source *interfaces.Sour
 	if source.Name == "" || source.UserID == 0 {
 		return errors.New("invalid input: name or user ID is empty")
 	}
-	if !strings.EqualFold(source.Type, SourceTypeCredit) && !strings.EqualFold(source.Type, SourceTypeSavings) {
+	if !strings.EqualFold(source.Type, sm.SourceTypeCredit) && !strings.EqualFold(source.Type, sm.SourceTypeSavings) {
 		return errors.New("invalid type: type must be CREDIT or SAVINGS")
 	}
 
@@ -86,7 +105,7 @@ func (sm *SourceModel) UpdateSource(ctx context.Context, source *interfaces.Sour
 	if source.Name == "" || source.UserID == 0 {
 		return errors.New("invalid input: name or user ID is empty")
 	}
-	if !strings.EqualFold(source.Type, SourceTypeCredit) && !strings.EqualFold(source.Type, SourceTypeSavings) {
+	if !strings.EqualFold(source.Type, sm.SourceTypeCredit) && !strings.EqualFold(source.Type, sm.SourceTypeSavings) {
 		return errors.New("invalid type: type must be CREDIT or SAVINGS")
 	}
 
