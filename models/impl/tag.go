@@ -68,8 +68,8 @@ func (tm *TagModel) InsertTag(ctx context.Context, tag *interfaces.Tag, otx ...*
 	tag.CreatedAt = time.Now()
 	tag.UpdatedAt = time.Now()
 
-	query, args, err := squirrel.Insert("tags").
-		Columns("id", "user_id", "name", "created_at", "updated_at").
+	query, args, err := squirrel.Insert(tm.TableTags).
+		Columns(tm.ColumnID, tm.ColumnUserID, tm.ColumnName, tm.ColumnCreatedAt, tm.ColumnUpdatedAt).
 		Values(tag.ID, tag.UserID, tag.Name, tag.CreatedAt, tag.UpdatedAt).
 		PlaceholderFormat(squirrel.Question).
 		ToSql()
@@ -96,10 +96,10 @@ func (tm *TagModel) UpdateTag(ctx context.Context, tag *interfaces.Tag, otx ...*
 
 	tag.UpdatedAt = time.Now()
 
-	query, args, err := squirrel.Update("tags").
-		Set("name", tag.Name).
-		Set("updated_at", tag.UpdatedAt).
-		Where(squirrel.Eq{"id": tag.ID, "user_id": tag.UserID}).
+	query, args, err := squirrel.Update(tm.TableTags).
+		Set(tm.ColumnName, tag.Name).
+		Set(tm.ColumnUpdatedAt, tag.UpdatedAt).
+		Where(squirrel.Eq{tm.ColumnID: tag.ID, tm.ColumnUserID: tag.UserID}).
 		PlaceholderFormat(squirrel.Question).
 		ToSql()
 
@@ -119,8 +119,8 @@ func (tm *TagModel) UpdateTag(ctx context.Context, tag *interfaces.Tag, otx ...*
 func (tm *TagModel) DeleteTag(ctx context.Context, tagID int64, userID int64, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
-	query, args, err := squirrel.Delete("tags").
-		Where(squirrel.Eq{"id": tagID, "user_id": userID}).
+	query, args, err := squirrel.Delete(tm.TableTags).
+		Where(squirrel.Eq{tm.ColumnID: tagID, tm.ColumnUserID: userID}).
 		PlaceholderFormat(squirrel.Question).
 		ToSql()
 
@@ -141,9 +141,9 @@ func (tm *TagModel) DeleteTag(ctx context.Context, tagID int64, userID int64, ot
 func (tm *TagModel) GetTagByID(ctx context.Context, tagID int64, userID int64, otx ...*sql.Tx) (*interfaces.Tag, error) {
 	_, executor := getExecutor(otx...)
 
-	query, args, err := squirrel.Select("id", "user_id", "name", "created_at", "updated_at").
-		From("tags").
-		Where(squirrel.Eq{"id": tagID, "user_id": userID}).
+	query, args, err := squirrel.Select(tm.ColumnID, tm.ColumnUserID, tm.ColumnName, tm.ColumnCreatedAt, tm.ColumnUpdatedAt).
+		From(tm.TableTags).
+		Where(squirrel.Eq{tm.ColumnID: tagID, tm.ColumnUserID: userID}).
 		PlaceholderFormat(squirrel.Question).
 		ToSql()
 
@@ -167,9 +167,9 @@ func (tm *TagModel) GetTagByID(ctx context.Context, tagID int64, userID int64, o
 func (tm *TagModel) GetAllTags(ctx context.Context, userID int64, pagination interfaces.PaginationParams, otx ...*sql.Tx) ([]interfaces.Tag, error) {
 	_, executor := getExecutor(otx...)
 
-	query, args, err := squirrel.Select("id", "user_id", "name", "created_at", "updated_at").
-		From("tags").
-		Where(squirrel.Eq{"user_id": userID}).
+	query, args, err := squirrel.Select(tm.ColumnID, tm.ColumnUserID, tm.ColumnName, tm.ColumnCreatedAt, tm.ColumnUpdatedAt).
+		From(tm.TableTags).
+		Where(squirrel.Eq{tm.ColumnUserID: userID}).
 		Limit(uint64(pagination.Limit)).
 		Offset(uint64(pagination.Offset)).
 		PlaceholderFormat(squirrel.Question).
@@ -205,9 +205,9 @@ func (tm *TagModel) GetAllTags(ctx context.Context, userID int64, pagination int
 func (tm *TagModel) GetTagByName(ctx context.Context, name string, userID int64, otx ...*sql.Tx) (*interfaces.Tag, error) {
 	_, executor := getExecutor(otx...)
 
-	query, args, err := squirrel.Select("id", "user_id", "name", "created_at", "updated_at").
-		From("tags").
-		Where(squirrel.Eq{"name": name, "user_id": userID}).
+	query, args, err := squirrel.Select(tm.ColumnID, tm.ColumnUserID, tm.ColumnName, tm.ColumnCreatedAt, tm.ColumnUpdatedAt).
+		From(tm.TableTags).
+		Where(squirrel.Eq{tm.ColumnName: name, tm.ColumnUserID: userID}).
 		PlaceholderFormat(squirrel.Question).
 		ToSql()
 

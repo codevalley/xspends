@@ -166,6 +166,8 @@ $minikube start --cpus=6 --memory='12288mb'
 $eval $(minikube docker-env)
 $kubectl port-forward svc/tidb-cluster-tidb 4000:4000 -n tidb-cluster #this would consume the terminal. 
 $./deployments/kube-deploy.sh 
+#if you need to flush the DB data
+$mysql -h 127.0.0.1 -P 4000 -u root < ./scripts/flush_data.sql
 ```
 The script is self explanatory, you can review it to understand how it works. 
 
