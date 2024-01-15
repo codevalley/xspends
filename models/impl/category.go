@@ -35,18 +35,38 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	maxCategoryNameLength        = 255
-	maxCategoryDescriptionLength = 500
-	ErrInvalidInput              = "invalid input: user ID must be positive, name must not be empty or exceed max length, description must not exceed max length"
-)
+const ErrInvalidInput = "invalid input: user ID must be positive, name must not be empty or exceed max length, description must not exceed max length"
 
 type CategoryModel struct {
-	//nothing here.
+	TableCategories              string
+	ColumnID                     string
+	ColumnUserID                 string
+	ColumnName                   string
+	ColumnDescription            string
+	ColumnIcon                   string
+	ColumnCreatedAt              string
+	ColumnUpdatedAt              string
+	MaxCategoryNameLength        int
+	MaxCategoryDescriptionLength int
+}
+
+func NewCategoryModel() *CategoryModel {
+	return &CategoryModel{
+		TableCategories:              "categories",
+		ColumnID:                     "id",
+		ColumnUserID:                 "user_id",
+		ColumnName:                   "name",
+		ColumnDescription:            "description",
+		ColumnIcon:                   "icon",
+		ColumnCreatedAt:              "created_at",
+		ColumnUpdatedAt:              "updated_at",
+		MaxCategoryNameLength:        100, // Adjust as per your requirement
+		MaxCategoryDescriptionLength: 512, // Adjust as per your requirement
+	}
 }
 
 func (cm *CategoryModel) validateCategoryInput(category *interfaces.Category) error {
-	if category.UserID <= 0 || category.Name == "" || len(category.Name) > maxCategoryNameLength || len(category.Description) > maxCategoryDescriptionLength {
+	if category.UserID <= 0 || category.Name == "" || len(category.Name) > cm.MaxCategoryNameLength || len(category.Description) > cm.MaxCategoryDescriptionLength {
 		return errors.New(ErrInvalidInput)
 	}
 	return nil

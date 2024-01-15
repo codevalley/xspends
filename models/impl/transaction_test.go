@@ -48,7 +48,7 @@ func TestInsertTransactionV2(t *testing.T) {
 		config.TransactionModel = &TransactionModel{}
 		config.UserModel = &UserModel{}
 		config.SourceModel = &SourceModel{}
-		config.CategoryModel = &CategoryModel{}
+		config.CategoryModel = NewCategoryModel()
 	})
 	defer tearDown()
 
@@ -175,7 +175,7 @@ func TestUpdateTransactionV2(t *testing.T) {
 		config.TransactionModel = &TransactionModel{}
 		config.UserModel = &UserModel{}
 		config.SourceModel = &SourceModel{}
-		config.CategoryModel = &CategoryModel{}
+		config.CategoryModel = NewCategoryModel()
 	})
 	defer tearDown()
 
@@ -366,7 +366,7 @@ func TestGetTransactionByIDV2(t *testing.T) {
 		config.TransactionModel = &TransactionModel{}
 		config.UserModel = &UserModel{}
 		config.SourceModel = &SourceModel{}
-		config.CategoryModel = &CategoryModel{}
+		config.CategoryModel = NewCategoryModel()
 		config.TransactionTagModel = &TransactionTagModel{}
 
 	})
@@ -492,7 +492,7 @@ func TestGetTagsForTransaction(t *testing.T) {
 		config.TransactionModel = &TransactionModel{}
 		config.UserModel = &UserModel{}
 		config.SourceModel = &SourceModel{}
-		config.CategoryModel = &CategoryModel{}
+		config.CategoryModel = NewCategoryModel()
 		config.TransactionTagModel = &TransactionTagModel{}
 	}) // Set up and initialization
 	defer tearDown() // Clean up after the test
@@ -569,7 +569,7 @@ func TestValidateForeignKeyReferences(t *testing.T) {
 		config.TransactionModel = &TransactionModel{}
 		config.UserModel = &UserModel{}
 		config.SourceModel = &SourceModel{}
-		config.CategoryModel = &CategoryModel{}
+		config.CategoryModel = NewCategoryModel()
 
 	})
 	defer tearDown()

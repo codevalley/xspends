@@ -16,14 +16,14 @@ import (
 func TestInsertCategoryWithInvalidInput(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.CategoryModel = &CategoryModel{}
+		config.CategoryModel = NewCategoryModel()
 	})
 	defer tearDown()
 
 	invalidCategories := []*interfaces.Category{
 		{UserID: 0, Name: "Test Category", Description: "Description"},
 		{UserID: 1, Name: "", Description: "Description"},
-		{UserID: 1, Name: "Test Category", Description: string(make([]byte, 501))},
+		{UserID: 1, Name: "Test Category", Description: string(make([]byte, 521))},
 	}
 
 	for _, invalidCategory := range invalidCategories {
@@ -36,7 +36,7 @@ func TestInsertCategoryWithInvalidInput(t *testing.T) {
 func TestInsertCategoryWithDatabaseError(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.CategoryModel = &CategoryModel{}
+		config.CategoryModel = NewCategoryModel()
 	})
 	defer tearDown()
 
@@ -52,7 +52,7 @@ func TestInsertCategoryWithDatabaseError(t *testing.T) {
 func TestUpdateCategoryWithDatabaseError(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.CategoryModel = &CategoryModel{}
+		config.CategoryModel = NewCategoryModel()
 	})
 	defer tearDown()
 
@@ -67,7 +67,7 @@ func TestUpdateCategoryWithDatabaseError(t *testing.T) {
 func TestDeleteCategoryWithDatabaseError(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.CategoryModel = &CategoryModel{}
+		config.CategoryModel = NewCategoryModel()
 	})
 	defer tearDown()
 
@@ -81,7 +81,7 @@ func TestDeleteCategoryWithDatabaseError(t *testing.T) {
 func TestGetAllCategoriesWithDatabaseError(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.CategoryModel = &CategoryModel{}
+		config.CategoryModel = NewCategoryModel()
 	})
 	defer tearDown()
 
@@ -103,7 +103,7 @@ func TestGetAllCategoriesWithDatabaseError(t *testing.T) {
 func TestGetCategoryByIDWithCategoryNotFound(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.CategoryModel = &CategoryModel{}
+		config.CategoryModel = NewCategoryModel()
 	})
 	defer tearDown()
 
@@ -125,7 +125,7 @@ func TestGetCategoryByIDWithCategoryNotFound(t *testing.T) {
 func TestGetCategoryByIDWithDatabaseError(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.CategoryModel = &CategoryModel{}
+		config.CategoryModel = NewCategoryModel()
 	})
 	defer tearDown()
 
@@ -147,7 +147,7 @@ func TestGetCategoryByIDWithDatabaseError(t *testing.T) {
 func TestGetPagedCategoriesWithDatabaseError(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.CategoryModel = &CategoryModel{}
+		config.CategoryModel = NewCategoryModel()
 	})
 	defer tearDown()
 
@@ -169,7 +169,7 @@ func TestGetPagedCategoriesWithDatabaseError(t *testing.T) {
 func TestCategoryIDExistsWithDatabaseError(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.CategoryModel = &CategoryModel{}
+		config.CategoryModel = NewCategoryModel()
 	})
 	defer tearDown()
 
@@ -192,7 +192,7 @@ func TestCategoryIDExistsWithDatabaseError(t *testing.T) {
 func TestGetCategoryByIDWithEmptyIcon(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.CategoryModel = &CategoryModel{}
+		config.CategoryModel = NewCategoryModel()
 	})
 	defer tearDown()
 
@@ -228,7 +228,7 @@ func TestGetCategoryByIDWithEmptyIcon(t *testing.T) {
 func TestGetAllCategoriesWithEmptyResults(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.CategoryModel = &CategoryModel{}
+		config.CategoryModel = NewCategoryModel()
 	})
 	defer tearDown()
 
@@ -253,7 +253,7 @@ func TestGetAllCategoriesWithEmptyResults(t *testing.T) {
 func TestCategoryIDExistsWithNonExistentCategory(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.CategoryModel = &CategoryModel{}
+		config.CategoryModel = NewCategoryModel()
 	})
 	defer tearDown()
 
@@ -281,7 +281,7 @@ func TestCategoryIDExistsWithNonExistentCategory(t *testing.T) {
 func TestDeleteCategoryWithDatabase(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.CategoryModel = &CategoryModel{}
+		config.CategoryModel = NewCategoryModel()
 	})
 	defer tearDown()
 
@@ -315,7 +315,7 @@ func TestGetCategoryByIDWithDatabase(t *testing.T) {
 	mockDBService := &DBService{Executor: db}
 	mockModelService := &ModelsServiceContainer{
 		DBService:     mockDBService,
-		CategoryModel: &CategoryModel{},
+		CategoryModel: NewCategoryModel(),
 	}
 	ModelsService = mockModelService
 
@@ -355,7 +355,7 @@ func TestCategoryIDExistsWithDatabase(t *testing.T) {
 	mockDBService := &DBService{Executor: db}
 	mockModelService := &ModelsServiceContainer{
 		DBService:     mockDBService,
-		CategoryModel: &CategoryModel{},
+		CategoryModel: NewCategoryModel(),
 	}
 	ModelsService = mockModelService
 
@@ -377,7 +377,7 @@ func TestCategoryIDExistsWithDatabase(t *testing.T) {
 func TestGetPagedCategoriesWithEmptyResults(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.CategoryModel = &CategoryModel{}
+		config.CategoryModel = NewCategoryModel()
 	})
 	defer tearDown()
 
@@ -402,7 +402,7 @@ func TestGetPagedCategoriesWithEmptyResults(t *testing.T) {
 func TestUpdateCategoryWithValidInput(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.CategoryModel = &CategoryModel{}
+		config.CategoryModel = NewCategoryModel()
 	})
 	defer tearDown()
 
