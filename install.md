@@ -157,6 +157,17 @@ If you make code changes and wish to redeploy:
    # Optionally, clean up old Docker images
    docker image prune -a -f
    ```
+### Continuous builds and deploys
+There is a simple script which can be used to rebuild and deploy images for continuous testing. It is avalable in `deployments` folder. 
+You can run the following command from project root folder. 
+If you are booting up the docker fresh following these commands
+```bash
+$minikube start --cpus=6 --memory='12288mb'
+$eval $(minikube docker-env)
+$kubectl port-forward svc/tidb-cluster-tidb 4000:4000 -n tidb-cluster #this would consume the terminal. 
+$./deployments/kube-deploy.sh 
+```
+The script is self explanatory, you can review it to understand how it works. 
 
 ### Testing and mocks
 

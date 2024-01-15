@@ -87,8 +87,8 @@ func (cm *CategoryModel) InsertCategory(ctx context.Context, category *interface
 	}
 	category.CreatedAt, category.UpdatedAt = time.Now(), time.Now()
 
-	query, args, err := GetQueryBuilder().Insert("categories").
-		Columns("id", "user_id", "name", "description", "icon", "created_at", "updated_at").
+	query, args, err := GetQueryBuilder().Insert(cm.TableCategories).
+		Columns(cm.ColumnID, cm.ColumnUserID, cm.ColumnName, cm.ColumnDescription, cm.ColumnIcon, cm.ColumnCreatedAt, cm.ColumnUpdatedAt).
 		Values(category.ID, category.UserID, category.Name, category.Description, category.Icon, category.CreatedAt, category.UpdatedAt).
 		ToSql()
 	if err != nil {
@@ -115,12 +115,12 @@ func (cm *CategoryModel) UpdateCategory(ctx context.Context, category *interface
 
 	category.UpdatedAt = time.Now()
 
-	query, args, err := GetQueryBuilder().Update("categories").
-		Set("name", category.Name).
-		Set("description", category.Description).
-		Set("icon", category.Icon).
-		Set("updated_at", category.UpdatedAt).
-		Where(squirrel.Eq{"id": category.ID, "user_id": category.UserID}).
+	query, args, err := GetQueryBuilder().Update(cm.TableCategories).
+		Set(cm.ColumnName, category.Name).
+		Set(cm.ColumnDescription, category.Description).
+		Set(cm.ColumnIcon, category.Icon).
+		Set(cm.ColumnUpdatedAt, category.UpdatedAt).
+		Where(squirrel.Eq{cm.ColumnID: category.ID, cm.ColumnUserID: category.UserID}).
 		ToSql()
 	if err != nil {
 		return errors.Wrap(err, "preparing update statement failed")
@@ -139,8 +139,8 @@ func (cm *CategoryModel) UpdateCategory(ctx context.Context, category *interface
 func (cm *CategoryModel) DeleteCategory(ctx context.Context, categoryID int64, userID int64, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
-	query, args, err := GetQueryBuilder().Delete("categories").
-		Where(squirrel.Eq{"id": categoryID, "user_id": userID}).
+	query, args, err := GetQueryBuilder().Delete(cm.TableCategories).
+		Where(squirrel.Eq{cm.ColumnID: categoryID, cm.ColumnUserID: userID}).
 		ToSql()
 	if err != nil {
 		return errors.Wrap(err, "preparing delete statement failed")
@@ -158,9 +158,9 @@ func (cm *CategoryModel) DeleteCategory(ctx context.Context, categoryID int64, u
 func (cm *CategoryModel) GetAllCategories(ctx context.Context, userID int64, otx ...*sql.Tx) ([]interfaces.Category, error) {
 	_, executor := getExecutor(otx...)
 
-	query, args, err := GetQueryBuilder().Select("id", "user_id", "name", "description", "icon", "created_at", "updated_at").
-		From("categories").
-		Where(squirrel.Eq{"user_id": userID}).
+	query, args, err := GetQueryBuilder().Select(cm.ColumnID, cm.ColumnUserID, cm.ColumnName, cm.ColumnDescription, cm.ColumnIcon, cm.ColumnCreatedAt, cm.ColumnUpdatedAt).
+		From(cm.TableCategories).
+		Where(squirrel.Eq{cm.ColumnUserID: userID}).
 		ToSql()
 	if err != nil {
 		return nil, errors.Wrap(err, "preparing select statement for all categories failed")
@@ -188,9 +188,9 @@ func (cm *CategoryModel) GetAllCategories(ctx context.Context, userID int64, otx
 func (cm *CategoryModel) GetCategoryByID(ctx context.Context, categoryID int64, userID int64, otx ...*sql.Tx) (*interfaces.Category, error) {
 	_, executor := getExecutor(otx...)
 
-	query, args, err := sqlBuilder.Select("id", "user_id", "name", "description", "icon", "created_at", "updated_at").
-		From("categories").
-		Where(squirrel.Eq{"id": categoryID, "user_id": userID}).
+	query, args, err := sqlBuilder.Select(cm.ColumnID, cm.ColumnUserID, cm.ColumnName, cm.ColumnDescription, cm.ColumnIcon, cm.ColumnCreatedAt, cm.ColumnUpdatedAt).
+		From(cm.TableCategories).
+		Where(squirrel.Eq{cm.ColumnID: categoryID, cm.ColumnUserID: userID}).
 		ToSql()
 	if err != nil {
 		return nil, errors.Wrap(err, "preparing select statement for a category by ID failed")
@@ -214,9 +214,9 @@ func (cm *CategoryModel) GetPagedCategories(ctx context.Context, page int, items
 
 	offset := (page - 1) * itemsPerPage
 
-	query, args, err := sqlBuilder.Select("id", "user_id", "name", "description", "icon", "created_at", "updated_at").
-		From("categories").
-		Where(squirrel.Eq{"user_id": userID}).
+	query, args, err := sqlBuilder.Select(cm.ColumnID, cm.ColumnUserID, cm.ColumnName, cm.ColumnDescription, cm.ColumnIcon, cm.ColumnCreatedAt, cm.ColumnUpdatedAt).
+		From(cm.TableCategories).
+		Where(squirrel.Eq{cm.ColumnUserID: userID}).
 		Limit(uint64(itemsPerPage)).
 		Offset(uint64(offset)).
 		ToSql()
@@ -246,8 +246,8 @@ func (cm *CategoryModel) GetPagedCategories(ctx context.Context, page int, items
 func (cm *CategoryModel) CategoryIDExists(ctx context.Context, categoryID int64, userID int64, otx ...*sql.Tx) (bool, error) {
 	_, executor := getExecutor(otx...)
 	query, args, err := sqlBuilder.Select("1").
-		From("categories").
-		Where(squirrel.Eq{"id": categoryID, "user_id": userID}).
+		From(cm.TableCategories).
+		Where(squirrel.Eq{cm.ColumnID: categoryID, cm.ColumnUserID: userID}).
 		Limit(1).
 		ToSql()
 	if err != nil {
