@@ -14,7 +14,7 @@ import (
 func TestUserStorer_Load(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.UserModel = &UserModel{}
+		config.UserModel = NewUserModel()
 	}) // Assume setUp properly initializes mocks and other necessary stuff
 	defer tearDown()
 	// Set up SQL Mock
@@ -67,7 +67,7 @@ func TestUserStorer_Load(t *testing.T) {
 func TestUserStorer_Save(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.UserModel = &UserModel{}
+		config.UserModel = NewUserModel()
 	}) // Assume setUp properly initializes mocks and other necessary stuff
 	defer tearDown()
 	db, mock, err := sqlmock.New()
@@ -114,7 +114,7 @@ func TestUserStorer_Save(t *testing.T) {
 func TestUserStorer_Create(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.UserModel = &UserModel{}
+		config.UserModel = NewUserModel()
 	}) // Assume setUp properly initializes mocks and other necessary stuff
 	defer tearDown()
 	_, mock, err := sqlmock.New()

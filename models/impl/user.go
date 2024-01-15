@@ -54,7 +54,29 @@ var (
 )
 
 type UserModel struct {
-	// Any fields if required
+	TableUsers      string
+	ColumnID        string
+	ColumnUsername  string
+	ColumnName      string
+	ColumnEmail     string
+	ColumnCurrency  string
+	ColumnPassword  string
+	ColumnCreatedAt string
+	ColumnUpdatedAt string
+}
+
+func NewUserModel() *UserModel {
+	return &UserModel{
+		TableUsers:      "users",
+		ColumnID:        "id",
+		ColumnUsername:  "username",
+		ColumnName:      "name",
+		ColumnEmail:     "email",
+		ColumnCurrency:  "currency",
+		ColumnPassword:  "password",
+		ColumnCreatedAt: "created_at",
+		ColumnUpdatedAt: "updated_at",
+	}
 }
 
 func (um *UserModel) InsertUser(ctx context.Context, user *interfaces.User, otx ...*sql.Tx) error {

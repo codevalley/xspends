@@ -46,7 +46,7 @@ func TestInsertTransactionV2(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
 		config.TransactionModel = NewTransactionModel()
-		config.UserModel = &UserModel{}
+		config.UserModel = NewUserModel()
 		config.SourceModel = NewSourceModel()
 		config.CategoryModel = NewCategoryModel()
 	})
@@ -173,7 +173,7 @@ func TestUpdateTransactionV2(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
 		config.TransactionModel = NewTransactionModel()
-		config.UserModel = &UserModel{}
+		config.UserModel = NewUserModel()
 		config.SourceModel = NewSourceModel()
 		config.CategoryModel = NewCategoryModel()
 	})
@@ -364,7 +364,7 @@ func TestGetTransactionByIDV2(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
 		config.TransactionModel = NewTransactionModel()
-		config.UserModel = &UserModel{}
+		config.UserModel = NewUserModel()
 		config.SourceModel = NewSourceModel()
 		config.CategoryModel = NewCategoryModel()
 		config.TransactionTagModel = NewTransactionTagModel()
@@ -490,7 +490,7 @@ func TestGetTagsForTransaction(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
 		config.TransactionModel = NewTransactionModel()
-		config.UserModel = &UserModel{}
+		config.UserModel = NewUserModel()
 		config.SourceModel = NewSourceModel()
 		config.CategoryModel = NewCategoryModel()
 		config.TransactionTagModel = NewTransactionTagModel()
@@ -567,7 +567,7 @@ func TestValidateForeignKeyReferences(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
 		config.TransactionModel = NewTransactionModel()
-		config.UserModel = &UserModel{}
+		config.UserModel = NewUserModel()
 		config.SourceModel = NewSourceModel()
 		config.CategoryModel = NewCategoryModel()
 

@@ -55,7 +55,7 @@ func main() {
 		DBService:           dbService,
 		CategoryModel:       impl.NewCategoryModel(), // Initialize other models as needed
 		SourceModel:         impl.NewSourceModel(),
-		UserModel:           &impl.UserModel{},
+		UserModel:           impl.NewUserModel(),
 		TagModel:            impl.NewTagModel(),
 		TransactionTagModel: impl.NewTransactionTagModel(),
 		TransactionModel:    impl.NewTransactionModel(),

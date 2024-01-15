@@ -15,7 +15,7 @@ import (
 func TestInsertUser(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.UserModel = &UserModel{}
+		config.UserModel = NewUserModel()
 	})
 	defer tearDown()
 
@@ -37,7 +37,7 @@ func TestInsertUser(t *testing.T) {
 func TestUpdateUser(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.UserModel = &UserModel{}
+		config.UserModel = NewUserModel()
 	})
 	defer tearDown()
 
@@ -61,7 +61,7 @@ func TestUpdateUser(t *testing.T) {
 func TestDeleteUser(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.UserModel = &UserModel{}
+		config.UserModel = NewUserModel()
 	})
 	defer tearDown()
 
@@ -85,7 +85,7 @@ func TestGetUserByID(t *testing.T) {
 	mockDBService := &DBService{Executor: db}
 	mockModelService := &ModelsServiceContainer{
 		DBService: mockDBService,
-		UserModel: &UserModel{},
+		UserModel: NewUserModel(),
 		// Initialize other models as necessary
 	}
 	ModelsService = mockModelService
@@ -126,7 +126,7 @@ func TestGetUserByUsername(t *testing.T) {
 	mockDBService := &DBService{Executor: db}
 	mockModelService := &ModelsServiceContainer{
 		DBService: mockDBService,
-		UserModel: &UserModel{},
+		UserModel: NewUserModel(),
 		// Initialize other models as necessary
 	}
 	ModelsService = mockModelService
@@ -174,7 +174,7 @@ func TestUserExists(t *testing.T) {
 	mockDBService := &DBService{Executor: db}
 	mockModelService := &ModelsServiceContainer{
 		DBService: mockDBService,
-		UserModel: &UserModel{},
+		UserModel: NewUserModel(),
 		// Initialize other models as necessary
 	}
 	ModelsService = mockModelService
@@ -208,7 +208,7 @@ func TestUserIDExists(t *testing.T) {
 	mockDBService := &DBService{Executor: db}
 	mockModelService := &ModelsServiceContainer{
 		DBService: mockDBService,
-		UserModel: &UserModel{},
+		UserModel: NewUserModel(),
 		// Initialize other models as necessary
 	}
 	ModelsService = mockModelService
@@ -242,7 +242,7 @@ func TestUserIDExists_UserIDNotFound(t *testing.T) {
 	mockDBService := &DBService{Executor: db}
 	mockModelService := &ModelsServiceContainer{
 		DBService: mockDBService,
-		UserModel: &UserModel{},
+		UserModel: NewUserModel(),
 		// Initialize other models as necessary
 	}
 	ModelsService = mockModelService
