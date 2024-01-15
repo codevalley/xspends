@@ -367,7 +367,7 @@ func TestGetTransactionByIDV2(t *testing.T) {
 		config.UserModel = &UserModel{}
 		config.SourceModel = NewSourceModel()
 		config.CategoryModel = NewCategoryModel()
-		config.TransactionTagModel = &TransactionTagModel{}
+		config.TransactionTagModel = NewTransactionTagModel()
 
 	})
 	defer tearDown()
@@ -493,7 +493,7 @@ func TestGetTagsForTransaction(t *testing.T) {
 		config.UserModel = &UserModel{}
 		config.SourceModel = NewSourceModel()
 		config.CategoryModel = NewCategoryModel()
-		config.TransactionTagModel = &TransactionTagModel{}
+		config.TransactionTagModel = NewTransactionTagModel()
 	}) // Set up and initialization
 	defer tearDown() // Clean up after the test
 

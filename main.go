@@ -57,7 +57,7 @@ func main() {
 		SourceModel:         impl.NewSourceModel(),
 		UserModel:           &impl.UserModel{},
 		TagModel:            impl.NewTagModel(),
-		TransactionTagModel: &impl.TransactionTagModel{},
+		TransactionTagModel: impl.NewTransactionTagModel(),
 		TransactionModel:    &impl.TransactionModel{},
 	}
 

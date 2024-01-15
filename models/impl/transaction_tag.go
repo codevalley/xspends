@@ -35,6 +35,21 @@ import (
 )
 
 type TransactionTagModel struct {
+	TableTransactionTags string
+	ColumnTransactionID  string
+	ColumnTagID          string
+	ColumnCreatedAt      string
+	ColumnUpdatedAt      string
+}
+
+func NewTransactionTagModel() *TransactionTagModel {
+	return &TransactionTagModel{
+		TableTransactionTags: "transaction_tags",
+		ColumnTransactionID:  "transaction_id",
+		ColumnTagID:          "tag_id",
+		ColumnCreatedAt:      "created_at",
+		ColumnUpdatedAt:      "updated_at",
+	}
 }
 
 func (tm *TransactionTagModel) GetTagsByTransactionID(ctx context.Context, transactionID int64, otx ...*sql.Tx) ([]interfaces.Tag, error) {

@@ -14,7 +14,7 @@ import (
 func TestInsertTransactionTag(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.TransactionTagModel = &TransactionTagModel{}
+		config.TransactionTagModel = NewTransactionTagModel()
 	})
 	defer tearDown()
 
@@ -43,7 +43,7 @@ func TestInsertTransactionTag(t *testing.T) {
 func TestDeleteTransactionTag(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.TransactionTagModel = &TransactionTagModel{}
+		config.TransactionTagModel = NewTransactionTagModel()
 	})
 	defer tearDown()
 
@@ -71,7 +71,7 @@ func TestDeleteTransactionTag(t *testing.T) {
 func TestGetTagsByTransactionID(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.TransactionTagModel = &TransactionTagModel{}
+		config.TransactionTagModel = NewTransactionTagModel()
 	})
 	defer tearDown()
 	ctrl := gomock.NewController(t)
@@ -115,7 +115,7 @@ func TestGetTagsByTransactionID(t *testing.T) {
 func TestUpdateTagsForTransaction(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.TransactionTagModel = &TransactionTagModel{}
+		config.TransactionTagModel = NewTransactionTagModel()
 		config.TagModel = NewTagModel()
 	})
 	defer tearDown()
@@ -168,7 +168,7 @@ func TestUpdateTagsForTransaction(t *testing.T) {
 func TestAddTagsToTransaction(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.TransactionTagModel = &TransactionTagModel{}
+		config.TransactionTagModel = NewTransactionTagModel()
 		config.TagModel = NewTagModel()
 	})
 	defer tearDown()
@@ -222,7 +222,7 @@ func TestAddTagsToTransaction(t *testing.T) {
 func TestDeleteTagsFromTransaction(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.TransactionTagModel = &TransactionTagModel{}
+		config.TransactionTagModel = NewTransactionTagModel()
 		config.TagModel = NewTagModel()
 	})
 	defer tearDown()
