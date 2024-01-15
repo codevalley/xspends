@@ -56,7 +56,7 @@ func main() {
 		CategoryModel:       impl.NewCategoryModel(), // Initialize other models as needed
 		SourceModel:         impl.NewSourceModel(),
 		UserModel:           &impl.UserModel{},
-		TagModel:            &impl.TagModel{},
+		TagModel:            impl.NewTagModel(),
 		TransactionTagModel: &impl.TransactionTagModel{},
 		TransactionModel:    &impl.TransactionModel{},
 	}

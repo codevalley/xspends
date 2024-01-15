@@ -116,7 +116,7 @@ func TestUpdateTagsForTransaction(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
 		config.TransactionTagModel = &TransactionTagModel{}
-		config.TagModel = &TagModel{}
+		config.TagModel = NewTagModel()
 	})
 	defer tearDown()
 
@@ -169,7 +169,7 @@ func TestAddTagsToTransaction(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
 		config.TransactionTagModel = &TransactionTagModel{}
-		config.TagModel = &TagModel{}
+		config.TagModel = NewTagModel()
 	})
 	defer tearDown()
 
@@ -223,7 +223,7 @@ func TestDeleteTagsFromTransaction(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
 		config.TransactionTagModel = &TransactionTagModel{}
-		config.TagModel = &TagModel{}
+		config.TagModel = NewTagModel()
 	})
 	defer tearDown()
 

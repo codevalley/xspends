@@ -35,17 +35,32 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	maxTagNameLength = 255
-)
-
 type TagModel struct {
+	TableTags        string
+	ColumnID         string
+	ColumnUserID     string
+	ColumnName       string
+	ColumnCreatedAt  string
+	ColumnUpdatedAt  string
+	MaxTagNameLength int
+}
+
+func NewTagModel() *TagModel {
+	return &TagModel{
+		TableTags:        "tags",
+		ColumnID:         "id",
+		ColumnUserID:     "user_id",
+		ColumnName:       "name",
+		ColumnCreatedAt:  "created_at",
+		ColumnUpdatedAt:  "updated_at",
+		MaxTagNameLength: 255, // Adjust as per your requirement
+	}
 }
 
 func (tm *TagModel) InsertTag(ctx context.Context, tag *interfaces.Tag, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
-	if tag.UserID <= 0 || len(tag.Name) == 0 || len(tag.Name) > maxTagNameLength {
+	if tag.UserID <= 0 || len(tag.Name) == 0 || len(tag.Name) > tm.MaxTagNameLength {
 		return errors.New("invalid input for tag")
 	}
 
@@ -75,7 +90,7 @@ func (tm *TagModel) InsertTag(ctx context.Context, tag *interfaces.Tag, otx ...*
 func (tm *TagModel) UpdateTag(ctx context.Context, tag *interfaces.Tag, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
-	if tag.UserID <= 0 || len(tag.Name) == 0 || len(tag.Name) > maxTagNameLength {
+	if tag.UserID <= 0 || len(tag.Name) == 0 || len(tag.Name) > tm.MaxTagNameLength {
 		return errors.New("invalid input for tag")
 	}
 

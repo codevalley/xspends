@@ -16,7 +16,7 @@ import (
 func TestInsertValidTag(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.TagModel = &TagModel{}
+		config.TagModel = NewTagModel()
 	})
 	defer tearDown()
 
@@ -40,7 +40,7 @@ func TestInsertValidTag(t *testing.T) {
 func TestUpdateExistingTag(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.TagModel = &TagModel{}
+		config.TagModel = NewTagModel()
 	})
 	defer tearDown()
 
@@ -65,7 +65,7 @@ func TestUpdateExistingTag(t *testing.T) {
 func TestDeleteExistingTag(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.TagModel = &TagModel{}
+		config.TagModel = NewTagModel()
 	})
 	defer tearDown()
 
@@ -91,7 +91,7 @@ func TestRetrieveExistingTagByID(t *testing.T) {
 	mockDBService := &DBService{Executor: db}
 	mockModelService := &ModelsServiceContainer{
 		DBService: mockDBService,
-		TagModel:  &TagModel{},
+		TagModel:  NewTagModel(),
 	}
 	ModelsService = mockModelService
 
@@ -122,7 +122,7 @@ func TestRetrieveExistingTagByID(t *testing.T) {
 func TestRetrieveAllTagsForUser(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.TagModel = &TagModel{}
+		config.TagModel = NewTagModel()
 	})
 	defer tearDown()
 
@@ -141,7 +141,7 @@ func TestRetrieveAllTagsForUser(t *testing.T) {
 	mockDBService := &DBService{Executor: db}
 	mockModelService := &ModelsServiceContainer{
 		DBService: mockDBService,
-		TagModel:  &TagModel{},
+		TagModel:  NewTagModel(),
 	}
 	ModelsService = mockModelService
 
@@ -171,7 +171,7 @@ func TestRetrieveAllTagsForUser(t *testing.T) {
 func TestInsertInvalidTag(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.TagModel = &TagModel{}
+		config.TagModel = NewTagModel()
 	})
 	defer tearDown()
 
@@ -189,7 +189,7 @@ func TestInsertInvalidTag(t *testing.T) {
 func TestUpdateInvalidTag(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.TagModel = &TagModel{}
+		config.TagModel = NewTagModel()
 	})
 	defer tearDown()
 
@@ -209,7 +209,7 @@ func TestUpdateInvalidTag(t *testing.T) {
 func TestGetTagByName(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.TagModel = &TagModel{}
+		config.TagModel = NewTagModel()
 	})
 	defer tearDown()
 
@@ -225,7 +225,7 @@ func TestGetTagByName(t *testing.T) {
 	mockDBService := &DBService{Executor: db}
 	mockModelService := &ModelsServiceContainer{
 		DBService: mockDBService,
-		TagModel:  &TagModel{},
+		TagModel:  NewTagModel(),
 	}
 	ModelsService = mockModelService
 
