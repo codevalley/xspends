@@ -58,7 +58,7 @@ func main() {
 		UserModel:           &impl.UserModel{},
 		TagModel:            impl.NewTagModel(),
 		TransactionTagModel: impl.NewTransactionTagModel(),
-		TransactionModel:    &impl.TransactionModel{},
+		TransactionModel:    impl.NewTransactionModel(),
 	}
 
 	// Initialize ModelsService with real configuration

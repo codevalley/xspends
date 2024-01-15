@@ -45,7 +45,7 @@ func setupForeignKeyMocks(mockM sqlmock.Sqlmock, txn interfaces.Transaction) {
 func TestInsertTransactionV2(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.TransactionModel = &TransactionModel{}
+		config.TransactionModel = NewTransactionModel()
 		config.UserModel = &UserModel{}
 		config.SourceModel = NewSourceModel()
 		config.CategoryModel = NewCategoryModel()
@@ -172,7 +172,7 @@ func TestInsertTransactionV2(t *testing.T) {
 func TestUpdateTransactionV2(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.TransactionModel = &TransactionModel{}
+		config.TransactionModel = NewTransactionModel()
 		config.UserModel = &UserModel{}
 		config.SourceModel = NewSourceModel()
 		config.CategoryModel = NewCategoryModel()
@@ -303,7 +303,7 @@ func TestUpdateTransactionV2(t *testing.T) {
 func TestDeleteTransactionV2(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.TransactionModel = &TransactionModel{}
+		config.TransactionModel = NewTransactionModel()
 
 	})
 	defer tearDown()
@@ -363,7 +363,7 @@ func TestDeleteTransactionV2(t *testing.T) {
 func TestGetTransactionByIDV2(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.TransactionModel = &TransactionModel{}
+		config.TransactionModel = NewTransactionModel()
 		config.UserModel = &UserModel{}
 		config.SourceModel = NewSourceModel()
 		config.CategoryModel = NewCategoryModel()
@@ -429,7 +429,7 @@ func TestGetTransactionByIDV2(t *testing.T) {
 func TestGetTransactionsByFilterV2(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.TransactionModel = &TransactionModel{}
+		config.TransactionModel = NewTransactionModel()
 	})
 	defer tearDown()
 
@@ -489,7 +489,7 @@ func TestGetTransactionsByFilterV2(t *testing.T) {
 func TestGetTagsForTransaction(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.TransactionModel = &TransactionModel{}
+		config.TransactionModel = NewTransactionModel()
 		config.UserModel = &UserModel{}
 		config.SourceModel = NewSourceModel()
 		config.CategoryModel = NewCategoryModel()
@@ -566,7 +566,7 @@ func TestGetTagsForTransaction(t *testing.T) {
 func TestValidateForeignKeyReferences(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.TransactionModel = &TransactionModel{}
+		config.TransactionModel = NewTransactionModel()
 		config.UserModel = &UserModel{}
 		config.SourceModel = NewSourceModel()
 		config.CategoryModel = NewCategoryModel()
@@ -624,7 +624,7 @@ func TestAddMissingTags(t *testing.T) {
 	// Set up the mock environment
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
-		config.TransactionModel = &TransactionModel{}
+		config.TransactionModel = NewTransactionModel()
 	}) // Assume setUp properly initializes mocks and other necessary stuff
 	defer tearDown()
 

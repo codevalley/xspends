@@ -45,7 +45,29 @@ const (
 )
 
 type TransactionModel struct {
-	//nothing here.
+	TableTransactions string
+	ColumnID          string
+	ColumnUserID      string
+	ColumnSourceID    string
+	ColumnCategoryID  string
+	ColumnTimestamp   string
+	ColumnAmount      string
+	ColumnType        string
+	ColumnDescription string
+}
+
+func NewTransactionModel() *TransactionModel {
+	return &TransactionModel{
+		TableTransactions: "transactions",
+		ColumnID:          "id",
+		ColumnUserID:      "user_id",
+		ColumnSourceID:    "source_id",
+		ColumnCategoryID:  "category_id",
+		ColumnTimestamp:   "timestamp",
+		ColumnAmount:      "amount",
+		ColumnType:        "type",
+		ColumnDescription: "description",
+	}
 }
 
 // InsertTransaction inserts a new transaction into the database.// InsertTransaction inserts a new transaction into the database.
