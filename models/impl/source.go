@@ -82,8 +82,8 @@ func (sm *SourceModel) InsertSource(ctx context.Context, source *interfaces.Sour
 	source.CreatedAt = time.Now()
 	source.UpdatedAt = source.CreatedAt
 
-	query, args, err := GetQueryBuilder().Insert("sources").
-		Columns("id", "user_id", "name", "type", "balance", "created_at", "updated_at").
+	query, args, err := GetQueryBuilder().Insert(sm.TableSources).
+		Columns(sm.ColumnID, sm.ColumnUserID, sm.ColumnName, sm.ColumnType, sm.ColumnBalance, sm.ColumnCreatedAt, sm.ColumnUpdatedAt).
 		Values(source.ID, source.UserID, source.Name, source.Type, source.Balance, source.CreatedAt, source.UpdatedAt).
 		ToSql()
 
@@ -111,12 +111,12 @@ func (sm *SourceModel) UpdateSource(ctx context.Context, source *interfaces.Sour
 
 	source.UpdatedAt = time.Now()
 
-	query, args, err := GetQueryBuilder().Update("sources").
-		Set("name", source.Name).
-		Set("type", source.Type).
-		Set("balance", source.Balance).
-		Set("updated_at", source.UpdatedAt).
-		Where(squirrel.Eq{"id": source.ID, "user_id": source.UserID}).
+	query, args, err := GetQueryBuilder().Update(sm.TableSources).
+		Set(sm.ColumnName, source.Name).
+		Set(sm.ColumnType, source.Type).
+		Set(sm.ColumnBalance, source.Balance).
+		Set(sm.ColumnUpdatedAt, source.UpdatedAt).
+		Where(squirrel.Eq{sm.ColumnID: source.ID, sm.ColumnUserID: source.UserID}).
 		ToSql()
 
 	if err != nil {
@@ -133,8 +133,8 @@ func (sm *SourceModel) UpdateSource(ctx context.Context, source *interfaces.Sour
 
 func (sm *SourceModel) DeleteSource(ctx context.Context, sourceID int64, userID int64, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
-	query, args, err := GetQueryBuilder().Delete("sources").
-		Where(squirrel.Eq{"id": sourceID, "user_id": userID}).
+	query, args, err := GetQueryBuilder().Delete(sm.TableSources).
+		Where(squirrel.Eq{sm.ColumnID: sourceID, sm.ColumnUserID: userID}).
 		ToSql()
 
 	if err != nil {
@@ -151,9 +151,9 @@ func (sm *SourceModel) DeleteSource(ctx context.Context, sourceID int64, userID 
 
 func (sm *SourceModel) GetSourceByID(ctx context.Context, sourceID int64, userID int64, otx ...*sql.Tx) (*interfaces.Source, error) {
 	_, executor := getExecutor(otx...)
-	query, args, err := GetQueryBuilder().Select("id", "user_id", "name", "type", "balance", "created_at", "updated_at").
-		From("sources").
-		Where(squirrel.Eq{"id": sourceID, "user_id": userID}).
+	query, args, err := GetQueryBuilder().Select(sm.ColumnID, sm.ColumnUserID, sm.ColumnName, sm.ColumnType, sm.ColumnBalance, sm.ColumnCreatedAt, sm.ColumnUpdatedAt).
+		From(sm.TableSources).
+		Where(squirrel.Eq{sm.ColumnID: sourceID, sm.ColumnUserID: userID}).
 		ToSql()
 
 	if err != nil {
@@ -174,9 +174,9 @@ func (sm *SourceModel) GetSourceByID(ctx context.Context, sourceID int64, userID
 
 func (sm *SourceModel) GetSources(ctx context.Context, userID int64, otx ...*sql.Tx) ([]interfaces.Source, error) {
 	_, executor := getExecutor(otx...)
-	query, args, err := GetQueryBuilder().Select("id", "user_id", "name", "type", "balance", "created_at", "updated_at").
-		From("sources").
-		Where(squirrel.Eq{"user_id": userID}).
+	query, args, err := GetQueryBuilder().Select(sm.ColumnID, sm.ColumnUserID, sm.ColumnName, sm.ColumnType, sm.ColumnBalance, sm.ColumnCreatedAt, sm.ColumnUpdatedAt).
+		From(sm.TableSources).
+		Where(squirrel.Eq{sm.ColumnUserID: userID}).
 		ToSql()
 
 	if err != nil {
@@ -209,8 +209,8 @@ func (sm *SourceModel) SourceIDExists(ctx context.Context, sourceID int64, userI
 	_, executor := getExecutor(otx...)
 
 	query, args, err := GetQueryBuilder().Select("1").
-		From("sources").
-		Where(squirrel.Eq{"id": sourceID, "user_id": userID}).
+		From(sm.TableSources).
+		Where(squirrel.Eq{sm.ColumnID: sourceID, sm.ColumnUserID: userID}).
 		Limit(1).
 		ToSql()
 
