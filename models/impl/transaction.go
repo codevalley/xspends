@@ -70,7 +70,7 @@ func NewTransactionModel() *TransactionModel {
 	}
 }
 
-// InsertTransaction inserts a new transaction into the database.// InsertTransaction inserts a new transaction into the database.
+// InsertTransaction inserts a new transaction into the database.
 func (tm *TransactionModel) InsertTransaction(ctx context.Context, txn interfaces.Transaction, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
@@ -81,8 +81,8 @@ func (tm *TransactionModel) InsertTransaction(ctx context.Context, txn interface
 		return errors.Wrap(err, "validating foreign key references failed")
 	}
 
-	query, args, err := squirrel.Insert("transactions").
-		Columns("id", "user_id", "source_id", "category_id", "timestamp", "amount", "type", "description").
+	query, args, err := squirrel.Insert(tm.TableTransactions).
+		Columns(tm.ColumnID, tm.ColumnUserID, tm.ColumnSourceID, tm.ColumnCategoryID, tm.ColumnTimestamp, tm.ColumnAmount, tm.ColumnType, tm.ColumnDescription).
 		Values(txn.ID, txn.UserID, txn.SourceID, txn.CategoryID, txn.Timestamp, txn.Amount, txn.Type, txn.Description).
 		PlaceholderFormat(squirrel.Question).
 		ToSql()
@@ -115,13 +115,13 @@ func (tm *TransactionModel) UpdateTransaction(ctx context.Context, txn interface
 	}
 
 	// Update transaction in the database
-	query, args, err := GetQueryBuilder().Update("transactions").
-		Set("source_id", txn.SourceID).
-		Set("category_id", txn.CategoryID).
-		Set("amount", txn.Amount).
-		Set("type", txn.Type).
-		Set("description", txn.Description).
-		Where(squirrel.Eq{"id": txn.ID, "user_id": txn.UserID}).
+	query, args, err := GetQueryBuilder().Update(tm.TableTransactions).
+		Set(tm.ColumnSourceID, txn.SourceID).
+		Set(tm.ColumnCategoryID, txn.CategoryID).
+		Set(tm.ColumnAmount, txn.Amount).
+		Set(tm.ColumnType, txn.Type).
+		Set(tm.ColumnDescription, txn.Description).
+		Where(squirrel.Eq{tm.ColumnID: txn.ID, tm.ColumnUserID: txn.UserID}).
 		PlaceholderFormat(squirrel.Question).
 		ToSql()
 	if err != nil {
@@ -149,8 +149,8 @@ func (tm *TransactionModel) UpdateTransaction(ctx context.Context, txn interface
 func (tm *TransactionModel) DeleteTransaction(ctx context.Context, transactionID int64, userID int64, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
-	query, args, err := GetQueryBuilder().Delete("transactions").
-		Where(squirrel.Eq{"id": transactionID, "user_id": userID}).
+	query, args, err := GetQueryBuilder().Delete(tm.TableTransactions).
+		Where(squirrel.Eq{tm.ColumnID: transactionID, tm.ColumnUserID: userID}).
 		PlaceholderFormat(squirrel.Question).
 		ToSql()
 	if err != nil {
@@ -170,9 +170,9 @@ func (tm *TransactionModel) DeleteTransaction(ctx context.Context, transactionID
 func (tm *TransactionModel) GetTransactionByID(ctx context.Context, transactionID int64, userID int64, otx ...*sql.Tx) (*interfaces.Transaction, error) {
 	_, executor := getExecutor(otx...)
 
-	query, args, err := GetQueryBuilder().Select("id", "user_id", "source_id", "category_id", "timestamp", "amount", "type", "description").
-		From("transactions").
-		Where(squirrel.Eq{"id": transactionID, "user_id": userID}).
+	query, args, err := GetQueryBuilder().Select(tm.ColumnID, tm.ColumnUserID, tm.ColumnSourceID, tm.ColumnCategoryID, tm.ColumnTimestamp, tm.ColumnAmount, tm.ColumnType, tm.ColumnDescription).
+		From(tm.TableTransactions).
+		Where(squirrel.Eq{tm.ColumnID: transactionID, tm.ColumnUserID: userID}).
 		PlaceholderFormat(squirrel.Question).
 		ToSql()
 	if err != nil {
@@ -193,9 +193,9 @@ func (tm *TransactionModel) GetTransactionByID(ctx context.Context, transactionI
 // GetTransactionsByFilter retrieves a list of transactions from the database based on a set of filters.
 func (tm *TransactionModel) GetTransactionsByFilter(ctx context.Context, filter interfaces.TransactionFilter, otx ...*sql.Tx) ([]interfaces.Transaction, error) {
 	_, executor := getExecutor(otx...)
-	query := GetQueryBuilder().Select("id", "user_id", "source_id", "category_id", "timestamp", "amount", "type", "description").
-		From("transactions").
-		Where(squirrel.Eq{"user_id": filter.UserID})
+	query := GetQueryBuilder().Select(tm.ColumnID, tm.ColumnUserID, tm.ColumnSourceID, tm.ColumnCategoryID, tm.ColumnTimestamp, tm.ColumnAmount, tm.ColumnType, tm.ColumnDescription).
+		From(tm.TableTransactions).
+		Where(squirrel.Eq{tm.ColumnUserID: filter.UserID})
 
 	if filter.StartDate != "" {
 		query = query.Where("timestamp >= ?", filter.StartDate)
@@ -221,15 +221,15 @@ func (tm *TransactionModel) GetTransactionsByFilter(ctx context.Context, filter 
 		tagsSubQuery := GetQueryBuilder().Select("transaction_id").
 			From("transaction_tags").
 			Where("tag_id IN ?", filter.Tags)
-		query = query.Where("id IN ?", tagsSubQuery)
+		query = query.Where(tm.ColumnID+" IN ?", tagsSubQuery)
 	}
 
 	if filter.MinAmount > 0 {
-		query = query.Where("amount >= ?", filter.MinAmount)
+		query = query.Where(tm.ColumnAmount+" >= ?", filter.MinAmount)
 	}
 
 	if filter.MaxAmount > 0 {
-		query = query.Where("amount <= ?", filter.MaxAmount)
+		query = query.Where(tm.ColumnAmount+" <= ?", filter.MaxAmount)
 	}
 
 	if filter.SortBy != "" {
