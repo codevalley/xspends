@@ -83,13 +83,13 @@ func (um *UserModel) InsertUser(ctx context.Context, user *interfaces.User, otx 
 	isExternalTx, executor := getExecutor(otx...)
 
 	if user.Username == "" {
-		return errors.New("mandatory field missing: Username")
+		return errors.New("mandatory field missing: " + um.ColumnUsername)
 	}
 	if user.Email == "" {
-		return errors.New("mandatory field missing: Email")
+		return errors.New("mandatory field missing: " + um.ColumnEmail)
 	}
 	if user.Password == "" {
-		return errors.New("mandatory field missing: Password")
+		return errors.New("mandatory field missing: " + um.ColumnPassword)
 	}
 
 	var err error
@@ -100,8 +100,8 @@ func (um *UserModel) InsertUser(ctx context.Context, user *interfaces.User, otx 
 	}
 
 	// Build and execute the SQL query using Squirrel
-	sqlquery, args, err := squirrel.Insert("users").
-		Columns("id", "username", "name", "email", "currency", "password", "created_at", "updated_at").
+	sqlquery, args, err := squirrel.Insert(um.TableUsers).
+		Columns(um.ColumnID, um.ColumnUsername, um.ColumnName, um.ColumnEmail, um.ColumnCurrency, um.ColumnPassword, um.ColumnCreatedAt, um.ColumnUpdatedAt).
 		Values(user.ID, user.Username, user.Name, user.Email, user.Currency, user.Password, user.CreatedAt, user.UpdatedAt).
 		PlaceholderFormat(squirrel.Question).
 		ToSql()
@@ -115,10 +115,10 @@ func (um *UserModel) InsertUser(ctx context.Context, user *interfaces.User, otx 
 	_, err = executor.ExecContext(ctx, sqlquery, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate") {
-			if strings.Contains(err.Error(), "username") {
+			if strings.Contains(err.Error(), um.ColumnUsername) {
 				return ErrUsernameTaken
 			}
-			if strings.Contains(err.Error(), "email") {
+			if strings.Contains(err.Error(), um.ColumnEmail) {
 				return ErrEmailExists
 			}
 		}
@@ -135,16 +135,16 @@ func (um *UserModel) UpdateUser(ctx context.Context, user *interfaces.User, otx 
 	isExternalTx, executor := getExecutor(otx...)
 	user.UpdatedAt = time.Now()
 
-	sqlquery, args, err := squirrel.Update("users").
+	sqlquery, args, err := squirrel.Update(um.TableUsers).
 		SetMap(map[string]interface{}{
-			"username":   user.Username,
-			"name":       user.Name,
-			"email":      user.Email,
-			"currency":   user.Currency,
-			"password":   user.Password,
-			"updated_at": user.UpdatedAt,
+			um.ColumnUsername:  user.Username,
+			um.ColumnName:      user.Name,
+			um.ColumnEmail:     user.Email,
+			um.ColumnCurrency:  user.Currency,
+			um.ColumnPassword:  user.Password,
+			um.ColumnUpdatedAt: user.UpdatedAt,
 		}).
-		Where(squirrel.Eq{"id": user.ID}).
+		Where(squirrel.Eq{um.ColumnID: user.ID}).
 		PlaceholderFormat(squirrel.Question).
 		ToSql()
 
@@ -164,8 +164,8 @@ func (um *UserModel) UpdateUser(ctx context.Context, user *interfaces.User, otx 
 func (um *UserModel) DeleteUser(ctx context.Context, id int64, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
-	sqlquery, args, err := squirrel.Delete("users").
-		Where(squirrel.Eq{"id": id}).
+	sqlquery, args, err := squirrel.Delete(um.TableUsers).
+		Where(squirrel.Eq{um.ColumnID: id}).
 		PlaceholderFormat(squirrel.Question).
 		ToSql()
 
@@ -185,9 +185,9 @@ func (um *UserModel) DeleteUser(ctx context.Context, id int64, otx ...*sql.Tx) e
 func (um *UserModel) GetUserByID(ctx context.Context, id int64, otx ...*sql.Tx) (*interfaces.User, error) {
 	_, executor := getExecutor(otx...)
 
-	sqlquery, args, err := squirrel.Select("id", "username", "name", "email", "currency", "password").
-		From("users").
-		Where(squirrel.Eq{"id": id}).
+	sqlquery, args, err := squirrel.Select(um.ColumnID, um.ColumnUsername, um.ColumnName, um.ColumnEmail, um.ColumnCurrency, um.ColumnPassword).
+		From(um.TableUsers).
+		Where(squirrel.Eq{um.ColumnID: id}).
 		PlaceholderFormat(squirrel.Question).
 		ToSql()
 
@@ -209,9 +209,9 @@ func (um *UserModel) GetUserByID(ctx context.Context, id int64, otx ...*sql.Tx) 
 func (um *UserModel) GetUserByUsername(ctx context.Context, username string, otx ...*sql.Tx) (*interfaces.User, error) {
 	_, executor := getExecutor(otx...)
 
-	sqlquery, args, err := squirrel.Select("id", "username", "name", "email", "currency", "password").
-		From("users").
-		Where(squirrel.Eq{"username": username}).
+	sqlquery, args, err := squirrel.Select(um.ColumnID, um.ColumnUsername, um.ColumnName, um.ColumnEmail, um.ColumnCurrency, um.ColumnPassword).
+		From(um.TableUsers).
+		Where(squirrel.Eq{um.ColumnUsername: username}).
 		PlaceholderFormat(squirrel.Question).
 		ToSql()
 
@@ -234,8 +234,8 @@ func (um *UserModel) UserExists(ctx context.Context, username, email string, otx
 	_, executor := getExecutor(otx...)
 
 	sqlquery, args, err := squirrel.Select("1").
-		From("users").
-		Where(squirrel.Or{squirrel.Eq{"username": username}, squirrel.Eq{"email": email}}).
+		From(um.TableUsers).
+		Where(squirrel.Or{squirrel.Eq{um.ColumnUsername: username}, squirrel.Eq{um.ColumnEmail: email}}).
 		PlaceholderFormat(squirrel.Question).
 		ToSql()
 
@@ -259,8 +259,8 @@ func (um *UserModel) UserIDExists(ctx context.Context, id int64, otx ...*sql.Tx)
 	_, executor := getExecutor(otx...)
 
 	sqlquery, args, err := squirrel.Select("1").
-		From("users").
-		Where(squirrel.Eq{"id": id}).
+		From(um.TableUsers).
+		Where(squirrel.Eq{um.ColumnID: id}).
 		PlaceholderFormat(squirrel.Question).
 		ToSql()
 
