@@ -9,28 +9,20 @@
 - Integrate with monitoring tools for database metrics.
 - Use monitoring tools for database performance metrics and set up alerts for unusual activities.
 
-### Security
+### Security and safety
 - Review database security settings, ensure limited open ports, and consider encryption for sensitive data.
+- Ensure that database configurations are optimized for each environment (development, staging, production).
+- Plan/scripts for regular backups of the database and test the restoration process.
 
 ### API & Middleware
 - Consider rate limiting on API endpoints.
 - Implement middleware for tasks like logging, CORS handling.
 
-### Configuration & Deployment
-- Ensure that database configurations are optimized for each environment (development, staging, production).
-
-### Database
-- Plan/scripts for regular backups of the database and test the restoration process.
-#### Performance & Scalability
+#### DB Performance & Scalability
 - Implement caching mechanisms, like Redis, for frequently accessed data.
-- Review queries and add optimized indexes to frequently searched columns.
 - Partitioning large tables like `transactions` for more efficient querying.
 - Evaluate database connection pooling libraries for better performance.
 - Sharding the database by `user_id` for scalability.
-
-#### Design & Structure
-- Review the database schema for normalization.
-- Database partitioning for managing large datasets efficiently.
 - Database migration tool for schema evolution.
 
 #### Operations & Maintenance
@@ -42,7 +34,6 @@
 - Structured and informative error feedback.
 - Implement comprehensive error handling in DB operations.
 - Define and monitor SLAs for database performance and uptime.
-
 
 ---
 ### High priority items
