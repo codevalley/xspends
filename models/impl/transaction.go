@@ -59,7 +59,7 @@ type TransactionModel struct {
 func NewTransactionModel() *TransactionModel {
 	return &TransactionModel{
 		TableTransactions: "transactions",
-		ColumnID:          "id",
+		ColumnID:          "transaction_id",
 		ColumnUserID:      "user_id",
 		ColumnSourceID:    "source_id",
 		ColumnCategoryID:  "category_id",

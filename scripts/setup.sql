@@ -3,7 +3,7 @@ CREATE DATABASE IF NOT EXISTS xspends;
 USE xspends;
 
 CREATE TABLE IF NOT EXISTS `users` (
-    `id` BIGINT NOT NULL,
+    `user_id` BIGINT NOT NULL,
     `username` VARCHAR(255) NOT NULL UNIQUE,
     `name` VARCHAR(255) NOT NULL,
     `email` VARCHAR(255) NOT NULL UNIQUE,
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 );
 --newly added tables
 CREATE TABLE IF NOT EXISTS `scopes` (
-    `id` BIGINT NOT NULL,
+    `scope_id` BIGINT NOT NULL,
     `type` ENUM('user', 'group') NOT NULL,
     PRIMARY KEY (`id`)
 );
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS `user_scopes` (
 );
 
 CREATE TABLE IF NOT EXISTS `groups` (
-    `id` BIGINT NOT NULL,
+    `group_id` BIGINT NOT NULL,
     `owner_id` BIGINT NOT NULL,
     `scope_id` BIGINT NOT NULL,
     `group_name` VARCHAR(255) NOT NULL,
@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS `groups` (
 --end of newly added tables
 
 CREATE TABLE IF NOT EXISTS `categories` (
-    `id` BIGINT NOT NULL,
+    `category_id` BIGINT NOT NULL,
     `user_id` BIGINT NOT NULL,
     `scope_id` BIGINT NOT NULL,
     `name` VARCHAR(255) NOT NULL,
@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS `categories` (
 );
 
 CREATE TABLE IF NOT EXISTS `sources` (
-    `id` BIGINT NOT NULL,
+    `source_id` BIGINT NOT NULL,
     `user_id` BIGINT NOT NULL,
     `scope_id` BIGINT NOT NULL,
     `name` VARCHAR(255) NOT NULL,
@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS `sources` (
 );
 
 CREATE TABLE IF NOT EXISTS `tags` (
-    `id` BIGINT NOT NULL,
+    `tag_id` BIGINT NOT NULL,
     `user_id` BIGINT NOT NULL,
     `scope_id` BIGINT NOT NULL,
     `name` VARCHAR(255) NOT NULL UNIQUE,
@@ -90,7 +90,7 @@ CREATE TABLE IF NOT EXISTS `tags` (
 );
 
 CREATE TABLE IF NOT EXISTS `transactions` (
-    `id` BIGINT NOT NULL,
+    `transaction_id` BIGINT NOT NULL,
     `user_id` BIGINT NOT NULL,
     `type` VARCHAR(255) NOT NULL DEFAULT 'SAVINGS',
     `scope_id` BIGINT NOT NULL,

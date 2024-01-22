@@ -53,7 +53,7 @@ type CategoryModel struct {
 func NewCategoryModel() *CategoryModel {
 	return &CategoryModel{
 		TableCategories:              "categories",
-		ColumnID:                     "id",
+		ColumnID:                     "category_id",
 		ColumnUserID:                 "user_id",
 		ColumnName:                   "name",
 		ColumnDescription:            "description",

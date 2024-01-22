@@ -52,7 +52,7 @@ type SourceModel struct {
 func NewSourceModel() *SourceModel {
 	return &SourceModel{
 		TableSources:      "sources",
-		ColumnID:          "id",
+		ColumnID:          "source_id",
 		ColumnUserID:      "user_id",
 		ColumnName:        "name",
 		ColumnType:        "type",

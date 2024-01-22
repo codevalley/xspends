@@ -48,7 +48,7 @@ type TagModel struct {
 func NewTagModel() *TagModel {
 	return &TagModel{
 		TableTags:        "tags",
-		ColumnID:         "id",
+		ColumnID:         "tag_id",
 		ColumnUserID:     "user_id",
 		ColumnName:       "name",
 		ColumnCreatedAt:  "created_at",

@@ -68,7 +68,7 @@ type UserModel struct {
 func NewUserModel() *UserModel {
 	return &UserModel{
 		TableUsers:      "users",
-		ColumnID:        "id",
+		ColumnID:        "user_id",
 		ColumnUsername:  "username",
 		ColumnName:      "name",
 		ColumnEmail:     "email",
