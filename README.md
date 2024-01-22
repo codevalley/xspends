@@ -3,7 +3,7 @@
 [![Go](https://github.com/codevalley/xspends/actions/workflows/go.yml/badge.svg?branch=main)](https://github.com/codevalley/xspends/actions/workflows/go.yml)
 [![Go Coverage](https://github.com/codevalley/xspends/wiki/coverage.svg)](https://raw.githack.com/wiki/codevalley/xspends/coverage.html)
 ## Overview
-XSpends is a RESTful API server designed for personal expense management. It offers functionalities like user authentication, transaction recording, fund source tracking, and spend categorization.
+XSpends is a attempt to make a primitive/basic yet (arguably) complete API driven system to manage a transaction system. It offers functionalities like user authentication, transaction recording, fund source tracking, and spend categorization.
 
 ## Features
 - **User Authentication**: Secure user registration and login.
