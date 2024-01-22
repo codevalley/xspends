@@ -1,3 +1,15 @@
+### Multi user approach
+- When a user is created, a scope entry for the user (insert to scope where user_id = x)
+- When a user is deleted its associated scope is deleted (delete from scope where type = user and user_id = x)
+- [We may include a scope_id field in user table for reducing a lookup]
+- Group
+  - A new group is created when n user_ids are passed
+    - insert into scope where type is group
+      - insert into user_scope (user_id, owner, scope_id)
+      - insert into user_scope (user_id2, view/write, scope_id)
+      - ...
+    - remove user from a group, just remove him from user_scope for the group_id (done by user who is owner)
+  - Insert txn records (pass a valid scope_id [ group/personal ] )
 ### Support multi user access to the data (txns, source, tag etc.)
 - Introduce groups and scope concepts to enable multi-user access to txn tables (sources, categories, transactions and tags)
 - Include basic access control for group members (view, write, manage)
