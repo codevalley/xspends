@@ -126,3 +126,29 @@ func (gm *GroupModel) GetGroupByID(ctx context.Context, groupID int64, requestin
 
 	return &group, nil
 }
+
+func (gm *GroupModel) GetGroupByScope(ctx context.Context, scopeID int64, requestingUserID int64, otx ...*sql.Tx) (*interfaces.Group, error) {
+	_, executor := getExecutor(otx...)
+
+	// Ensure user has access to the group
+	row := executor.QueryRowContext(ctx, "SELECT 1 FROM user_scopes WHERE user_id = ? AND scope_id = ?", requestingUserID, scopeID)
+	var exists int
+	if err := row.Scan(&exists); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("access to group not found or group does not exist for the given scope")
+		}
+		return nil, errors.Wrap(err, "verifying access to group by scope failed")
+	}
+
+	// Fetch group details by scope ID
+	row = executor.QueryRowContext(ctx, "SELECT group_id, owner_id, scope_id, group_name, description, icon, status, created_at, updated_at FROM groups WHERE scope_id = ?", scopeID)
+	group := interfaces.Group{}
+	if err := row.Scan(&group.GroupID, &group.OwnerID, &group.ScopeID, &group.GroupName, &group.Description, &group.Icon, &group.Status, &group.CreatedAt, &group.UpdatedAt); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("group not found for the given scope")
+		}
+		return nil, errors.Wrap(err, "querying group by scope failed")
+	}
+
+	return &group, nil
+}
