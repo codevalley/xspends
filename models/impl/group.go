@@ -72,3 +72,31 @@ func (gm *GroupModel) CreateGroup(ctx context.Context, group *interfaces.Group, 
 	commitOrRollback(executor, isExternalTx, err)
 	return nil
 }
+
+func (gm *GroupModel) DeleteGroup(ctx context.Context, groupID int64, requestingUserID int64, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutor(otx...)
+
+	// Verify ownership
+	row := executor.QueryRowContext(ctx, "SELECT owner_id FROM groups WHERE group_id = ?", groupID)
+	var ownerID int64
+	if err := row.Scan(&ownerID); err != nil {
+		commitOrRollback(executor, isExternalTx, err)
+		if err == sql.ErrNoRows {
+			return errors.New("group not found")
+		}
+		return errors.Wrap(err, "verifying group ownership failed")
+	}
+	if ownerID != requestingUserID {
+		return errors.New("unauthorized to delete group")
+	}
+
+	// Delete group and associated scope
+	_, err := executor.ExecContext(ctx, "DELETE FROM groups WHERE group_id = ?", groupID)
+	if err != nil {
+		commitOrRollback(executor, isExternalTx, err)
+		return errors.Wrap(err, "deleting group failed")
+	}
+
+	commitOrRollback(executor, isExternalTx, err)
+	return nil
+}
