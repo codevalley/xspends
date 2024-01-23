@@ -1,3 +1,15 @@
+### Multi user approach
+- When a user is created, a scope entry for the user (insert to scope where user_id = x)
+- When a user is deleted its associated scope is deleted (delete from scope where type = user and user_id = x)
+- [We may include a scope_id field in user table for reducing a lookup]
+- Group
+  - A new group is created when n user_ids are passed
+    - insert into scope where type is group
+      - insert into user_scope (user_id, owner, scope_id)
+      - insert into user_scope (user_id2, view/write, scope_id)
+      - ...
+    - remove user from a group, just remove him from user_scope for the group_id (done by user who is owner)
+  - Insert txn records (pass a valid scope_id [ group/personal ] )
 ### Support multi user access to the data (txns, source, tag etc.)
 - Introduce groups and scope concepts to enable multi-user access to txn tables (sources, categories, transactions and tags)
 - Include basic access control for group members (view, write, manage)
@@ -9,28 +21,20 @@
 - Integrate with monitoring tools for database metrics.
 - Use monitoring tools for database performance metrics and set up alerts for unusual activities.
 
-### Security
+### Security and safety
 - Review database security settings, ensure limited open ports, and consider encryption for sensitive data.
+- Ensure that database configurations are optimized for each environment (development, staging, production).
+- Plan/scripts for regular backups of the database and test the restoration process.
 
 ### API & Middleware
 - Consider rate limiting on API endpoints.
 - Implement middleware for tasks like logging, CORS handling.
 
-### Configuration & Deployment
-- Ensure that database configurations are optimized for each environment (development, staging, production).
-
-### Database
-- Plan/scripts for regular backups of the database and test the restoration process.
-#### Performance & Scalability
+#### DB Performance & Scalability
 - Implement caching mechanisms, like Redis, for frequently accessed data.
-- Review queries and add optimized indexes to frequently searched columns.
 - Partitioning large tables like `transactions` for more efficient querying.
 - Evaluate database connection pooling libraries for better performance.
 - Sharding the database by `user_id` for scalability.
-
-#### Design & Structure
-- Review the database schema for normalization.
-- Database partitioning for managing large datasets efficiently.
 - Database migration tool for schema evolution.
 
 #### Operations & Maintenance
@@ -42,7 +46,6 @@
 - Structured and informative error feedback.
 - Implement comprehensive error handling in DB operations.
 - Define and monitor SLAs for database performance and uptime.
-
 
 ---
 ### High priority items
