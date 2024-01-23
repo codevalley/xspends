@@ -100,3 +100,29 @@ func (gm *GroupModel) DeleteGroup(ctx context.Context, groupID int64, requesting
 	commitOrRollback(executor, isExternalTx, err)
 	return nil
 }
+
+func (gm *GroupModel) GetGroupByID(ctx context.Context, groupID int64, requestingUserID int64, otx ...*sql.Tx) (*interfaces.Group, error) {
+	_, executor := getExecutor(otx...)
+
+	// Ensure user has access
+	row := executor.QueryRowContext(ctx, "SELECT 1 FROM user_scopes WHERE user_id = ? AND scope_id = (SELECT scope_id FROM groups WHERE group_id = ?)", requestingUserID, groupID)
+	var exists int
+	if err := row.Scan(&exists); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("access to group not found or group does not exist")
+		}
+		return nil, errors.Wrap(err, "verifying access to group failed")
+	}
+
+	// Fetch group details
+	row = executor.QueryRowContext(ctx, "SELECT group_id, owner_id, scope_id, group_name, description, icon, status, created_at, updated_at FROM groups WHERE group_id = ?", groupID)
+	group := interfaces.Group{}
+	if err := row.Scan(&group.GroupID, &group.OwnerID, &group.ScopeID, &group.GroupName, &group.Description, &group.Icon, &group.Status, &group.CreatedAt, &group.UpdatedAt); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("group not found")
+		}
+		return nil, errors.Wrap(err, "querying group by ID failed")
+	}
+
+	return &group, nil
+}
