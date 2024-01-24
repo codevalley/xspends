@@ -121,28 +121,30 @@ func (gm *GroupModel) DeleteGroup(ctx context.Context, groupID int64, requesting
 	isExternalTx, executor := getExecutor(otx...)
 
 	// Verify ownership
-	ownerSelectQuery, ownerSelectArgs, err := GetQueryBuilder().Select(gm.ColumnOwnerID).
-		From(gm.TableGroups).
-		Where(squirrel.Eq{gm.ColumnGroupID: groupID}).
-		ToSql()
-	if err != nil {
-		commitOrRollback(executor, isExternalTx, err)
-		return errors.Wrap(err, "building ownership verification query failed")
-	}
+	//this should be done at the handler layer
 
-	row := executor.QueryRowContext(ctx, ownerSelectQuery, ownerSelectArgs...)
-	var ownerID int64
-	if err := row.Scan(&ownerID); err != nil {
-		commitOrRollback(executor, isExternalTx, err)
-		if err == sql.ErrNoRows {
-			return errors.New("group not found")
-		}
-		return errors.Wrap(err, "verifying group ownership failed")
-	}
+	// ownerSelectQuery, ownerSelectArgs, err := GetQueryBuilder().Select(gm.ColumnOwnerID).
+	// 	From(gm.TableGroups).
+	// 	Where(squirrel.Eq{gm.ColumnGroupID: groupID}).
+	// 	ToSql()
+	// if err != nil {
+	// 	commitOrRollback(executor, isExternalTx, err)
+	// 	return errors.Wrap(err, "building ownership verification query failed")
+	// }
 
-	if ownerID != requestingUserID {
-		return errors.New("unauthorized to delete group")
-	}
+	// row := executor.QueryRowContext(ctx, ownerSelectQuery, ownerSelectArgs...)
+	// var ownerID int64
+	// if err := row.Scan(&ownerID); err != nil {
+	// 	commitOrRollback(executor, isExternalTx, err)
+	// 	if err == sql.ErrNoRows {
+	// 		return errors.New("group not found")
+	// 	}
+	// 	return errors.Wrap(err, "verifying group ownership failed")
+	// }
+
+	// if ownerID != requestingUserID {
+	// 	return errors.New("unauthorized to delete group")
+	// }
 
 	// Delete group and associated scope
 	groupDeleteQuery, groupDeleteArgs, err := GetQueryBuilder().Delete(gm.TableGroups).
