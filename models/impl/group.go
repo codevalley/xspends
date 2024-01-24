@@ -7,62 +7,104 @@ import (
 	"xspends/models/interfaces"
 	"xspends/util"
 
+	"github.com/Masterminds/squirrel"
 	"github.com/pkg/errors"
 )
 
 type GroupModel struct {
-	TableGroups       string
-	ColumnGroupID     string
-	ColumnOwnerID     string
-	ColumnScopeID     string
-	ColumnGroupName   string
-	ColumnDescription string
-	ColumnIcon        string
-	ColumnStatus      string
-	ColumnCreatedAt   string
-	ColumnUpdatedAt   string
+	TableGroups               string
+	ColumnGroupID             string
+	ColumnOwnerID             string
+	ColumnScopeID             string
+	ColumnGroupName           string
+	ColumnDescription         string
+	ColumnIcon                string
+	ColumnStatus              string
+	ColumnCreatedAt           string
+	ColumnUpdatedAt           string
+	MaxGroupNameLength        int
+	MaxGroupDescriptionLength int
 }
 
 func NewGroupModel() *GroupModel {
 	return &GroupModel{
-		TableGroups:       "groups",
-		ColumnGroupID:     "group_id",
-		ColumnOwnerID:     "owner_id",
-		ColumnScopeID:     "scope_id",
-		ColumnGroupName:   "group_name",
-		ColumnDescription: "description",
-		ColumnIcon:        "icon",
-		ColumnStatus:      "status",
-		ColumnCreatedAt:   "created_at",
-		ColumnUpdatedAt:   "updated_at",
+		TableGroups:               "groups",
+		ColumnGroupID:             "group_id",
+		ColumnOwnerID:             "owner_id",
+		ColumnScopeID:             "scope_id",
+		ColumnGroupName:           "group_name",
+		ColumnDescription:         "description",
+		ColumnIcon:                "icon",
+		ColumnStatus:              "status",
+		ColumnCreatedAt:           "created_at",
+		ColumnUpdatedAt:           "updated_at",
+		MaxGroupNameLength:        100, // Adjust as per your requirement
+		MaxGroupDescriptionLength: 512, // Adjust as per your requirement
 	}
 }
-
+func (gm *GroupModel) validateGroupInput(group *interfaces.Group) error {
+	if group.OwnerID <= 0 || group.GroupName == "" || len(group.GroupName) > gm.MaxGroupNameLength || len(group.Description) > gm.MaxGroupDescriptionLength {
+		return errors.New(ErrInvalidInput)
+	}
+	return nil
+}
 func (gm *GroupModel) CreateGroup(ctx context.Context, group *interfaces.Group, userIDs []int64, otx ...*sql.Tx) error {
+
 	isExternalTx, executor := getExecutor(otx...)
 
-	scopeID, _ := util.GenerateSnowflakeID()      // Error handling for ID generation is required
-	group.GroupID, _ = util.GenerateSnowflakeID() // Error handling for ID generation is required
+	if err := gm.validateGroupInput(group); err != nil {
+		return err
+	}
+
+	scopeID, _ := util.GenerateSnowflakeID()      // Add error handling
+	group.GroupID, _ = util.GenerateSnowflakeID() // Add error handling
 	group.CreatedAt, group.UpdatedAt = time.Now(), time.Now()
 
 	// Insert into scopes table
-	_, err := executor.ExecContext(ctx, "INSERT INTO scopes (scope_id, type) VALUES (?, ?)", scopeID, "group")
+	//TODO to be refactored out to the scopes model class
+	scopesQuery, scopesArgs, err := GetQueryBuilder().Insert("scopes").
+		Columns("scope_id", "type").
+		Values(scopeID, "group").
+		ToSql()
+	if err != nil {
+		commitOrRollback(executor, isExternalTx, err)
+		return errors.Wrap(err, "building scopes insert query failed")
+	}
+
+	_, err = executor.ExecContext(ctx, scopesQuery, scopesArgs...)
 	if err != nil {
 		commitOrRollback(executor, isExternalTx, err)
 		return errors.Wrap(err, "inserting into scopes failed")
 	}
-
 	// Insert into groups table
-	_, err = executor.ExecContext(ctx, "INSERT INTO groups (group_id, owner_id, scope_id, group_name, description, icon, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-		group.GroupID, group.OwnerID, scopeID, group.GroupName, group.Description, group.Icon, group.Status, group.CreatedAt, group.UpdatedAt)
+	groupsQuery, groupsArgs, err := GetQueryBuilder().Insert(gm.TableGroups).
+		Columns(gm.ColumnGroupID, gm.ColumnOwnerID, gm.ColumnScopeID, gm.ColumnGroupName, gm.ColumnDescription, gm.ColumnIcon, gm.ColumnStatus, gm.ColumnCreatedAt, gm.ColumnUpdatedAt).
+		Values(group.GroupID, group.OwnerID, scopeID, group.GroupName, group.Description, group.Icon, group.Status, group.CreatedAt, group.UpdatedAt).
+		ToSql()
+	if err != nil {
+		commitOrRollback(executor, isExternalTx, err)
+		return errors.Wrap(err, "building groups insert query failed")
+	}
+
+	_, err = executor.ExecContext(ctx, groupsQuery, groupsArgs...)
 	if err != nil {
 		commitOrRollback(executor, isExternalTx, err)
 		return errors.Wrap(err, "inserting into groups failed")
 	}
 
+	//TODO: To be separated out to scope insert
 	// Link users to the group's scope
 	for _, userID := range userIDs {
-		_, err = executor.ExecContext(ctx, "INSERT INTO user_scopes (user_id, scope_id) VALUES (?, ?)", userID, scopeID)
+		userScopesQuery, userScopesArgs, err := GetQueryBuilder().Insert("user_scopes").
+			Columns("user_id", "scope_id").
+			Values(userID, scopeID).
+			ToSql()
+		if err != nil {
+			commitOrRollback(executor, isExternalTx, err)
+			return errors.Wrap(err, "building user_scopes insert query failed")
+		}
+
+		_, err = executor.ExecContext(ctx, userScopesQuery, userScopesArgs...)
 		if err != nil {
 			commitOrRollback(executor, isExternalTx, err)
 			return errors.Wrap(err, "inserting into user_scopes failed")
@@ -73,11 +115,22 @@ func (gm *GroupModel) CreateGroup(ctx context.Context, group *interfaces.Group, 
 	return nil
 }
 
+// [Previous definitions and NewGroupModel function omitted for brevity]
+
 func (gm *GroupModel) DeleteGroup(ctx context.Context, groupID int64, requestingUserID int64, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
 	// Verify ownership
-	row := executor.QueryRowContext(ctx, "SELECT owner_id FROM groups WHERE group_id = ?", groupID)
+	ownerSelectQuery, ownerSelectArgs, err := GetQueryBuilder().Select(gm.ColumnOwnerID).
+		From(gm.TableGroups).
+		Where(squirrel.Eq{gm.ColumnGroupID: groupID}).
+		ToSql()
+	if err != nil {
+		commitOrRollback(executor, isExternalTx, err)
+		return errors.Wrap(err, "building ownership verification query failed")
+	}
+
+	row := executor.QueryRowContext(ctx, ownerSelectQuery, ownerSelectArgs...)
 	var ownerID int64
 	if err := row.Scan(&ownerID); err != nil {
 		commitOrRollback(executor, isExternalTx, err)
@@ -86,12 +139,21 @@ func (gm *GroupModel) DeleteGroup(ctx context.Context, groupID int64, requesting
 		}
 		return errors.Wrap(err, "verifying group ownership failed")
 	}
+
 	if ownerID != requestingUserID {
 		return errors.New("unauthorized to delete group")
 	}
 
 	// Delete group and associated scope
-	_, err := executor.ExecContext(ctx, "DELETE FROM groups WHERE group_id = ?", groupID)
+	groupDeleteQuery, groupDeleteArgs, err := GetQueryBuilder().Delete(gm.TableGroups).
+		Where(squirrel.Eq{gm.ColumnGroupID: groupID}).
+		ToSql()
+	if err != nil {
+		commitOrRollback(executor, isExternalTx, err)
+		return errors.Wrap(err, "building group delete query failed")
+	}
+
+	_, err = executor.ExecContext(ctx, groupDeleteQuery, groupDeleteArgs...)
 	if err != nil {
 		commitOrRollback(executor, isExternalTx, err)
 		return errors.Wrap(err, "deleting group failed")
@@ -105,7 +167,15 @@ func (gm *GroupModel) GetGroupByID(ctx context.Context, groupID int64, requestin
 	_, executor := getExecutor(otx...)
 
 	// Ensure user has access
-	row := executor.QueryRowContext(ctx, "SELECT 1 FROM user_scopes WHERE user_id = ? AND scope_id = (SELECT scope_id FROM groups WHERE group_id = ?)", requestingUserID, groupID)
+	userScopeSelectQuery, userScopeSelectArgs, err := GetQueryBuilder().Select("1").
+		From("user_scopes").
+		Where(squirrel.Eq{"user_id": requestingUserID, "scope_id": squirrel.Expr("(SELECT scope_id FROM "+gm.TableGroups+" WHERE "+gm.ColumnGroupID+" = ?)", groupID)}).
+		ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "building user access query failed")
+	}
+
+	row := executor.QueryRowContext(ctx, userScopeSelectQuery, userScopeSelectArgs...)
 	var exists int
 	if err := row.Scan(&exists); err != nil {
 		if err == sql.ErrNoRows {
@@ -115,7 +185,15 @@ func (gm *GroupModel) GetGroupByID(ctx context.Context, groupID int64, requestin
 	}
 
 	// Fetch group details
-	row = executor.QueryRowContext(ctx, "SELECT group_id, owner_id, scope_id, group_name, description, icon, status, created_at, updated_at FROM groups WHERE group_id = ?", groupID)
+	groupSelectQuery, groupSelectArgs, err := GetQueryBuilder().Select(gm.ColumnGroupID, gm.ColumnOwnerID, gm.ColumnScopeID, gm.ColumnGroupName, gm.ColumnDescription, gm.ColumnIcon, gm.ColumnStatus, gm.ColumnCreatedAt, gm.ColumnUpdatedAt).
+		From(gm.TableGroups).
+		Where(squirrel.Eq{gm.ColumnGroupID: groupID}).
+		ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "building group select query failed")
+	}
+
+	row = executor.QueryRowContext(ctx, groupSelectQuery, groupSelectArgs...)
 	group := interfaces.Group{}
 	if err := row.Scan(&group.GroupID, &group.OwnerID, &group.ScopeID, &group.GroupName, &group.Description, &group.Icon, &group.Status, &group.CreatedAt, &group.UpdatedAt); err != nil {
 		if err == sql.ErrNoRows {
@@ -131,7 +209,15 @@ func (gm *GroupModel) GetGroupByScope(ctx context.Context, scopeID int64, reques
 	_, executor := getExecutor(otx...)
 
 	// Ensure user has access to the group
-	row := executor.QueryRowContext(ctx, "SELECT 1 FROM user_scopes WHERE user_id = ? AND scope_id = ?", requestingUserID, scopeID)
+	userScopeSelectQuery, userScopeSelectArgs, err := GetQueryBuilder().Select("1").
+		From("user_scopes").
+		Where(squirrel.Eq{"user_id": requestingUserID, "scope_id": scopeID}).
+		ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "building group access by scope query failed")
+	}
+
+	row := executor.QueryRowContext(ctx, userScopeSelectQuery, userScopeSelectArgs...)
 	var exists int
 	if err := row.Scan(&exists); err != nil {
 		if err == sql.ErrNoRows {
@@ -141,7 +227,15 @@ func (gm *GroupModel) GetGroupByScope(ctx context.Context, scopeID int64, reques
 	}
 
 	// Fetch group details by scope ID
-	row = executor.QueryRowContext(ctx, "SELECT group_id, owner_id, scope_id, group_name, description, icon, status, created_at, updated_at FROM groups WHERE scope_id = ?", scopeID)
+	groupSelectQuery, groupSelectArgs, err := GetQueryBuilder().Select(gm.ColumnGroupID, gm.ColumnOwnerID, gm.ColumnScopeID, gm.ColumnGroupName, gm.ColumnDescription, gm.ColumnIcon, gm.ColumnStatus, gm.ColumnCreatedAt, gm.ColumnUpdatedAt).
+		From(gm.TableGroups).
+		Where(squirrel.Eq{gm.ColumnScopeID: scopeID}).
+		ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "building group select by scope query failed")
+	}
+
+	row = executor.QueryRowContext(ctx, groupSelectQuery, groupSelectArgs...)
 	group := interfaces.Group{}
 	if err := row.Scan(&group.GroupID, &group.OwnerID, &group.ScopeID, &group.GroupName, &group.Description, &group.Icon, &group.Status, &group.CreatedAt, &group.UpdatedAt); err != nil {
 		if err == sql.ErrNoRows {
