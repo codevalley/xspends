@@ -19,8 +19,8 @@ type Group struct {
 }
 
 type GroupService interface {
-	InsertGroup(ctx context.Context, group *Group, otx ...*sql.Tx) error
-	UpdateGroup(ctx context.Context, group *Group, otx ...*sql.Tx) error
-	DeleteGroup(ctx context.Context, groupID int64, otx ...*sql.Tx) error
-	GetGroupByID(ctx context.Context, groupID int64, otx ...*sql.Tx) (*Group, error)
+	CreateGroup(ctx context.Context, group *interfaces.Group, userIDs []int64, otx ...*sql.Tx) error
+	DeleteGroup(ctx context.Context, groupID int64, requestingUserID int64, otx ...*sql.Tx) error
+	GetGroupByID(ctx context.Context, groupID int64, requestingUserID int64, otx ...*sql.Tx) (*interfaces.Group, error)
+	GetGroupByScope(ctx context.Context, scopeID int64, requestingUserID int64, otx ...*sql.Tx) (*interfaces.Group, error)
 }

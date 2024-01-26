@@ -12,26 +12,18 @@ type MockGroupModel struct {
 	mock.Mock
 }
 
-// DeleteGroup implements interfaces.GroupService.
-func (*MockGroupModel) DeleteGroup(ctx context.Context, groupID int64, otx ...*sql.Tx) error {
+func (*MockGroupModel) CreateGroup(ctx context.Context, group *interfaces.Group, userIDs []int64, otx ...*sql.Tx) error{
 	panic("unimplemented")
 }
-
-// GetGroupByID implements interfaces.GroupService.
-func (*MockGroupModel) GetGroupByID(ctx context.Context, groupID int64, otx ...*sql.Tx) (*interfaces.Group, error) {
+func (*MockGroupModel) DeleteGroup(ctx context.Context, groupID int64, requestingUserID int64, otx ...*sql.Tx) error{
 	panic("unimplemented")
 }
-
-// InsertGroup implements interfaces.GroupService.
-func (*MockGroupModel) InsertGroup(ctx context.Context, group *interfaces.Group, otx ...*sql.Tx) error {
+func (*MockGroupModel) GetGroupByID(ctx context.Context, groupID int64, requestingUserID int64, otx ...*sql.Tx) (*interfaces.Group, error){
 	panic("unimplemented")
 }
-
-// UpdateGroup implements interfaces.GroupService.
-func (*MockGroupModel) UpdateGroup(ctx context.Context, group *interfaces.Group, otx ...*sql.Tx) error {
+func (*MockGroupModel) GetGroupByScope(ctx context.Context, scopeID int64, requestingUserID int64, otx ...*sql.Tx) (*interfaces.Group, error){
 	panic("unimplemented")
 }
-
 var _ interfaces.GroupService = &MockGroupModel{}
 
 // Implement methods like InsertGroup, UpdateGroup, etc., similar to the MockCategoryModel methods.
