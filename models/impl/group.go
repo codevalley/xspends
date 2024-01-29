@@ -250,3 +250,6 @@ func (gm *GroupModel) GetGroupByScope(ctx context.Context, scopeID int64, reques
 
 	return &group, nil
 }
+
+//Add to groups method
+//get users in a group method
