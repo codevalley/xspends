@@ -49,33 +49,28 @@ func (gm *GroupModel) validateGroupInput(group *interfaces.Group) error {
 	return nil
 }
 func (gm *GroupModel) CreateGroup(ctx context.Context, group *interfaces.Group, userIDs []int64, otx ...*sql.Tx) error {
-
 	isExternalTx, executor := getExecutor(otx...)
 
 	if err := gm.validateGroupInput(group); err != nil {
 		return err
 	}
 
-	scopeID, _ := util.GenerateSnowflakeID()      // Add error handling
-	group.GroupID, _ = util.GenerateSnowflakeID() // Add error handling
+	// Initialize ScopeModel and create a new scope
+	scopeID, err := GetModelsService().ScopeModel.CreateScope(ctx, "group", otx...)
+	if err != nil {
+		commitOrRollback(executor, isExternalTx, err)
+		return errors.Wrap(err, "creating new scope failed")
+	}
+
+	// Generate Snowflake ID for the group
+	group.GroupID, err = util.GenerateSnowflakeID()
+	if err != nil {
+		commitOrRollback(executor, isExternalTx, err)
+		return errors.Wrap(err, "generating Snowflake ID for group failed")
+	}
+
 	group.CreatedAt, group.UpdatedAt = time.Now(), time.Now()
 
-	// Insert into scopes table
-	//TODO to be refactored out to the scopes model class
-	scopesQuery, scopesArgs, err := GetQueryBuilder().Insert("scopes").
-		Columns("scope_id", "type").
-		Values(scopeID, "group").
-		ToSql()
-	if err != nil {
-		commitOrRollback(executor, isExternalTx, err)
-		return errors.Wrap(err, "building scopes insert query failed")
-	}
-
-	_, err = executor.ExecContext(ctx, scopesQuery, scopesArgs...)
-	if err != nil {
-		commitOrRollback(executor, isExternalTx, err)
-		return errors.Wrap(err, "inserting into scopes failed")
-	}
 	// Insert into groups table
 	groupsQuery, groupsArgs, err := GetQueryBuilder().Insert(gm.TableGroups).
 		Columns(gm.ColumnGroupID, gm.ColumnOwnerID, gm.ColumnScopeID, gm.ColumnGroupName, gm.ColumnDescription, gm.ColumnIcon, gm.ColumnStatus, gm.ColumnCreatedAt, gm.ColumnUpdatedAt).
@@ -120,33 +115,6 @@ func (gm *GroupModel) CreateGroup(ctx context.Context, group *interfaces.Group, 
 func (gm *GroupModel) DeleteGroup(ctx context.Context, groupID int64, requestingUserID int64, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
-	// Verify ownership
-	//this should be done at the handler layer
-
-	// ownerSelectQuery, ownerSelectArgs, err := GetQueryBuilder().Select(gm.ColumnOwnerID).
-	// 	From(gm.TableGroups).
-	// 	Where(squirrel.Eq{gm.ColumnGroupID: groupID}).
-	// 	ToSql()
-	// if err != nil {
-	// 	commitOrRollback(executor, isExternalTx, err)
-	// 	return errors.Wrap(err, "building ownership verification query failed")
-	// }
-
-	// row := executor.QueryRowContext(ctx, ownerSelectQuery, ownerSelectArgs...)
-	// var ownerID int64
-	// if err := row.Scan(&ownerID); err != nil {
-	// 	commitOrRollback(executor, isExternalTx, err)
-	// 	if err == sql.ErrNoRows {
-	// 		return errors.New("group not found")
-	// 	}
-	// 	return errors.Wrap(err, "verifying group ownership failed")
-	// }
-
-	// if ownerID != requestingUserID {
-	// 	return errors.New("unauthorized to delete group")
-	// }
-
-	// Delete group and associated scope
 	groupDeleteQuery, groupDeleteArgs, err := GetQueryBuilder().Delete(gm.TableGroups).
 		Where(squirrel.Eq{gm.ColumnGroupID: groupID}).
 		ToSql()
