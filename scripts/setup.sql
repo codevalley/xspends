@@ -11,13 +11,13 @@ CREATE TABLE IF NOT EXISTS `users` (
     `password` VARCHAR(255) NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`)
+    PRIMARY KEY (`user_id`)
 );
 --newly added tables
 CREATE TABLE IF NOT EXISTS `scopes` (
     `scope_id` BIGINT NOT NULL,
     `type` ENUM('user', 'group') NOT NULL,
-    PRIMARY KEY (`id`)
+    PRIMARY KEY (`scope_id`)
 );
 
 CREATE TABLE IF NOT EXISTS `user_scopes` (
@@ -39,9 +39,9 @@ CREATE TABLE IF NOT EXISTS `groups` (
     `status` ENUM('active', 'inactive', 'pending') NOT NULL DEFAULT 'active',
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`),
-    FOREIGN KEY (`owner_id`) REFERENCES `users`(`id`),
-    FOREIGN KEY (`scope_id`) REFERENCES `scopes`(`id`)
+    PRIMARY KEY (`group_id`),
+    FOREIGN KEY (`owner_id`) REFERENCES `users`(`user_id`),
+    FOREIGN KEY (`scope_id`) REFERENCES `scopes`(`scope_id`)
 );
 --end of newly added tables
 
@@ -54,10 +54,10 @@ CREATE TABLE IF NOT EXISTS `categories` (
     `icon` VARCHAR(255),
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`),
-    PRIMARY KEY (`id`),
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`),
+    PRIMARY KEY (`category_id`),
     UNIQUE (`user_id`, `name`)
-    FOREIGN KEY (`scope_id`) REFERENCES `scopes`(`id`)
+    FOREIGN KEY (`scope_id`) REFERENCES `scopes`(`scope_id`)
 );
 
 CREATE TABLE IF NOT EXISTS `sources` (
@@ -70,9 +70,9 @@ CREATE TABLE IF NOT EXISTS `sources` (
     `balance` DECIMAL(10, 2) DEFAULT 0.00,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`),
-    PRIMARY KEY (`id`),
-    FOREIGN KEY (`scope_id`) REFERENCES `scopes`(`id`),
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`),
+    PRIMARY KEY (`source_id`),
+    FOREIGN KEY (`scope_id`) REFERENCES `scopes`(`scope_id`),
     UNIQUE (`user_id`, `name`)
 );
 
@@ -83,9 +83,9 @@ CREATE TABLE IF NOT EXISTS `tags` (
     `name` VARCHAR(255) NOT NULL UNIQUE,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`),
-    PRIMARY KEY (`id`),
-    FOREIGN KEY (`scope_id`) REFERENCES `scopes`(`id`),
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`),
+    PRIMARY KEY (`tag_id`),
+    FOREIGN KEY (`scope_id`) REFERENCES `scopes`(`scope_id`),
     UNIQUE (`user_id`, `name`)
 );
 
@@ -102,11 +102,11 @@ CREATE TABLE IF NOT EXISTS `transactions` (
     --newly added entries, are they required?
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`),
-    FOREIGN KEY (`source_id`) REFERENCES `sources`(`id`),
-    FOREIGN KEY (`scope_id`) REFERENCES `scopes`(`id`),
-    FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`),
-    PRIMARY KEY (`id`)
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`),
+    FOREIGN KEY (`source_id`) REFERENCES `sources`(`source_id`),
+    FOREIGN KEY (`scope_id`) REFERENCES `scopes`(`scope_id`),
+    FOREIGN KEY (`category_id`) REFERENCES `categories`(`category_id`),
+    PRIMARY KEY (`transaction_id`)
 );
 
 CREATE TABLE IF NOT EXISTS `transaction_tags` (
@@ -114,8 +114,8 @@ CREATE TABLE IF NOT EXISTS `transaction_tags` (
     `tag_id` BIGINT NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`transaction_id`) REFERENCES `transactions`(`id`),
-    FOREIGN KEY (`tag_id`) REFERENCES `tags`(`id`),
+    FOREIGN KEY (`transaction_id`) REFERENCES `transactions`(`transaction_id`),
+    FOREIGN KEY (`tag_id`) REFERENCES `tags`(`tag_id`),
     PRIMARY KEY (`transaction_id`, `tag_id`)
 );
 
