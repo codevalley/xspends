@@ -110,8 +110,6 @@ func (gm *GroupModel) CreateGroup(ctx context.Context, group *interfaces.Group, 
 	return nil
 }
 
-// [Previous definitions and NewGroupModel function omitted for brevity]
-
 func (gm *GroupModel) DeleteGroup(ctx context.Context, groupID int64, requestingUserID int64, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 

@@ -33,6 +33,7 @@ func SetupModelTestEnvironment(t *testing.T) (context.Context, *impl.ModelsServi
 	mockTransactionModel := new(mock.MockTransactionModel)
 	mockScopeModel := new(mock.MockScopeModel)
 	mockGroupModel := new(mock.MockGroupModel)
+	mockUserScopeModel := new(mock.MockUserScopeModel)
 	//create mockconfigs
 	mockConfig := &impl.ModelsConfig{
 		DBService:           &impl.DBService{Executor: mockExecutor},
@@ -44,6 +45,7 @@ func SetupModelTestEnvironment(t *testing.T) (context.Context, *impl.ModelsServi
 		TransactionModel:    mockTransactionModel,
 		ScopeModel:          mockScopeModel,
 		GroupModel:          mockGroupModel,
+		UserScopeModel:      mockUserScopeModel,
 	}
 	// Initialize ModelsService with mock configuration
 	impl.InitModelsService(mockConfig)

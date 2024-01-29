@@ -20,6 +20,7 @@ type ModelsServiceContainer struct {
 	TransactionModel    interfaces.TransactionService
 	ScopeModel          interfaces.ScopeService
 	GroupModel          interfaces.GroupService
+	UserScopeModel      interfaces.UserScopeService
 }
 
 // ModelsConfig struct to group all the dependencies
@@ -33,6 +34,7 @@ type ModelsConfig struct {
 	TransactionModel    interfaces.TransactionService
 	ScopeModel          interfaces.ScopeService
 	GroupModel          interfaces.GroupService
+	UserScopeModel      interfaces.UserScopeService
 }
 
 var isTesting bool
@@ -59,6 +61,7 @@ func initializeModelsService(config *ModelsConfig) {
 		TransactionModel:    config.TransactionModel,
 		ScopeModel:          config.ScopeModel,
 		GroupModel:          config.GroupModel,
+		UserScopeModel:      config.UserScopeModel,
 	}
 }
 
