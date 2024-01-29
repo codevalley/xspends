@@ -6,6 +6,7 @@ import (
 	"xspends/models/interfaces"
 	"xspends/util"
 
+	"github.com/Masterminds/squirrel"
 	"github.com/pkg/errors"
 )
 
@@ -32,7 +33,16 @@ func (sm *ScopeModel) CreateScope(ctx context.Context, scopeType string, otx ...
 		return 0, errors.Wrap(err, "generating Snowflake ID failed")
 	}
 
-	_, err = executor.ExecContext(ctx, "INSERT INTO scopes (scope_id, type) VALUES (?, ?)", scopeID, scopeType)
+	insertQuery, args, err := GetQueryBuilder().Insert(sm.TableScopes).
+		Columns(sm.ColumnScopeID, sm.ColumnType).
+		Values(scopeID, scopeType).
+		ToSql()
+	if err != nil {
+		commitOrRollback(executor, isExternalTx, err)
+		return 0, errors.Wrap(err, "building insert query failed")
+	}
+
+	_, err = executor.ExecContext(ctx, insertQuery, args...)
 	if err != nil {
 		commitOrRollback(executor, isExternalTx, err)
 		return 0, errors.Wrap(err, "inserting into scopes failed")
@@ -45,7 +55,15 @@ func (sm *ScopeModel) CreateScope(ctx context.Context, scopeType string, otx ...
 func (sm *ScopeModel) GetScope(ctx context.Context, scopeID int64, otx ...*sql.Tx) (*interfaces.Scope, error) {
 	_, executor := getExecutor(otx...)
 
-	row := executor.QueryRowContext(ctx, "SELECT scope_id, type FROM scopes WHERE scope_id = ?", scopeID)
+	selectQuery, args, err := GetQueryBuilder().Select(sm.ColumnScopeID, sm.ColumnType).
+		From(sm.TableScopes).
+		Where(squirrel.Eq{sm.ColumnScopeID: scopeID}).
+		ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "building select query failed")
+	}
+
+	row := executor.QueryRowContext(ctx, selectQuery, args...)
 	scope := &interfaces.Scope{}
 	if err := row.Scan(&scope.ScopeID, &scope.Type); err != nil {
 		if err == sql.ErrNoRows {
@@ -60,7 +78,15 @@ func (sm *ScopeModel) GetScope(ctx context.Context, scopeID int64, otx ...*sql.T
 func (sm *ScopeModel) DeleteScope(ctx context.Context, scopeID int64, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
-	_, err := executor.ExecContext(ctx, "DELETE FROM scopes WHERE scope_id = ?", scopeID)
+	deleteQuery, args, err := GetQueryBuilder().Delete(sm.TableScopes).
+		Where(squirrel.Eq{sm.ColumnScopeID: scopeID}).
+		ToSql()
+	if err != nil {
+		commitOrRollback(executor, isExternalTx, err)
+		return errors.Wrap(err, "building delete query failed")
+	}
+
+	_, err = executor.ExecContext(ctx, deleteQuery, args...)
 	if err != nil {
 		commitOrRollback(executor, isExternalTx, err)
 		return errors.Wrap(err, "deleting scope failed")
