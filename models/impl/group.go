@@ -168,25 +168,6 @@ func (gm *GroupModel) DeleteGroup(ctx context.Context, groupID int64, requesting
 func (gm *GroupModel) GetGroupByID(ctx context.Context, groupID int64, requestingUserID int64, otx ...*sql.Tx) (*interfaces.Group, error) {
 	_, executor := getExecutor(otx...)
 
-	// Ensure user has access
-	// should be done at the handler layer
-	// userScopeSelectQuery, userScopeSelectArgs, err := GetQueryBuilder().Select("1").
-	// 	From("user_scopes").
-	// 	Where(squirrel.Eq{"user_id": requestingUserID, "scope_id": squirrel.Expr("(SELECT scope_id FROM "+gm.TableGroups+" WHERE "+gm.ColumnGroupID+" = ?)", groupID)}).
-	// 	ToSql()
-	// if err != nil {
-	// 	return nil, errors.Wrap(err, "building user access query failed")
-	// }
-
-	// row := executor.QueryRowContext(ctx, userScopeSelectQuery, userScopeSelectArgs...)
-	// var exists int
-	// if err := row.Scan(&exists); err != nil {
-	// 	if err == sql.ErrNoRows {
-	// 		return nil, errors.New("access to group not found or group does not exist")
-	// 	}
-	// 	return nil, errors.Wrap(err, "verifying access to group failed")
-	// }
-
 	// Fetch group details
 	groupSelectQuery, groupSelectArgs, err := GetQueryBuilder().Select(gm.ColumnGroupID, gm.ColumnOwnerID, gm.ColumnScopeID, gm.ColumnGroupName, gm.ColumnDescription, gm.ColumnIcon, gm.ColumnStatus, gm.ColumnCreatedAt, gm.ColumnUpdatedAt).
 		From(gm.TableGroups).
@@ -210,25 +191,6 @@ func (gm *GroupModel) GetGroupByID(ctx context.Context, groupID int64, requestin
 
 func (gm *GroupModel) GetGroupByScope(ctx context.Context, scopeID int64, requestingUserID int64, otx ...*sql.Tx) (*interfaces.Group, error) {
 	_, executor := getExecutor(otx...)
-
-	//should be done at the handler layer
-	// Ensure user has access to the group
-	// userScopeSelectQuery, userScopeSelectArgs, err := GetQueryBuilder().Select("1").
-	// 	From("user_scopes").
-	// 	Where(squirrel.Eq{"user_id": requestingUserID, "scope_id": scopeID}).
-	// 	ToSql()
-	// if err != nil {
-	// 	return nil, errors.Wrap(err, "building group access by scope query failed")
-	// }
-
-	// row := executor.QueryRowContext(ctx, userScopeSelectQuery, userScopeSelectArgs...)
-	// var exists int
-	// if err := row.Scan(&exists); err != nil {
-	// 	if err == sql.ErrNoRows {
-	// 		return nil, errors.New("access to group not found or group does not exist for the given scope")
-	// 	}
-	// 	return nil, errors.Wrap(err, "verifying access to group by scope failed")
-	// }
 
 	// Fetch group details by scope ID
 	groupSelectQuery, groupSelectArgs, err := GetQueryBuilder().Select(gm.ColumnGroupID, gm.ColumnOwnerID, gm.ColumnScopeID, gm.ColumnGroupName, gm.ColumnDescription, gm.ColumnIcon, gm.ColumnStatus, gm.ColumnCreatedAt, gm.ColumnUpdatedAt).
