@@ -16,6 +16,11 @@ type ScopeModel struct {
 	ColumnType    string
 }
 
+const (
+	ScopeTypeUser  = "user"
+	ScopeTypeGroup = "group"
+)
+
 func NewScopeModel() *ScopeModel {
 	return &ScopeModel{
 		TableScopes:   "scopes",

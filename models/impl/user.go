@@ -59,6 +59,7 @@ type UserModel struct {
 	ColumnUsername  string
 	ColumnName      string
 	ColumnEmail     string
+	ColumnScope     string
 	ColumnCurrency  string
 	ColumnPassword  string
 	ColumnCreatedAt string
@@ -72,6 +73,7 @@ func NewUserModel() *UserModel {
 		ColumnUsername:  "username",
 		ColumnName:      "name",
 		ColumnEmail:     "email",
+		ColumnScope:     "scope_id",
 		ColumnCurrency:  "currency",
 		ColumnPassword:  "password",
 		ColumnCreatedAt: "created_at",
@@ -98,11 +100,16 @@ func (um *UserModel) InsertUser(ctx context.Context, user *interfaces.User, otx 
 	if err != nil {
 		return errors.Wrap(err, "generating Snowflake ID failed")
 	}
-
+	// Initialize ScopeModel and create a new scope
+	scopeID, err := GetModelsService().ScopeModel.CreateScope(ctx, ScopeTypeUser, otx...)
+	if err != nil {
+		commitOrRollback(executor, isExternalTx, err)
+		return errors.Wrap(err, "creating new scope failed")
+	}
 	// Build and execute the SQL query using Squirrel
 	sqlquery, args, err := squirrel.Insert(um.TableUsers).
-		Columns(um.ColumnID, um.ColumnUsername, um.ColumnName, um.ColumnEmail, um.ColumnCurrency, um.ColumnPassword, um.ColumnCreatedAt, um.ColumnUpdatedAt).
-		Values(user.ID, user.Username, user.Name, user.Email, user.Currency, user.Password, user.CreatedAt, user.UpdatedAt).
+		Columns(um.ColumnID, um.ColumnUsername, um.ColumnName, um.ColumnEmail, um.ColumnScope, um.ColumnCurrency, um.ColumnPassword, um.ColumnCreatedAt, um.ColumnUpdatedAt).
+		Values(user.ID, user.Username, user.Name, user.Email, scopeID, user.Currency, user.Password, user.CreatedAt, user.UpdatedAt).
 		PlaceholderFormat(squirrel.Question).
 		ToSql()
 

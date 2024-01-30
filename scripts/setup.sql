@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     `name` VARCHAR(255) NOT NULL,
     `email` VARCHAR(255) NOT NULL UNIQUE,
     `currency` VARCHAR(10) DEFAULT 'USD',
+    `scope_id` BIGINT NOT NULL,
     `password` VARCHAR(255) NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -16,7 +17,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 --newly added tables
 CREATE TABLE IF NOT EXISTS `scopes` (
     `scope_id` BIGINT NOT NULL,
-    `type` ENUM('user', 'group') NOT NULL,
+    `type` ENUM('user', 'group') NOT NULL, --to be changed from enum
     PRIMARY KEY (`scope_id`)
 );
 

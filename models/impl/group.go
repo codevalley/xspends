@@ -56,7 +56,7 @@ func (gm *GroupModel) CreateGroup(ctx context.Context, group *interfaces.Group, 
 	}
 
 	// Initialize ScopeModel and create a new scope
-	scopeID, err := GetModelsService().ScopeModel.CreateScope(ctx, "group", otx...)
+	scopeID, err := GetModelsService().ScopeModel.CreateScope(ctx, ScopeTypeGroup, otx...)
 	if err != nil {
 		commitOrRollback(executor, isExternalTx, err)
 		return errors.Wrap(err, "creating new scope failed")
