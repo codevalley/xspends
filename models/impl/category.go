@@ -44,6 +44,7 @@ type CategoryModel struct {
 	ColumnName                   string
 	ColumnDescription            string
 	ColumnIcon                   string
+	ColumnScopeID                string
 	ColumnCreatedAt              string
 	ColumnUpdatedAt              string
 	MaxCategoryNameLength        int
@@ -58,6 +59,7 @@ func NewCategoryModel() *CategoryModel {
 		ColumnName:                   "name",
 		ColumnDescription:            "description",
 		ColumnIcon:                   "icon",
+		ColumnScopeID:                "scope_id",
 		ColumnCreatedAt:              "created_at",
 		ColumnUpdatedAt:              "updated_at",
 		MaxCategoryNameLength:        100, // Adjust as per your requirement
@@ -88,8 +90,8 @@ func (cm *CategoryModel) InsertCategory(ctx context.Context, category *interface
 	category.CreatedAt, category.UpdatedAt = time.Now(), time.Now()
 
 	query, args, err := GetQueryBuilder().Insert(cm.TableCategories).
-		Columns(cm.ColumnID, cm.ColumnUserID, cm.ColumnName, cm.ColumnDescription, cm.ColumnIcon, cm.ColumnCreatedAt, cm.ColumnUpdatedAt).
-		Values(category.ID, category.UserID, category.Name, category.Description, category.Icon, category.CreatedAt, category.UpdatedAt).
+		Columns(cm.ColumnID, cm.ColumnUserID, cm.ColumnName, cm.ColumnDescription, cm.ColumnIcon, cm.ColumnScopeID, cm.ColumnCreatedAt, cm.ColumnUpdatedAt).
+		Values(category.ID, category.UserID, category.Name, category.Description, category.Icon, category.ScopeId, category.CreatedAt, category.UpdatedAt).
 		ToSql()
 	if err != nil {
 		return errors.Wrap(err, "preparing insert statement failed")

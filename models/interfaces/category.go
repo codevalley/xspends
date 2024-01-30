@@ -12,6 +12,7 @@ type Category struct {
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	Icon        string    `json:"icon"`
+	ScopeId     int64     `json:"scope_id"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
