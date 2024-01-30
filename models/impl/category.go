@@ -141,6 +141,7 @@ func (cm *CategoryModel) UpdateCategory(ctx context.Context, category *interface
 func (cm *CategoryModel) DeleteCategory(ctx context.Context, categoryID int64, userID int64, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
+	//We can add validation here as well
 	query, args, err := GetQueryBuilder().Delete(cm.TableCategories).
 		Where(squirrel.Eq{cm.ColumnID: categoryID, cm.ColumnUserID: userID}).
 		ToSql()
@@ -160,7 +161,7 @@ func (cm *CategoryModel) DeleteCategory(ctx context.Context, categoryID int64, u
 func (cm *CategoryModel) GetAllCategories(ctx context.Context, userID int64, otx ...*sql.Tx) ([]interfaces.Category, error) {
 	_, executor := getExecutor(otx...)
 
-	query, args, err := GetQueryBuilder().Select(cm.ColumnID, cm.ColumnUserID, cm.ColumnName, cm.ColumnDescription, cm.ColumnIcon, cm.ColumnCreatedAt, cm.ColumnUpdatedAt).
+	query, args, err := GetQueryBuilder().Select(cm.ColumnID, cm.ColumnUserID, cm.ColumnName, cm.ColumnDescription, cm.ColumnIcon, cm.ColumnScopeID, cm.ColumnCreatedAt, cm.ColumnUpdatedAt).
 		From(cm.TableCategories).
 		Where(squirrel.Eq{cm.ColumnUserID: userID}).
 		ToSql()
@@ -186,11 +187,41 @@ func (cm *CategoryModel) GetAllCategories(ctx context.Context, userID int64, otx
 	return categories, nil
 }
 
+func (cm *CategoryModel) GetAllScopedCategories(ctx context.Context, scopes []int64, otx ...*sql.Tx) ([]interfaces.Category, error) {
+	_, executor := getExecutor(otx...)
+
+	// Building the query
+	query, args, err := GetQueryBuilder().Select(cm.ColumnID, cm.ColumnUserID, cm.ColumnName, cm.ColumnDescription, cm.ColumnIcon, cm.ColumnScopeID, cm.ColumnCreatedAt, cm.ColumnUpdatedAt).
+		From(cm.TableCategories).
+		Where(squirrel.Eq{cm.ColumnScopeID: scopes}). // Filter by scope IDs
+		ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "preparing select statement for all scoped categories failed")
+	}
+
+	rows, err := executor.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Wrap(err, "querying scoped categories failed")
+	}
+	defer rows.Close()
+
+	var categories []interfaces.Category
+	for rows.Next() {
+		category := interfaces.Category{}
+		if err := rows.Scan(&category.ID, &category.UserID, &category.Name, &category.Description, &category.Icon, &category.CreatedAt, &category.UpdatedAt); err != nil {
+			return nil, errors.Wrap(err, "scanning category row failed")
+		}
+		categories = append(categories, category)
+	}
+
+	return categories, nil
+}
+
 // GetCategoryByID retrieves a category by its ID for a user from the database.
 func (cm *CategoryModel) GetCategoryByID(ctx context.Context, categoryID int64, userID int64, otx ...*sql.Tx) (*interfaces.Category, error) {
 	_, executor := getExecutor(otx...)
 
-	query, args, err := sqlBuilder.Select(cm.ColumnID, cm.ColumnUserID, cm.ColumnName, cm.ColumnDescription, cm.ColumnIcon, cm.ColumnCreatedAt, cm.ColumnUpdatedAt).
+	query, args, err := sqlBuilder.Select(cm.ColumnID, cm.ColumnUserID, cm.ColumnName, cm.ColumnDescription, cm.ColumnIcon, cm.ColumnScopeID, cm.ColumnCreatedAt, cm.ColumnUpdatedAt).
 		From(cm.TableCategories).
 		Where(squirrel.Eq{cm.ColumnID: categoryID, cm.ColumnUserID: userID}).
 		ToSql()
@@ -216,9 +247,42 @@ func (cm *CategoryModel) GetPagedCategories(ctx context.Context, page int, items
 
 	offset := (page - 1) * itemsPerPage
 
-	query, args, err := sqlBuilder.Select(cm.ColumnID, cm.ColumnUserID, cm.ColumnName, cm.ColumnDescription, cm.ColumnIcon, cm.ColumnCreatedAt, cm.ColumnUpdatedAt).
+	query, args, err := sqlBuilder.Select(cm.ColumnID, cm.ColumnUserID, cm.ColumnName, cm.ColumnDescription, cm.ColumnIcon, cm.ColumnScopeID, cm.ColumnCreatedAt, cm.ColumnUpdatedAt).
 		From(cm.TableCategories).
 		Where(squirrel.Eq{cm.ColumnUserID: userID}).
+		Limit(uint64(itemsPerPage)).
+		Offset(uint64(offset)).
+		ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "preparing paginated select statement for categories failed")
+	}
+
+	rows, err := executor.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Wrap(err, "querying paginated categories failed")
+	}
+	defer rows.Close()
+
+	var categories []interfaces.Category
+	for rows.Next() {
+		category := interfaces.Category{}
+		if err := rows.Scan(&category.ID, &category.UserID, &category.Name, &category.Description, &category.Icon, &category.CreatedAt, &category.UpdatedAt); err != nil {
+			return nil, errors.Wrap(err, "scanning paginated category row failed")
+		}
+		categories = append(categories, category)
+	}
+
+	return categories, nil
+}
+
+func (cm *CategoryModel) GetScopedCategories(ctx context.Context, page int, itemsPerPage int, scopes []int64, otx ...*sql.Tx) ([]interfaces.Category, error) {
+	_, executor := getExecutor(otx...)
+
+	offset := (page - 1) * itemsPerPage
+
+	query, args, err := sqlBuilder.Select(cm.ColumnID, cm.ColumnUserID, cm.ColumnName, cm.ColumnDescription, cm.ColumnIcon, cm.ColumnScopeID, cm.ColumnCreatedAt, cm.ColumnUpdatedAt).
+		From(cm.TableCategories).
+		Where(squirrel.Eq{cm.ColumnUserID: scopes}).
 		Limit(uint64(itemsPerPage)).
 		Offset(uint64(offset)).
 		ToSql()
