@@ -12,6 +12,7 @@ type User struct {
 	Username  string    `json:"username"`
 	Name      string    `json:"name"`
 	Email     string    `json:"email"`
+	Scope     int64     `json:"scope_id"`
 	Currency  string    `json:"currency"`
 	Password  string    `json:"-"`
 	CreatedAt time.Time `json:"created_at"`

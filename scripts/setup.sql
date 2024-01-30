@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS `scopes` (
 CREATE TABLE IF NOT EXISTS `user_scopes` (
     `user_id` BIGINT NOT NULL,
     `scope_id` BIGINT NOT NULL,
-    `role` ENUM('view', 'write', 'manage') DEFAULT 'view',
+    `role` ENUM('view', 'write', 'owner') DEFAULT 'view',
     FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`),
     FOREIGN KEY (`scope_id`) REFERENCES `scopes`(`scope_id`),
     PRIMARY KEY (`user_id`, `scope_id`)

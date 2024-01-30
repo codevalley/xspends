@@ -106,6 +106,8 @@ func (um *UserModel) InsertUser(ctx context.Context, user *interfaces.User, otx 
 		commitOrRollback(executor, isExternalTx, err)
 		return errors.Wrap(err, "creating new scope failed")
 	}
+	//Add to user_scopes table
+	GetModelsService().UserScopeModel.UpsertUserScope(ctx, user.ID, scopeID, RoleOwner, otx...)
 	// Build and execute the SQL query using Squirrel
 	sqlquery, args, err := squirrel.Insert(um.TableUsers).
 		Columns(um.ColumnID, um.ColumnUsername, um.ColumnName, um.ColumnEmail, um.ColumnScope, um.ColumnCurrency, um.ColumnPassword, um.ColumnCreatedAt, um.ColumnUpdatedAt).
@@ -171,6 +173,14 @@ func (um *UserModel) UpdateUser(ctx context.Context, user *interfaces.User, otx 
 func (um *UserModel) DeleteUser(ctx context.Context, id int64, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
+	//Delete from scopes, user_scopes table(s) as well
+	user, err := GetModelsService().UserModel.GetUserByID(ctx, id, otx...)
+	if err != nil {
+		return errors.Wrap(err, "User not found")
+	}
+	GetModelsService().UserScopeModel.DeleteUserScope(ctx, user.ID, user.Scope, otx...)
+	GetModelsService().ScopeModel.DeleteScope(ctx, user.Scope, otx...)
+	////
 	sqlquery, args, err := squirrel.Delete(um.TableUsers).
 		Where(squirrel.Eq{um.ColumnID: id}).
 		PlaceholderFormat(squirrel.Question).

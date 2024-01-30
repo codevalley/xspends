@@ -5,6 +5,12 @@ import (
 	"xspends/models/interfaces"
 )
 
+const (
+	RoleOwner = "owner"
+	RoleWrite = "write"
+	RoleView  = "view"
+)
+
 var (
 	ModelsService *ModelsServiceContainer
 	once          sync.Once
