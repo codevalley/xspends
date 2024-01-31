@@ -22,8 +22,16 @@ type Source struct {
 type SourceService interface {
 	InsertSource(ctx context.Context, source *Source, otx ...*sql.Tx) error
 	UpdateSource(ctx context.Context, source *Source, otx ...*sql.Tx) error
+	//deprecated methods
 	DeleteSource(ctx context.Context, sourceID int64, userID int64, otx ...*sql.Tx) error
 	GetSourceByID(ctx context.Context, sourceID int64, userID int64, otx ...*sql.Tx) (*Source, error)
 	GetSources(ctx context.Context, userID int64, otx ...*sql.Tx) ([]Source, error)
 	SourceIDExists(ctx context.Context, sourceID int64, userID int64, otx ...*sql.Tx) (bool, error)
+	//deprected methods end
+
+	DeleteSourceNew(ctx context.Context, sourceID int64, scopes []int64, otx ...*sql.Tx) error
+	GetSourceByIDNew(ctx context.Context, sourceID int64, scopes []int64, otx ...*sql.Tx) (*Source, error)
+	GetScopedSources(ctx context.Context, page int, itemsPerPage int, scopes []int64, otx ...*sql.Tx) ([]Source, error)
+	GetSourcesNew(ctx context.Context, scopes []int64, otx ...*sql.Tx) ([]Source, error)
+	SourceIDExistsNew(ctx context.Context, sourceID int64, scopes []int64, otx ...*sql.Tx) (bool, error)
 }
