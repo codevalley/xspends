@@ -251,6 +251,44 @@ func (sm *SourceModel) GetSources(ctx context.Context, userID int64, otx ...*sql
 	return sources, nil
 }
 
+// paginated
+func (sm *SourceModel) GetScopedSources(ctx context.Context, page int, itemsPerPage int, scopes []int64, otx ...*sql.Tx) ([]interfaces.Source, error) {
+	_, executor := getExecutor(otx...)
+
+	offset := (page - 1) * itemsPerPage
+
+	query, args, err := GetQueryBuilder().Select(sm.ColumnID, sm.ColumnUserID, sm.ColumnName, sm.ColumnType, sm.ColumnBalance, sm.ColumnScope, sm.ColumnCreatedAt, sm.ColumnUpdatedAt).
+		From(sm.TableSources).
+		Where(squirrel.Eq{sm.ColumnScope: scopes}).
+		Limit(uint64(itemsPerPage)).
+		Offset(uint64(offset)).
+		ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "preparing paginated select statement for sources failed")
+	}
+
+	rows, err := executor.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Wrap(err, "querying paginated sources failed")
+	}
+	defer rows.Close()
+
+	var sources []interfaces.Source
+	for rows.Next() {
+		var source interfaces.Source
+		if err = rows.Scan(&source.ID, &source.UserID, &source.Name, &source.Type, &source.Balance, &source.ScopeID, &source.CreatedAt, &source.UpdatedAt); err != nil {
+			return nil, errors.Wrap(err, "scanning paginated source row failed")
+		}
+		sources = append(sources, source)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "during row processing for sources")
+	}
+
+	return sources, nil
+}
+
 func (sm *SourceModel) GetSourcesNew(ctx context.Context, scopes []int64, otx ...*sql.Tx) ([]interfaces.Source, error) {
 	_, executor := getExecutor(otx...)
 	query, args, err := GetQueryBuilder().Select(sm.ColumnID, sm.ColumnUserID, sm.ColumnName, sm.ColumnType, sm.ColumnBalance, sm.ColumnScope, sm.ColumnCreatedAt, sm.ColumnUpdatedAt).
