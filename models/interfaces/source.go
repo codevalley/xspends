@@ -13,6 +13,7 @@ type Source struct {
 	Name      string    `json:"name"`
 	Type      string    `json:"type"`
 	Balance   float64   `json:"balance"`
+	ScopeID   int64     `json:"scope_id"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }

@@ -68,7 +68,7 @@ func NewCategoryModel() *CategoryModel {
 }
 
 func (cm *CategoryModel) validateCategoryInput(category *interfaces.Category) error {
-	if category.UserID <= 0 || category.Name == "" || len(category.Name) > cm.MaxCategoryNameLength || len(category.Description) > cm.MaxCategoryDescriptionLength {
+	if category.ScopeId <= 0 || category.UserID <= 0 || category.Name == "" || len(category.Name) > cm.MaxCategoryNameLength || len(category.Description) > cm.MaxCategoryDescriptionLength {
 		return errors.New(ErrInvalidInput)
 	}
 	return nil
@@ -138,6 +138,7 @@ func (cm *CategoryModel) UpdateCategory(ctx context.Context, category *interface
 }
 
 // DeleteCategory deletes a category from the database.
+// deprecated: Use DeleteCategoryNew instead.
 func (cm *CategoryModel) DeleteCategory(ctx context.Context, categoryID int64, userID int64, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
@@ -157,7 +158,28 @@ func (cm *CategoryModel) DeleteCategory(ctx context.Context, categoryID int64, u
 	return nil
 }
 
+// DeleteCategory deletes a category from the database.
+func (cm *CategoryModel) DeleteCategoryNew(ctx context.Context, categoryID int64, scopes []int64, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutor(otx...)
+
+	//We can add validation here as well
+	query, args, err := GetQueryBuilder().Delete(cm.TableCategories).
+		Where(squirrel.Eq{cm.ColumnID: categoryID, cm.ColumnScopeID: scopes}).
+		ToSql()
+	if err != nil {
+		return errors.Wrap(err, "preparing delete statement failed")
+	}
+
+	_, err = executor.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "executing delete statement failed")
+	}
+	commitOrRollback(executor, isExternalTx, err)
+	return nil
+}
+
 // GetAllCategories retrieves all categories for a user from the database.
+// Deprecated: Use GetAllScopedCategories instead.
 func (cm *CategoryModel) GetAllCategories(ctx context.Context, userID int64, otx ...*sql.Tx) ([]interfaces.Category, error) {
 	_, executor := getExecutor(otx...)
 
@@ -218,6 +240,7 @@ func (cm *CategoryModel) GetAllScopedCategories(ctx context.Context, scopes []in
 }
 
 // GetCategoryByID retrieves a category by its ID for a user from the database.
+// Deprecated: Use GetCategoryByIDNew instead.
 func (cm *CategoryModel) GetCategoryByID(ctx context.Context, categoryID int64, userID int64, otx ...*sql.Tx) (*interfaces.Category, error) {
 	_, executor := getExecutor(otx...)
 
@@ -241,7 +264,31 @@ func (cm *CategoryModel) GetCategoryByID(ctx context.Context, categoryID int64, 
 	return &category, nil
 }
 
+func (cm *CategoryModel) GetCategoryByIDNew(ctx context.Context, categoryID int64, scopes []int64, otx ...*sql.Tx) (*interfaces.Category, error) {
+	_, executor := getExecutor(otx...)
+
+	query, args, err := sqlBuilder.Select(cm.ColumnID, cm.ColumnUserID, cm.ColumnName, cm.ColumnDescription, cm.ColumnIcon, cm.ColumnScopeID, cm.ColumnCreatedAt, cm.ColumnUpdatedAt).
+		From(cm.TableCategories).
+		Where(squirrel.Eq{cm.ColumnID: categoryID, cm.ColumnScopeID: scopes}).
+		ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "preparing select statement for a category by ID failed")
+	}
+
+	var category interfaces.Category
+	err = executor.QueryRowContext(ctx, query, args...).Scan(&category.ID, &category.UserID, &category.Name, &category.Description, &category.Icon, &category.CreatedAt, &category.UpdatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("category not found")
+		}
+		return nil, errors.Wrap(err, "querying category by ID failed")
+	}
+
+	return &category, nil
+}
+
 // GetPagedCategories retrieves a paginated list of categories for a user from the database.
+// deprecated: Use GetScopedCategories instead.
 func (cm *CategoryModel) GetPagedCategories(ctx context.Context, page int, itemsPerPage int, userID int64, otx ...*sql.Tx) ([]interfaces.Category, error) {
 	_, executor := getExecutor(otx...)
 
@@ -309,11 +356,34 @@ func (cm *CategoryModel) GetScopedCategories(ctx context.Context, page int, item
 }
 
 // CategoryIDExists checks if a category with the given ID exists in the database.
+// deprecated: Use CategoryIDExistsNew instead.
 func (cm *CategoryModel) CategoryIDExists(ctx context.Context, categoryID int64, userID int64, otx ...*sql.Tx) (bool, error) {
 	_, executor := getExecutor(otx...)
 	query, args, err := sqlBuilder.Select("1").
 		From(cm.TableCategories).
 		Where(squirrel.Eq{cm.ColumnID: categoryID, cm.ColumnUserID: userID}).
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return false, errors.Wrap(err, "preparing statement to check category existence failed")
+	}
+
+	var exists int
+	err = executor.QueryRowContext(ctx, query, args...).Scan(&exists)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, errors.Wrap(err, "checking category existence failed")
+	}
+	return exists == 1, nil
+}
+
+func (cm *CategoryModel) CategoryIDExistsNew(ctx context.Context, categoryID int64, scopes []int64, otx ...*sql.Tx) (bool, error) {
+	_, executor := getExecutor(otx...)
+	query, args, err := sqlBuilder.Select("1").
+		From(cm.TableCategories).
+		Where(squirrel.Eq{cm.ColumnID: categoryID, cm.ColumnScopeID: scopes}).
 		Limit(1).
 		ToSql()
 	if err != nil {
