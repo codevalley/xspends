@@ -40,6 +40,7 @@ type TagModel struct {
 	ColumnID         string
 	ColumnUserID     string
 	ColumnName       string
+	ColumnScope      string
 	ColumnCreatedAt  string
 	ColumnUpdatedAt  string
 	MaxTagNameLength int
@@ -51,6 +52,7 @@ func NewTagModel() *TagModel {
 		ColumnID:         "tag_id",
 		ColumnUserID:     "user_id",
 		ColumnName:       "name",
+		ColumnScope:      "scope_id",
 		ColumnCreatedAt:  "created_at",
 		ColumnUpdatedAt:  "updated_at",
 		MaxTagNameLength: 255, // Adjust as per your requirement
@@ -60,7 +62,7 @@ func NewTagModel() *TagModel {
 func (tm *TagModel) InsertTag(ctx context.Context, tag *interfaces.Tag, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
-	if tag.UserID <= 0 || len(tag.Name) == 0 || len(tag.Name) > tm.MaxTagNameLength {
+	if tag.UserID <= 0 || tag.ScopeID <= 0 || len(tag.Name) == 0 || len(tag.Name) > tm.MaxTagNameLength {
 		return errors.New("invalid input for tag")
 	}
 
