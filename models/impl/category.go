@@ -122,7 +122,7 @@ func (cm *CategoryModel) UpdateCategory(ctx context.Context, category *interface
 		Set(cm.ColumnDescription, category.Description).
 		Set(cm.ColumnIcon, category.Icon).
 		Set(cm.ColumnUpdatedAt, category.UpdatedAt).
-		Where(squirrel.Eq{cm.ColumnID: category.ID, cm.ColumnUserID: category.UserID}).
+		Where(squirrel.Eq{cm.ColumnID: category.ID, cm.ColumnUserID: category.ScopeId}).
 		ToSql()
 	if err != nil {
 		return errors.Wrap(err, "preparing update statement failed")

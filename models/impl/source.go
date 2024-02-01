@@ -118,7 +118,7 @@ func (sm *SourceModel) UpdateSource(ctx context.Context, source *interfaces.Sour
 		Set(sm.ColumnType, source.Type).
 		Set(sm.ColumnBalance, source.Balance).
 		Set(sm.ColumnUpdatedAt, source.UpdatedAt).
-		Where(squirrel.Eq{sm.ColumnID: source.ID, sm.ColumnUserID: source.UserID}).
+		Where(squirrel.Eq{sm.ColumnID: source.ID, sm.ColumnUserID: source.ScopeID}).
 		ToSql()
 
 	if err != nil {

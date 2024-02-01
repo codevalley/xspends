@@ -71,8 +71,8 @@ func (tm *TagModel) InsertTag(ctx context.Context, tag *interfaces.Tag, otx ...*
 	tag.UpdatedAt = time.Now()
 
 	query, args, err := squirrel.Insert(tm.TableTags).
-		Columns(tm.ColumnID, tm.ColumnUserID, tm.ColumnName, tm.ColumnCreatedAt, tm.ColumnUpdatedAt).
-		Values(tag.ID, tag.UserID, tag.Name, tag.CreatedAt, tag.UpdatedAt).
+		Columns(tm.ColumnID, tm.ColumnUserID, tm.ColumnName, tm.ColumnScope, tm.ColumnCreatedAt, tm.ColumnUpdatedAt).
+		Values(tag.ID, tag.UserID, tag.Name, tag.ScopeID, tag.CreatedAt, tag.UpdatedAt).
 		PlaceholderFormat(squirrel.Question).
 		ToSql()
 
@@ -92,7 +92,7 @@ func (tm *TagModel) InsertTag(ctx context.Context, tag *interfaces.Tag, otx ...*
 func (tm *TagModel) UpdateTag(ctx context.Context, tag *interfaces.Tag, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
-	if tag.UserID <= 0 || len(tag.Name) == 0 || len(tag.Name) > tm.MaxTagNameLength {
+	if tag.UserID <= 0 || tag.ScopeID <= 0 || len(tag.Name) == 0 || len(tag.Name) > tm.MaxTagNameLength {
 		return errors.New("invalid input for tag")
 	}
 
@@ -101,7 +101,7 @@ func (tm *TagModel) UpdateTag(ctx context.Context, tag *interfaces.Tag, otx ...*
 	query, args, err := squirrel.Update(tm.TableTags).
 		Set(tm.ColumnName, tag.Name).
 		Set(tm.ColumnUpdatedAt, tag.UpdatedAt).
-		Where(squirrel.Eq{tm.ColumnID: tag.ID, tm.ColumnUserID: tag.UserID}).
+		Where(squirrel.Eq{tm.ColumnID: tag.ID, tm.ColumnScope: tag.ScopeID}).
 		PlaceholderFormat(squirrel.Question).
 		ToSql()
 
@@ -118,6 +118,7 @@ func (tm *TagModel) UpdateTag(ctx context.Context, tag *interfaces.Tag, otx ...*
 	return nil
 }
 
+// Deprecated method
 func (tm *TagModel) DeleteTag(ctx context.Context, tagID int64, userID int64, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
@@ -140,6 +141,29 @@ func (tm *TagModel) DeleteTag(ctx context.Context, tagID int64, userID int64, ot
 	return nil
 }
 
+func (tm *TagModel) DeleteTagNew(ctx context.Context, tagID int64, scopes []int64, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutor(otx...)
+
+	query, args, err := squirrel.Delete(tm.TableTags).
+		Where(squirrel.Eq{tm.ColumnID: tagID, tm.ColumnScope: scopes}).
+		PlaceholderFormat(squirrel.Question).
+		ToSql()
+
+	if err != nil {
+		return errors.Wrap(err, "failed to build delete query for tag")
+	}
+
+	_, err = executor.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrapf(err, "failed to delete tag with tagID: %d and scope: %d", tagID, scopes)
+	}
+
+	commitOrRollback(executor, isExternalTx, err)
+
+	return nil
+}
+
+// deprecated
 func (tm *TagModel) GetTagByID(ctx context.Context, tagID int64, userID int64, otx ...*sql.Tx) (*interfaces.Tag, error) {
 	_, executor := getExecutor(otx...)
 
@@ -166,6 +190,33 @@ func (tm *TagModel) GetTagByID(ctx context.Context, tagID int64, userID int64, o
 	return tag, nil
 }
 
+func (tm *TagModel) GetTagByIDNew(ctx context.Context, tagID int64, scopes []int64, otx ...*sql.Tx) (*interfaces.Tag, error) {
+	_, executor := getExecutor(otx...)
+
+	query, args, err := squirrel.Select(tm.ColumnID, tm.ColumnUserID, tm.ColumnName, tm.ColumnScope, tm.ColumnCreatedAt, tm.ColumnUpdatedAt).
+		From(tm.TableTags).
+		Where(squirrel.Eq{tm.ColumnID: tagID, tm.ColumnScope: scopes}).
+		PlaceholderFormat(squirrel.Question).
+		ToSql()
+
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to build query for retrieving tag by ID")
+	}
+
+	row := executor.QueryRowContext(ctx, query, args...)
+	tag := &interfaces.Tag{}
+	err = row.Scan(&tag.ID, &tag.UserID, &tag.Name, &tag.ScopeID, &tag.CreatedAt, &tag.UpdatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("tag not found")
+		}
+		return nil, errors.Wrapf(err, "failed to retrieve tag by ID: %d", tagID)
+	}
+
+	return tag, nil
+}
+
+// deprecated
 func (tm *TagModel) GetAllTags(ctx context.Context, userID int64, pagination interfaces.PaginationParams, otx ...*sql.Tx) ([]interfaces.Tag, error) {
 	_, executor := getExecutor(otx...)
 
@@ -204,6 +255,45 @@ func (tm *TagModel) GetAllTags(ctx context.Context, userID int64, pagination int
 	return tags, nil
 }
 
+func (tm *TagModel) GetScopedTags(ctx context.Context, scopes []int64, pagination interfaces.PaginationParams, otx ...*sql.Tx) ([]interfaces.Tag, error) {
+	_, executor := getExecutor(otx...)
+
+	query, args, err := squirrel.Select(tm.ColumnID, tm.ColumnUserID, tm.ColumnName, tm.ColumnScope, tm.ColumnCreatedAt, tm.ColumnUpdatedAt).
+		From(tm.TableTags).
+		Where(squirrel.Eq{tm.ColumnScope: scopes}).
+		Limit(uint64(pagination.Limit)).
+		Offset(uint64(pagination.Offset)).
+		PlaceholderFormat(squirrel.Question).
+		ToSql()
+
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to build query for retrieving all tags")
+	}
+
+	rows, err := executor.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to retrieve all tags for scopes: %d", scopes)
+	}
+	defer rows.Close()
+
+	var tags []interfaces.Tag
+	for rows.Next() {
+		var tag interfaces.Tag
+		err := rows.Scan(&tag.ID, &tag.UserID, &tag.Name, &tag.ScopeID, &tag.CreatedAt, &tag.UpdatedAt)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to scan tag")
+		}
+		tags = append(tags, tag)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "failed to iterate over all tags")
+	}
+
+	return tags, nil
+}
+
+// deprecated
 func (tm *TagModel) GetTagByName(ctx context.Context, name string, userID int64, otx ...*sql.Tx) (*interfaces.Tag, error) {
 	_, executor := getExecutor(otx...)
 
@@ -225,6 +315,32 @@ func (tm *TagModel) GetTagByName(ctx context.Context, name string, userID int64,
 			return nil, errors.New("tag not found")
 		}
 		return nil, errors.Wrapf(err, "failed to retrieve tag by name: %s for userID: %d", name, userID)
+	}
+
+	return tag, nil
+}
+
+func (tm *TagModel) GetTagByNameNew(ctx context.Context, name string, scopes []int64, otx ...*sql.Tx) (*interfaces.Tag, error) {
+	_, executor := getExecutor(otx...)
+
+	query, args, err := squirrel.Select(tm.ColumnID, tm.ColumnUserID, tm.ColumnName, tm.ColumnScope, tm.ColumnCreatedAt, tm.ColumnUpdatedAt).
+		From(tm.TableTags).
+		Where(squirrel.Eq{tm.ColumnName: name, tm.ColumnScope: scopes}).
+		PlaceholderFormat(squirrel.Question).
+		ToSql()
+
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to build query for retrieving tag by name")
+	}
+
+	row := executor.QueryRowContext(ctx, query, args...)
+	tag := &interfaces.Tag{}
+	err = row.Scan(&tag.ID, &tag.UserID, &tag.Name, &tag.ScopeID, &tag.CreatedAt, &tag.UpdatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("tag not found")
+		}
+		return nil, errors.Wrapf(err, "failed to retrieve tag by name: %s for scopes: %d", name, scopes)
 	}
 
 	return tag, nil
