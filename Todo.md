@@ -10,7 +10,10 @@
       - ...
     - remove user from a group, just remove him from user_scope for the group_id (done by user who is owner)
   - Insert txn records (pass a valid scope_id [ group/personal ] )
-  - NOTE: [DESIGN DECISION] When updating txn objects, should we allow changing scope change by user or force them to duplicate an entry. 
+### Multi user open items
+- In a multi user setup, how do we handle sharing of entities like tags, sources and categories?
+- Do we allow transfer or duplication of entities like txn, tags etc. 
+- Can we have ephemeral scopes, to share a slice of txns.
 ### Support multi user access to the data (txns, source, tag etc.)
 - Introduce groups and scope concepts to enable multi-user access to txn tables (sources, categories, transactions and tags)
 - Include basic access control for group members (view, write, manage)
