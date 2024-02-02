@@ -54,6 +54,7 @@ type TransactionModel struct {
 	ColumnAmount      string
 	ColumnType        string
 	ColumnDescription string
+	ColumnScope       string
 }
 
 func NewTransactionModel() *TransactionModel {
@@ -67,6 +68,7 @@ func NewTransactionModel() *TransactionModel {
 		ColumnAmount:      "amount",
 		ColumnType:        "type",
 		ColumnDescription: "description",
+		ColumnScope:       "scope_id",
 	}
 }
 
