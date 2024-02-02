@@ -100,3 +100,25 @@ func (sm *ScopeModel) DeleteScope(ctx context.Context, scopeID int64, otx ...*sq
 	commitOrRollback(executor, isExternalTx, err)
 	return nil
 }
+
+func (sm *ScopeModel) ScopeIDExists(ctx context.Context, scopeID int64, otx ...*sql.Tx) (bool, error) {
+	_, executor := getExecutor(otx...)
+	query, args, err := sqlBuilder.Select("1").
+		From(sm.TableScopes).
+		Where(squirrel.Eq{sm.ColumnScopeID: scopeID}).
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return false, errors.Wrap(err, "preparing statement to check scope existence failed")
+	}
+
+	var exists int
+	err = executor.QueryRowContext(ctx, query, args...).Scan(&exists)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, errors.Wrap(err, "checking scope existence failed")
+	}
+	return exists == 1, nil
+}

@@ -21,6 +21,7 @@ type Transaction struct {
 
 type TransactionFilter struct {
 	UserID       int64
+	ScopeID      int64
 	StartDate    string
 	EndDate      string
 	Tags         []string
@@ -37,9 +38,16 @@ type TransactionFilter struct {
 
 // TransactionService defines the interface for transaction operations.
 type TransactionService interface {
+	//deprecated methods
 	InsertTransaction(ctx context.Context, txn Transaction, otx ...*sql.Tx) error
 	UpdateTransaction(ctx context.Context, txn Transaction, otx ...*sql.Tx) error
 	DeleteTransaction(ctx context.Context, transactionID int64, userID int64, otx ...*sql.Tx) error
 	GetTransactionByID(ctx context.Context, transactionID int64, userID int64, otx ...*sql.Tx) (*Transaction, error)
+	//deprecated methods end
 	GetTransactionsByFilter(ctx context.Context, filter TransactionFilter, otx ...*sql.Tx) ([]Transaction, error)
+
+	InsertTransactionNew(ctx context.Context, txn Transaction, otx ...*sql.Tx) error
+	UpdateTransactionNew(ctx context.Context, txn Transaction, otx ...*sql.Tx) error
+	DeleteTransactionNew(ctx context.Context, transactionID int64, scopes []int64, otx ...*sql.Tx) error
+	GetTransactionByIDNew(ctx context.Context, transactionID int64, scopes []int64, otx ...*sql.Tx) (*Transaction, error)
 }

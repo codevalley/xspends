@@ -55,10 +55,13 @@ func NewTransactionTagModel() *TransactionTagModel {
 func (tm *TransactionTagModel) GetTagsByTransactionID(ctx context.Context, transactionID int64, otx ...*sql.Tx) ([]interfaces.Tag, error) {
 	_, executor := getExecutor(otx...)
 
+	//TODO: Has to resolved, can't be hardcoded like this.
+	tagID := "tag_id"
+	tagName := "name"
 	//TODO: possible logical bug here. Review and close
-	query, args, err := squirrel.Select("t.id", "t.name").
+	query, args, err := squirrel.Select(tagID, tagName).
 		From("tags t").
-		Join(tm.TableTransactionTags + " tt ON t.id = tt." + tm.ColumnTagID).
+		Join(tm.TableTransactionTags + " tt ON t." + tagID + " = tt." + tm.ColumnTagID).
 		Where(squirrel.Eq{"tt." + tm.ColumnTransactionID: transactionID}).
 		PlaceholderFormat(squirrel.Question).
 		ToSql()
@@ -129,6 +132,7 @@ func (tm *TransactionTagModel) DeleteTransactionTag(ctx context.Context, transac
 	return nil
 }
 
+// deprecated: Move to scope model
 func (tm *TransactionTagModel) AddTagsToTransaction(ctx context.Context, transactionID int64, tags []string, userID int64, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
@@ -147,6 +151,25 @@ func (tm *TransactionTagModel) AddTagsToTransaction(ctx context.Context, transac
 	return nil
 }
 
+func (tm *TransactionTagModel) AddTagsToTransactionNew(ctx context.Context, transactionID int64, tags []string, scopes []int64, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutor(otx...)
+
+	for _, tagName := range tags {
+		tag, err := GetModelsService().TagModel.GetTagByNameNew(ctx, tagName, scopes, otx...)
+		if err != nil {
+			return errors.Wrap(err, "error getting tag by name")
+		}
+		err = GetModelsService().TransactionTagModel.InsertTransactionTag(ctx, transactionID, tag.ID, otx...)
+		if err != nil {
+			return errors.Wrap(err, "error associating tag with transaction")
+		}
+	}
+
+	commitOrRollback(executor, isExternalTx, nil)
+	return nil
+}
+
+// deprecated: Move to scope model
 func (tm *TransactionTagModel) UpdateTagsForTransaction(ctx context.Context, transactionID int64, tags []string, userID int64, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
@@ -156,6 +179,23 @@ func (tm *TransactionTagModel) UpdateTagsForTransaction(ctx context.Context, tra
 	}
 
 	err = GetModelsService().TransactionTagModel.AddTagsToTransaction(ctx, transactionID, tags, userID, otx...)
+	if err != nil {
+		return errors.Wrap(err, "error adding new tags to transaction")
+	}
+
+	commitOrRollback(executor, isExternalTx, nil)
+	return nil
+}
+
+func (tm *TransactionTagModel) UpdateTagsForTransactionNew(ctx context.Context, transactionID int64, tags []string, scopes []int64, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutor(otx...)
+
+	err := GetModelsService().TransactionTagModel.DeleteTagsFromTransaction(ctx, transactionID, otx...)
+	if err != nil {
+		return errors.Wrap(err, "error removing existing tags from transaction")
+	}
+
+	err = GetModelsService().TransactionTagModel.AddTagsToTransactionNew(ctx, transactionID, tags, scopes, otx...)
 	if err != nil {
 		return errors.Wrap(err, "error adding new tags to transaction")
 	}

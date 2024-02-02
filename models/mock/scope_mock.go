@@ -28,3 +28,8 @@ func (m *MockScopeModel) DeleteScope(ctx context.Context, scopeID int64, otx ...
 	args := m.Called(ctx, scopeID, otx)
 	return args.Error(0)
 }
+
+func (m *MockScopeModel) ScopeIDExists(ctx context.Context, scopeId int64, otx ...*sql.Tx) (bool, error) {
+	args := m.Called(ctx, scopeId, otx)
+	return args.Bool(0), args.Error(1)
+}
