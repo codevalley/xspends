@@ -1,6 +1,6 @@
 ### TODO
 - Should we verify userID or/and scopeID  (in header) for every handler call? Or should the  JWT enough?
-
+- Updated category tests, remove hardcoded table names
 ### Multi user approach
 - When a user is created, a scope entry for the user (insert to scope where user_id = x)
 - When a user is deleted its associated scope is deleted (delete from scope where type = user and user_id = x)
