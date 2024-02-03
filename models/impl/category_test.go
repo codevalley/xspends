@@ -42,7 +42,7 @@ func TestInsertCategoryWithDatabaseError(t *testing.T) {
 
 	mockExecutor.EXPECT().ExecContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("database error"))
 
-	category := &interfaces.Category{UserID: 1, Name: "Test Category", Description: "Description"}
+	category := &interfaces.Category{UserID: 1, ScopeID: 1, Name: "Test Category", Description: "Description"}
 
 	err := ModelsService.CategoryModel.InsertCategory(ctx, category)
 	assert.EqualError(t, err, "executing insert statement failed: database error")
@@ -58,7 +58,7 @@ func TestUpdateCategoryWithDatabaseError(t *testing.T) {
 
 	mockExecutor.EXPECT().ExecContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("database error"))
 
-	category := &interfaces.Category{ID: 1, UserID: 1, Name: "Updated Category", Description: "Updated Description"}
+	category := &interfaces.Category{ID: 1, UserID: 1, ScopeID: 1, Name: "Updated Category", Description: "Updated Description"}
 	err := ModelsService.CategoryModel.UpdateCategory(ctx, category)
 	assert.EqualError(t, err, "executing update statement failed: database error")
 }
@@ -96,7 +96,7 @@ func TestGetAllCategoriesWithDatabaseError(t *testing.T) {
 	mock.ExpectQuery("^SELECT (.+) FROM categories WHERE").WillReturnError(errors.New("database error"))
 
 	_, err = ModelsService.CategoryModel.GetAllScopedCategories(ctx, []int64{1})
-	assert.EqualError(t, err, "querying categories failed: database error")
+	assert.EqualError(t, err, "querying scoped categories failed: database error")
 }
 
 // TestGetCategoryByIDWithCategoryNotFound verifies that the function returns an error for a non-existent category.
@@ -338,7 +338,7 @@ func TestGetCategoryByIDWithDatabase(t *testing.T) {
 		AddRow(expectedCategory.ID, expectedCategory.UserID, expectedCategory.ScopeID, expectedCategory.Name, expectedCategory.Description, expectedCategory.Icon, expectedCategory.CreatedAt, expectedCategory.UpdatedAt)
 
 	mock.ExpectQuery("^SELECT (.+) FROM categories WHERE").
-		WithArgs(categoryID, userID).
+		WithArgs(categoryID, scopeID).
 		WillReturnRows(rows)
 
 	category, err := ModelsService.CategoryModel.GetCategoryByIDNew(ctx, categoryID, []int64{scopeID})
@@ -416,7 +416,7 @@ func TestUpdateCategoryWithValidInput(t *testing.T) {
 
 	ModelsService.DBService.Executor = db
 
-	category := &interfaces.Category{ID: 1, UserID: 1, Name: "Updated Category", Description: "Updated Description"}
+	category := &interfaces.Category{ID: 1, UserID: 1, ScopeID: 1, Name: "Updated Category", Description: "Updated Description"}
 
 	mock.ExpectExec("^UPDATE categories SET").WithArgs(category.Name, category.Description, category.Icon, sqlmock.AnyArg(), category.ID, category.UserID).WillReturnResult(sqlmock.NewResult(1, 1))
 

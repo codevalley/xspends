@@ -190,7 +190,7 @@ func (cm *CategoryModel) GetAllScopedCategories(ctx context.Context, scopes []in
 func (cm *CategoryModel) GetCategoryByIDNew(ctx context.Context, categoryID int64, scopes []int64, otx ...*sql.Tx) (*interfaces.Category, error) {
 	_, executor := getExecutor(otx...)
 
-	query, args, err := sqlBuilder.Select(cm.ColumnID, cm.ColumnUserID, cm.ColumnName, cm.ColumnDescription, cm.ColumnIcon, cm.ColumnScopeID, cm.ColumnCreatedAt, cm.ColumnUpdatedAt).
+	query, args, err := sqlBuilder.Select(cm.ColumnID, cm.ColumnUserID, cm.ColumnScopeID, cm.ColumnName, cm.ColumnDescription, cm.ColumnIcon, cm.ColumnScopeID, cm.ColumnCreatedAt, cm.ColumnUpdatedAt).
 		From(cm.TableCategories).
 		Where(squirrel.Eq{cm.ColumnID: categoryID, cm.ColumnScopeID: scopes}).
 		ToSql()
@@ -199,7 +199,7 @@ func (cm *CategoryModel) GetCategoryByIDNew(ctx context.Context, categoryID int6
 	}
 
 	var category interfaces.Category
-	err = executor.QueryRowContext(ctx, query, args...).Scan(&category.ID, &category.UserID, &category.Name, &category.Description, &category.Icon, &category.CreatedAt, &category.UpdatedAt)
+	err = executor.QueryRowContext(ctx, query, args...).Scan(&category.ID, &category.UserID, &category.ScopeID, &category.Name, &category.Description, &category.Icon, &category.CreatedAt, &category.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, errors.New("category not found")
