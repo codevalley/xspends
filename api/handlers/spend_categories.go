@@ -66,13 +66,16 @@ func getCategoryID(c *gin.Context) (int64, bool) {
 // @Failure 500 {object} map[string]string "Unable to fetch categories"
 // @Router /categories [get]
 func ListCategories(c *gin.Context) {
-	userID, ok := getUserID(c)
-	if !ok {
+	_, okUser := getUserID(c)
+	scopeID, okScope := getScopeID(c)
+	if !okUser || !okScope {
 		return
 	}
+	//TODO: Extract literals like this to constants
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	//TODO: Extract literals like this to constants
 	itemsPerPage, _ := strconv.Atoi(c.DefaultQuery("items_per_page", strconv.Itoa(defaultItemsPerPage)))
-	categories, err := impl.GetModelsService().CategoryModel.GetPagedCategories(c, page, itemsPerPage, userID, nil)
+	categories, err := impl.GetModelsService().CategoryModel.GetScopedCategories(c, page, itemsPerPage, []int64{scopeID}, nil)
 	if err != nil {
 		log.Printf("[ListCategories] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch categories"})
@@ -98,10 +101,9 @@ func ListCategories(c *gin.Context) {
 // @Failure 404 {object} map[string]string "Category not found"
 // @Router /categories/{id} [get]
 func GetCategory(c *gin.Context) {
-	userID, ok := getUserID(c)
-	if !ok {
-		//c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
-		//c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to convert userID to int64"})
+	_, okUser := getUserID(c)
+	scopeID, okScope := getScopeID(c)
+	if !okUser || !okScope {
 		return
 	}
 
@@ -112,7 +114,7 @@ func GetCategory(c *gin.Context) {
 		return
 	}
 
-	category, err := impl.GetModelsService().CategoryModel.GetCategoryByID(c, categoryID, userID, nil)
+	category, err := impl.GetModelsService().CategoryModel.GetCategoryByIDNew(c, categoryID, []int64{scopeID}, nil)
 	if err != nil {
 		log.Printf("[GetCategory] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "category not found"})
@@ -134,8 +136,9 @@ func GetCategory(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Unable to create category"
 // @Router /categories [post]
 func CreateCategory(c *gin.Context) {
-	userID, ok := getUserID(c)
-	if !ok {
+	userID, okUser := getUserID(c)
+	scopeID, okScope := getScopeID(c)
+	if !okUser || !okScope {
 		return
 	}
 
@@ -146,6 +149,7 @@ func CreateCategory(c *gin.Context) {
 	}
 
 	newCategory.UserID = userID
+	newCategory.ScopeID = scopeID
 	if err := impl.GetModelsService().CategoryModel.InsertCategory(c, &newCategory, nil); err != nil {
 		log.Printf("[CreateCategory] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create category"})
@@ -168,8 +172,9 @@ func CreateCategory(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Unable to update category"
 // @Router /categories/{id} [put]
 func UpdateCategory(c *gin.Context) {
-	userID, ok := getUserID(c)
-	if !ok {
+	userID, okUser := getUserID(c)
+	scopeID, okScope := getScopeID(c)
+	if !okUser || !okScope {
 		return
 	}
 
@@ -181,6 +186,7 @@ func UpdateCategory(c *gin.Context) {
 	}
 
 	updatedCategory.UserID = userID
+	updatedCategory.ScopeID = scopeID
 	if err := impl.GetModelsService().CategoryModel.UpdateCategory(c, &updatedCategory, nil); err != nil {
 		log.Printf("[UpdateCategory] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update category"})
@@ -201,8 +207,9 @@ func UpdateCategory(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Unable to delete category"
 // @Router /categories/{id} [delete]
 func DeleteCategory(c *gin.Context) {
-	userID, ok := getUserID(c)
-	if !ok {
+	_, okUser := getUserID(c)
+	scopeID, okScope := getScopeID(c)
+	if !okUser || !okScope {
 		return
 	}
 
@@ -213,7 +220,7 @@ func DeleteCategory(c *gin.Context) {
 		return
 	}
 
-	if err := impl.GetModelsService().CategoryModel.DeleteCategory(c, categoryID, userID, nil); err != nil {
+	if err := impl.GetModelsService().CategoryModel.DeleteCategoryNew(c, categoryID, []int64{scopeID}, nil); err != nil {
 		log.Printf("[DeleteCategory] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete category"})
 		return

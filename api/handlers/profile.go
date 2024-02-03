@@ -48,6 +48,22 @@ func getUserID(c *gin.Context) (int64, bool) {
 	return intUserID, true
 }
 
+func getScopeID(c *gin.Context) (int64, bool) {
+	scopeID, exists := c.Get("scopeID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing scope parameter"})
+		return 0, false
+	}
+
+	intScopeID, ok := scopeID.(int64)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to convert scopeID to int64"})
+		return 0, false
+	}
+
+	return intScopeID, true
+}
+
 func GetUserProfile(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {

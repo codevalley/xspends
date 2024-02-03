@@ -427,7 +427,7 @@ func validateForeignKeyReferences(ctx context.Context, txn interfaces.Transactio
 	}
 
 	// Check if the category exists
-	categoryExists, err := GetModelsService().CategoryModel.CategoryIDExists(ctx, txn.CategoryID, txn.UserID)
+	categoryExists, err := GetModelsService().CategoryModel.CategoryIDExistsNew(ctx, txn.CategoryID, []int64{txn.ScopeID})
 	if err != nil {
 		return errors.Wrap(err, "error checking if category exists")
 	}
