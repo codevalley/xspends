@@ -340,6 +340,7 @@ func TestSourceIDExists(t *testing.T) {
 	})
 	defer tearDown()
 
+	// Variables for the test
 	sourceID := int64(1)
 	scopes := []int64{1, 2, 3} // Example with multiple scope IDs
 
@@ -349,6 +350,7 @@ func TestSourceIDExists(t *testing.T) {
 	}
 	defer db.Close()
 
+	// Mock service setup
 	mockDBService := &DBService{Executor: db}
 	mockModelService := &ModelsServiceContainer{
 		DBService:   mockDBService,
@@ -357,26 +359,55 @@ func TestSourceIDExists(t *testing.T) {
 	ModelsService = mockModelService
 
 	ctx := context.Background()
-	mockRows := sqlmock.NewRows([]string{"1"}).AddRow(1)
 
-	// Convert scopes and sourceID into a slice of driver.Value
+	// Test case 1: Source exists
+	{
+		mockRows := sqlmock.NewRows([]string{"1"}).AddRow(1) // Assuming the source exists
+		args := prepareArgsForSQLMock(scopes, sourceID)
+		mock.ExpectQuery(`SELECT 1 FROM sources WHERE .+ AND source_id = \? LIMIT 1`).
+			WithArgs(args...).
+			WillReturnRows(mockRows)
+
+		exists, err := ModelsService.SourceModel.SourceIDExistsNew(ctx, sourceID, scopes)
+		assert.NoError(t, err)
+		assert.True(t, exists)
+	}
+
+	// Test case 2: No rows found
+	{
+		args := prepareArgsForSQLMock(scopes, sourceID)
+		mock.ExpectQuery(`SELECT 1 FROM sources WHERE .+ AND source_id = \? LIMIT 1`).
+			WithArgs(args...).
+			WillReturnError(sql.ErrNoRows)
+
+		exists, err := ModelsService.SourceModel.SourceIDExistsNew(ctx, sourceID, scopes)
+		assert.NoError(t, err)
+		assert.False(t, exists)
+	}
+
+	// Test case 3: Generic query execution error
+	{
+		args := prepareArgsForSQLMock(scopes, sourceID)
+		mock.ExpectQuery(`SELECT 1 FROM sources WHERE .+ AND source_id = \? LIMIT 1`).
+			WithArgs(args...).
+			WillReturnError(errors.New("query execution error"))
+
+		_, err := ModelsService.SourceModel.SourceIDExistsNew(ctx, sourceID, scopes)
+		assert.Error(t, err)
+	}
+
+	// Ensure all expectations were met
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+// Helper function to prepare args for SQLMock with dynamic scope IDs and sourceID
+func prepareArgsForSQLMock(scopes []int64, sourceID int64) []driver.Value {
 	args := make([]driver.Value, 0, len(scopes)+1)
 	for _, scope := range scopes {
 		args = append(args, scope)
 	}
-	args = append(args, sourceID) // Append sourceID as the last argument
-
-	// Adjust the ExpectQuery to use a regex that's less specific about the placeholders
-	mock.ExpectQuery(`SELECT 1 FROM sources WHERE .+ AND source_id = \? LIMIT 1`).
-		WithArgs(args...). // Pass the converted args
-		WillReturnRows(mockRows)
-
-	exists, err := ModelsService.SourceModel.SourceIDExistsNew(ctx, sourceID, scopes)
-
-	assert.NoError(t, err)
-	assert.True(t, exists)
-
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Errorf("there were unfulfilled expectations: %s", err)
-	}
+	args = append(args, sourceID)
+	return args
 }
