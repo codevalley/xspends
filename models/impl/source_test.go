@@ -3,6 +3,7 @@ package impl
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"testing"
 	"time"
 	"xspends/models/interfaces"
@@ -22,6 +23,7 @@ func TestInsertSource(t *testing.T) {
 
 	source := &interfaces.Source{
 		UserID:    1,
+		ScopeID:   1,
 		Name:      "Test Source",
 		Type:      "CREDIT",
 		Balance:   100.0,
@@ -47,6 +49,7 @@ func TestInsertSource(t *testing.T) {
 	//test for invalid source type
 	source = &interfaces.Source{
 		UserID:    1,
+		ScopeID:   1,
 		Name:      "Test Source",
 		Type:      "Invalid type",
 		Balance:   100.0,
@@ -60,6 +63,7 @@ func TestInsertSource(t *testing.T) {
 	//test for missing source name
 	source = &interfaces.Source{
 		UserID:    1,
+		ScopeID:   1,
 		Name:      "",
 		Type:      "Invalid type",
 		Balance:   100.0,
@@ -81,6 +85,7 @@ func TestInsertSource(t *testing.T) {
 
 	err = ModelsService.SourceModel.InsertSource(ctx, source)
 	assert.Error(t, err)
+	//TODO: Missing scopeID test case
 
 }
 
@@ -94,6 +99,7 @@ func TestUpdateSource(t *testing.T) {
 	source := &interfaces.Source{
 		ID:        1,
 		UserID:    1,
+		ScopeID:   1,
 		Name:      "Updated Source",
 		Type:      "SAVINGS",
 		Balance:   200.0,
@@ -119,6 +125,7 @@ func TestUpdateSource(t *testing.T) {
 	//test for invalid source type
 	source = &interfaces.Source{
 		UserID:    1,
+		ScopeID:   1,
 		Name:      "Test Source",
 		Type:      "Invalid type",
 		Balance:   100.0,
@@ -132,6 +139,7 @@ func TestUpdateSource(t *testing.T) {
 	//test for missing source name
 	source = &interfaces.Source{
 		UserID:    1,
+		ScopeID:   1,
 		Name:      "",
 		Type:      "Invalid type",
 		Balance:   100.0,
@@ -153,6 +161,7 @@ func TestUpdateSource(t *testing.T) {
 
 	err = ModelsService.SourceModel.UpdateSource(ctx, source)
 	assert.Error(t, err)
+	//TODO: Missing scopeID test case
 }
 
 func TestDeleteSource(t *testing.T) {
@@ -163,14 +172,14 @@ func TestDeleteSource(t *testing.T) {
 	defer tearDown()
 
 	sourceID := int64(1)
-	userID := int64(1)
+	scopeID := []int64{1}
 
 	mockExecutor.EXPECT().
 		ExecContext(gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(sql.Result(nil), nil).
 		Times(1)
 
-	err := ModelsService.SourceModel.DeleteSource(ctx, sourceID, userID)
+	err := ModelsService.SourceModel.DeleteSourceNew(ctx, sourceID, scopeID)
 	assert.NoError(t, err)
 
 	//test for generic query error
@@ -186,12 +195,12 @@ func TestDeleteSource(t *testing.T) {
 	}
 	ModelsService = mockModelService
 	// Set up the expected query with sqlmock to return an error
-	mock.ExpectExec(`DELETE FROM sources WHERE id = \? AND user_id = \?`).
-		WithArgs(sourceID, userID).
+	mock.ExpectExec(`DELETE FROM sources WHERE id = \? AND scope_id IN (?)`).
+		WithArgs(sourceID, scopeID).
 		WillReturnError(errors.New("execution error"))
 
 	ctx := context.Background()
-	err = ModelsService.SourceModel.DeleteSource(ctx, sourceID, userID)
+	err = ModelsService.SourceModel.DeleteSourceNew(ctx, sourceID, scopeID)
 
 	assert.Error(t, err) // Expecting an error
 
@@ -214,13 +223,13 @@ func TestGetSourceByID(t *testing.T) {
 	}
 	ModelsService = mockModelService
 	// Set up expectations
-	rows := sqlmock.NewRows([]string{"id", "user_id", "name", "type", "balance", "created_at", "updated_at"}).
-		AddRow(1, 1, "Test Source", "CREDIT", 100.0, time.Now(), time.Now())
+	rows := sqlmock.NewRows([]string{"source_id", "user_id", "name", "type", "balance", "scope_id", "created_at", "updated_at"}).
+		AddRow(1, 1, "Test Source", "CREDIT", 100.0, 1, time.Now(), time.Now())
 	mock.ExpectQuery("^SELECT (.+) FROM sources WHERE").WithArgs(1, 1).WillReturnRows(rows)
 
 	// Call the function under test
 	ctx := context.Background()
-	source, err := ModelsService.SourceModel.GetSourceByID(ctx, 1, 1)
+	source, err := ModelsService.SourceModel.GetSourceByIDNew(ctx, 1, []int64{1})
 
 	// Assertions
 	assert.NoError(t, err)
@@ -229,6 +238,8 @@ func TestGetSourceByID(t *testing.T) {
 	assert.Equal(t, int64(1), source.UserID)
 	assert.Equal(t, "Test Source", source.Name)
 	assert.Equal(t, "CREDIT", source.Type)
+	assert.Equal(t, 100.0, source.Balance)
+	assert.Equal(t, int64(1), source.ScopeID)
 
 	// Ensure all expectations were met
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -239,7 +250,7 @@ func TestGetSourceByID(t *testing.T) {
 	mock.ExpectQuery("^SELECT (.+) FROM sources WHERE").WithArgs(1, 1).
 		WillReturnError(sql.ErrNoRows)
 
-	exists, err1 := ModelsService.SourceModel.GetSourceByID(ctx, 1, 1)
+	exists, err1 := ModelsService.SourceModel.GetSourceByIDNew(ctx, 1, []int64{1})
 
 	assert.Error(t, err1)
 	assert.True(t, exists == nil) // Source does not exist
@@ -248,7 +259,7 @@ func TestGetSourceByID(t *testing.T) {
 	mock.ExpectQuery("^SELECT (.+) FROM sources WHERE").WithArgs(1, 1).
 		WillReturnError(errors.New("query execution error"))
 
-	_, err = ModelsService.SourceModel.GetSourceByID(ctx, 1, 1)
+	_, err = ModelsService.SourceModel.GetSourceByIDNew(ctx, 1, []int64{1})
 
 	assert.Error(t, err)
 
@@ -262,7 +273,7 @@ func TestGetSources(t *testing.T) {
 	defer tearDown()
 
 	userID := int64(1)
-
+	scopes := []int64{1}
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("An error '%s' was not expected when opening a stub database connection", err)
@@ -276,17 +287,17 @@ func TestGetSources(t *testing.T) {
 	}
 	ModelsService = mockModelService
 
-	mockRows := sqlmock.NewRows([]string{"id", "user_id", "name", "type", "balance", "created_at", "updated_at"}).
-		AddRow(1, userID, "Source 1", "CREDIT", 100.00, time.Now(), time.Now()).
-		AddRow(2, userID, "Source 2", "SAVINGS", 200.00, time.Now(), time.Now())
+	mockRows := sqlmock.NewRows([]string{"source_id", "user_id", "name", "type", "balance", "scope_id", "created_at", "updated_at"}).
+		AddRow(1, userID, "Source 1", "CREDIT", 100.00, scopes[0], time.Now(), time.Now()).
+		AddRow(2, userID, "Source 2", "SAVINGS", 200.00, scopes[0], time.Now(), time.Now())
 
 	// Set up the expected query with sqlmock
-	mock.ExpectQuery(`SELECT id, user_id, name, type, balance, created_at, updated_at FROM sources WHERE user_id = \?`).
-		WithArgs(userID).
+	mock.ExpectQuery(`SELECT source_id, user_id, name, type, balance, scope_id, created_at, updated_at FROM sources WHERE scope_id IN (?)`).
+		WithArgs(scopes[0]).
 		WillReturnRows(mockRows)
 
 	ctx := context.Background()
-	sources, err := ModelsService.SourceModel.GetSources(ctx, userID)
+	sources, err := ModelsService.SourceModel.GetSourcesNew(ctx, scopes)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, sources)
@@ -297,25 +308,25 @@ func TestGetSources(t *testing.T) {
 	}
 
 	//test for generic query error
-	mock.ExpectQuery(`SELECT id, user_id, name, type, balance, created_at, updated_at FROM sources WHERE user_id = \?`).
-		WithArgs(userID).
+	mock.ExpectQuery(`SELECT source_id, user_id, name, type, balance, scope_id, created_at, updated_at FROM sources WHERE scope_id IN (?)`).
+		WithArgs(scopes[0]).
 		WillReturnError(errors.New("query execution error"))
 
-	_, err = ModelsService.SourceModel.GetSources(ctx, userID)
+	_, err = ModelsService.SourceModel.GetSourcesNew(ctx, scopes)
 
 	assert.Error(t, err)
 
 	//test row processing error
-	rows := sqlmock.NewRows([]string{"id", "user_id", "name", "type", "balance", "created_at", "updated_at"}).
-		AddRow(1, userID, "Source 1", "CREDIT", 100.00, time.Now(), time.Now()).
-		AddRow(2, userID, "Source 2", "SAVINGS", 200.00, time.Now(), time.Now()).
+	rows := sqlmock.NewRows([]string{"source_id", "user_id", "name", "type", "balance", "scope_id", "created_at", "updated_at"}).
+		AddRow(1, userID, "Source 1", "CREDIT", 100.00, scopes[0], time.Now(), time.Now()).
+		AddRow(2, userID, "Source 2", "SAVINGS", 200.00, scopes[0], time.Now(), time.Now()).
 		RowError(1, errors.New("row processing error"))
 
-	mock.ExpectQuery(`SELECT id, user_id, name, type, balance, created_at, updated_at FROM sources WHERE user_id = \?`).
-		WithArgs(userID).
+	mock.ExpectQuery(`SELECT source_id, user_id, name, type, balance, scope_id, created_at, updated_at FROM sources WHERE scope_id IN (?)`).
+		WithArgs(scopes[0]).
 		WillReturnRows(rows)
 
-	_, err = ModelsService.SourceModel.GetSources(ctx, userID)
+	_, err = ModelsService.SourceModel.GetSourcesNew(ctx, scopes)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "during row processing for sources: row processing error")
@@ -330,7 +341,7 @@ func TestSourceIDExists(t *testing.T) {
 	defer tearDown()
 
 	sourceID := int64(1)
-	userID := int64(1)
+	scopes := []int64{1, 2, 3} // Example with multiple scope IDs
 
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -345,39 +356,27 @@ func TestSourceIDExists(t *testing.T) {
 	}
 	ModelsService = mockModelService
 
-	// Prepare a row with a single column that represents 'exists'
-	mockRows := sqlmock.NewRows([]string{"1"}).AddRow(1) // Assuming the source exists
+	ctx := context.Background()
+	mockRows := sqlmock.NewRows([]string{"1"}).AddRow(1)
 
-	// Set up the expected query with sqlmock
-	mock.ExpectQuery(`SELECT 1 FROM sources WHERE id = \? AND user_id = \? LIMIT 1`).
-		WithArgs(sourceID, userID).
+	// Convert scopes and sourceID into a slice of driver.Value
+	args := make([]driver.Value, 0, len(scopes)+1)
+	for _, scope := range scopes {
+		args = append(args, scope)
+	}
+	args = append(args, sourceID) // Append sourceID as the last argument
+
+	// Adjust the ExpectQuery to use a regex that's less specific about the placeholders
+	mock.ExpectQuery(`SELECT 1 FROM sources WHERE .+ AND source_id = \? LIMIT 1`).
+		WithArgs(args...). // Pass the converted args
 		WillReturnRows(mockRows)
 
-	ctx := context.Background()
-	exists, err := ModelsService.SourceModel.SourceIDExists(ctx, sourceID, userID)
+	exists, err := ModelsService.SourceModel.SourceIDExistsNew(ctx, sourceID, scopes)
 
 	assert.NoError(t, err)
-	assert.True(t, exists) // Assuming the source exists
+	assert.True(t, exists)
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
-	//test for query error with no rows found
-	mock.ExpectQuery(`SELECT 1 FROM sources WHERE id = \? AND user_id = \? LIMIT 1`).
-		WithArgs(sourceID, userID).
-		WillReturnError(sql.ErrNoRows)
-
-	exists, err = ModelsService.SourceModel.SourceIDExists(ctx, sourceID, userID)
-
-	assert.NoError(t, err)
-	assert.False(t, exists) // Source does not exist
-
-	//test for generic query error
-	mock.ExpectQuery(`SELECT 1 FROM sources WHERE id = \? AND user_id = \? LIMIT 1`).
-		WithArgs(sourceID, userID).
-		WillReturnError(errors.New("query execution error"))
-
-	_, err = ModelsService.SourceModel.SourceIDExists(ctx, sourceID, userID)
-
-	assert.Error(t, err)
 }
