@@ -66,15 +66,16 @@ func getTagID(c *gin.Context) (int64, bool) {
 // @Failure 500 {object} map[string]string "Unable to fetch tags"
 // @Router /tags [get]
 func ListTags(c *gin.Context) {
-	userID, ok := getUserID(c)
-	if !ok {
+	_, okUser := getUserID(c)
+	scopeID, okScope := getScopeID(c)
+	if !okUser || !okScope {
 		return
 	}
 
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", strconv.Itoa(defaultLimit)))
 	offset, _ := strconv.Atoi(c.Query("offset"))
 
-	tags, err := impl.GetModelsService().TagModel.GetAllTags(c, userID, interfaces.PaginationParams{Limit: limit, Offset: offset}, nil)
+	tags, err := impl.GetModelsService().TagModel.GetScopedTags(c, []int64{scopeID}, interfaces.PaginationParams{Limit: limit, Offset: offset}, nil)
 	if err != nil {
 		log.Printf("[ListTags] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch tags"})
@@ -100,8 +101,9 @@ func ListTags(c *gin.Context) {
 // @Failure 404 {object} map[string]string "Tag not found"
 // @Router /tags/{id} [get]
 func GetTag(c *gin.Context) {
-	userID, ok := getUserID(c)
-	if !ok {
+	_, okUser := getUserID(c)
+	scopeID, okScope := getScopeID(c)
+	if !okUser || !okScope {
 		return
 	}
 
@@ -110,7 +112,7 @@ func GetTag(c *gin.Context) {
 		return
 	}
 
-	tag, err := impl.GetModelsService().TagModel.GetTagByID(c, tagID, userID, nil)
+	tag, err := impl.GetModelsService().TagModel.GetTagByIDNew(c, tagID, []int64{scopeID}, nil)
 	if err != nil {
 		log.Printf("[GetTag] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "tag not found"})
@@ -131,11 +133,11 @@ func GetTag(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Unable to create tag"
 // @Router /tags [post]
 func CreateTag(c *gin.Context) {
-	userID, ok := getUserID(c)
-	if !ok {
+	userID, okUser := getUserID(c)
+	scopeID, okScope := getScopeID(c)
+	if !okUser || !okScope {
 		return
 	}
-
 	var newTag interfaces.Tag
 	if err := c.ShouldBindJSON(&newTag); err != nil {
 		log.Printf("[CreateTag] Error: %v", err)
@@ -143,6 +145,7 @@ func CreateTag(c *gin.Context) {
 		return
 	}
 	newTag.UserID = userID
+	newTag.ScopeID = scopeID
 	if len(newTag.Name) > maxTagNameLength {
 		log.Printf("[CreateTag] Error: tag name exceeds maximum length")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "tag name exceeds maximum length"})
@@ -169,8 +172,9 @@ func CreateTag(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Unable to update tag"
 // @Router /tags/{id} [put]
 func UpdateTag(c *gin.Context) {
-	userID, ok := getUserID(c)
-	if !ok {
+	userID, okUser := getUserID(c)
+	scopeID, okScope := getScopeID(c)
+	if !okUser || !okScope {
 		return
 	}
 
@@ -181,6 +185,7 @@ func UpdateTag(c *gin.Context) {
 		return
 	}
 	updatedTag.UserID = userID
+	updatedTag.ScopeID = scopeID
 	if len(updatedTag.Name) > maxTagNameLength {
 		log.Printf("[UpdateTag] Error: tag name exceeds maximum length")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "tag name exceeds maximum length"})
@@ -205,17 +210,17 @@ func UpdateTag(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Unable to delete tag"
 // @Router /tags/{id} [delete]
 func DeleteTag(c *gin.Context) {
-	userID, ok := getUserID(c)
-	if !ok {
+	_, okUser := getUserID(c)
+	scopeID, okScope := getScopeID(c)
+	if !okUser || !okScope {
 		return
 	}
-
 	tagID, ok := getTagID(c)
 	if !ok {
 		return
 	}
 
-	if err := impl.GetModelsService().TagModel.DeleteTag(c, tagID, userID, nil); err != nil {
+	if err := impl.GetModelsService().TagModel.DeleteTagNew(c, tagID, []int64{scopeID}, nil); err != nil {
 		log.Printf("[DeleteTag] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete tag"})
 		return
