@@ -137,7 +137,8 @@ func (tm *TransactionTagModel) AddTagsToTransaction(ctx context.Context, transac
 	isExternalTx, executor := getExecutor(otx...)
 
 	for _, tagName := range tags {
-		tag, err := GetModelsService().TagModel.GetTagByName(ctx, tagName, userID, otx...)
+		//TODO: Won't work as expected. Review and close
+		tag, err := GetModelsService().TagModel.GetTagByNameNew(ctx, tagName, []int64{0}, otx...)
 		if err != nil {
 			return errors.Wrap(err, "error getting tag by name")
 		}

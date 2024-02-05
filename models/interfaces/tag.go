@@ -24,13 +24,6 @@ type TagService interface {
 	InsertTag(ctx context.Context, tag *Tag, otx ...*sql.Tx) error
 	UpdateTag(ctx context.Context, tag *Tag, otx ...*sql.Tx) error
 
-	//deprecated methods
-	DeleteTag(ctx context.Context, tagID int64, userID int64, otx ...*sql.Tx) error
-	GetTagByID(ctx context.Context, tagID int64, userID int64, otx ...*sql.Tx) (*Tag, error)
-	GetAllTags(ctx context.Context, userID int64, pagination PaginationParams, otx ...*sql.Tx) ([]Tag, error)
-	GetTagByName(ctx context.Context, name string, userID int64, otx ...*sql.Tx) (*Tag, error)
-	//deprecated methods end
-
 	DeleteTagNew(ctx context.Context, tagID int64, scopes []int64, otx ...*sql.Tx) error
 	GetTagByIDNew(ctx context.Context, tagID int64, scopes []int64, otx ...*sql.Tx) (*Tag, error)
 	GetScopedTags(ctx context.Context, scopes []int64, pagination PaginationParams, otx ...*sql.Tx) ([]Tag, error)

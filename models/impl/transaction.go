@@ -451,7 +451,8 @@ func validateForeignKeyReferences(ctx context.Context, txn interfaces.Transactio
 func addMissingTags(ctx context.Context, transactionID int64, tagNames []string, userID int64, otx ...*sql.Tx) error {
 	// Ensure all tags are present in the database
 	for _, tagName := range tagNames {
-		tag, _ := GetModelsService().TagModel.GetTagByName(ctx, tagName, userID, otx...)
+		//TODO: Won't work as expected. Review and close
+		tag, _ := GetModelsService().TagModel.GetTagByNameNew(ctx, tagName, []int64{1}, otx...)
 
 		if tag == nil {
 			// Tag does not exist; create it
