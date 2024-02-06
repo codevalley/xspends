@@ -452,7 +452,7 @@ func addMissingTags(ctx context.Context, transactionID int64, tagNames []string,
 	// Ensure all tags are present in the database
 	for _, tagName := range tagNames {
 		//TODO: Won't work as expected. Review and close
-		tag, _ := GetModelsService().TagModel.GetTagByNameNew(ctx, tagName, []int64{1}, otx...)
+		tag, _ := GetModelsService().TagModel.GetTagByName(ctx, tagName, []int64{1}, otx...)
 
 		if tag == nil {
 			// Tag does not exist; create it
@@ -473,7 +473,7 @@ func addMissingTags(ctx context.Context, transactionID int64, tagNames []string,
 func addMissingTagsNew(ctx context.Context, txn interfaces.Transaction, otx ...*sql.Tx) error {
 	// Ensure all tags are present in the database
 	for _, tagName := range txn.Tags {
-		tag, _ := GetModelsService().TagModel.GetTagByNameNew(ctx, tagName, []int64{txn.ScopeID}, otx...)
+		tag, _ := GetModelsService().TagModel.GetTagByName(ctx, tagName, []int64{txn.ScopeID}, otx...)
 
 		if tag == nil {
 			// Tag does not exist; create it

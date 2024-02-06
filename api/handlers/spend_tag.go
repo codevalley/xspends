@@ -112,7 +112,7 @@ func GetTag(c *gin.Context) {
 		return
 	}
 
-	tag, err := impl.GetModelsService().TagModel.GetTagByIDNew(c, tagID, []int64{scopeID}, nil)
+	tag, err := impl.GetModelsService().TagModel.GetTagByID(c, tagID, []int64{scopeID}, nil)
 	if err != nil {
 		log.Printf("[GetTag] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "tag not found"})
@@ -220,7 +220,7 @@ func DeleteTag(c *gin.Context) {
 		return
 	}
 
-	if err := impl.GetModelsService().TagModel.DeleteTagNew(c, tagID, []int64{scopeID}, nil); err != nil {
+	if err := impl.GetModelsService().TagModel.DeleteTag(c, tagID, []int64{scopeID}, nil); err != nil {
 		log.Printf("[DeleteTag] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete tag"})
 		return

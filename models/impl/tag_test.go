@@ -79,7 +79,7 @@ func TestDeleteExistingTag(t *testing.T) {
 		Return(sql.Result(nil), nil).
 		Times(1)
 
-	err := ModelsService.TagModel.DeleteTagNew(ctx, tagID, scopes)
+	err := ModelsService.TagModel.DeleteTag(ctx, tagID, scopes)
 	assert.NoError(t, err)
 }
 
@@ -150,7 +150,7 @@ func TestRetrieveExistingTagByID(t *testing.T) {
 		WillReturnRows(mockRows)
 
 	ctx := context.Background()
-	tag, err := ModelsService.TagModel.GetTagByIDNew(ctx, tagID, scopes)
+	tag, err := ModelsService.TagModel.GetTagByID(ctx, tagID, scopes)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, tag)
@@ -244,7 +244,7 @@ func TestGetTagByName(t *testing.T) {
 		WillReturnRows(mockRows)
 
 	ctx := context.Background()
-	tag, err := ModelsService.TagModel.GetTagByNameNew(ctx, tagName, scopes)
+	tag, err := ModelsService.TagModel.GetTagByName(ctx, tagName, scopes)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, tag)

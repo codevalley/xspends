@@ -26,13 +26,13 @@ func (m *MockTagModel) UpdateTag(ctx context.Context, tag *interfaces.Tag, otx .
 }
 
 // Mock implementation of DeleteTagNew
-func (m *MockTagModel) DeleteTagNew(ctx context.Context, tagID int64, scopes []int64, otx ...*sql.Tx) error {
+func (m *MockTagModel) DeleteTag(ctx context.Context, tagID int64, scopes []int64, otx ...*sql.Tx) error {
 	args := m.Called(ctx, tagID, scopes, otx)
 	return args.Error(0)
 }
 
 // Mock implementation of GetTagByIDNew
-func (m *MockTagModel) GetTagByIDNew(ctx context.Context, tagID int64, scopes []int64, otx ...*sql.Tx) (*interfaces.Tag, error) {
+func (m *MockTagModel) GetTagByID(ctx context.Context, tagID int64, scopes []int64, otx ...*sql.Tx) (*interfaces.Tag, error) {
 	args := m.Called(ctx, tagID, scopes, otx)
 	return args.Get(0).(*interfaces.Tag), args.Error(1)
 }
@@ -44,7 +44,7 @@ func (m *MockTagModel) GetScopedTags(ctx context.Context, scopes []int64, pagina
 }
 
 // Mock implementation of GetTagByNameNew
-func (m *MockTagModel) GetTagByNameNew(ctx context.Context, name string, scopes []int64, otx ...*sql.Tx) (*interfaces.Tag, error) {
+func (m *MockTagModel) GetTagByName(ctx context.Context, name string, scopes []int64, otx ...*sql.Tx) (*interfaces.Tag, error) {
 	args := m.Called(ctx, name, scopes, otx)
 	return args.Get(0).(*interfaces.Tag), args.Error(1)
 }

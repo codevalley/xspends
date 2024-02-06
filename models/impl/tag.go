@@ -118,7 +118,7 @@ func (tm *TagModel) UpdateTag(ctx context.Context, tag *interfaces.Tag, otx ...*
 	return nil
 }
 
-func (tm *TagModel) DeleteTagNew(ctx context.Context, tagID int64, scopes []int64, otx ...*sql.Tx) error {
+func (tm *TagModel) DeleteTag(ctx context.Context, tagID int64, scopes []int64, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
 	query, args, err := squirrel.Delete(tm.TableTags).
@@ -140,7 +140,7 @@ func (tm *TagModel) DeleteTagNew(ctx context.Context, tagID int64, scopes []int6
 	return nil
 }
 
-func (tm *TagModel) GetTagByIDNew(ctx context.Context, tagID int64, scopes []int64, otx ...*sql.Tx) (*interfaces.Tag, error) {
+func (tm *TagModel) GetTagByID(ctx context.Context, tagID int64, scopes []int64, otx ...*sql.Tx) (*interfaces.Tag, error) {
 	_, executor := getExecutor(otx...)
 
 	query, args, err := squirrel.Select(tm.ColumnID, tm.ColumnUserID, tm.ColumnName, tm.ColumnScope, tm.ColumnCreatedAt, tm.ColumnUpdatedAt).
@@ -204,7 +204,7 @@ func (tm *TagModel) GetScopedTags(ctx context.Context, scopes []int64, paginatio
 	return tags, nil
 }
 
-func (tm *TagModel) GetTagByNameNew(ctx context.Context, name string, scopes []int64, otx ...*sql.Tx) (*interfaces.Tag, error) {
+func (tm *TagModel) GetTagByName(ctx context.Context, name string, scopes []int64, otx ...*sql.Tx) (*interfaces.Tag, error) {
 	_, executor := getExecutor(otx...)
 
 	query, args, err := squirrel.Select(tm.ColumnID, tm.ColumnUserID, tm.ColumnName, tm.ColumnScope, tm.ColumnCreatedAt, tm.ColumnUpdatedAt).
