@@ -418,7 +418,7 @@ func validateForeignKeyReferences(ctx context.Context, txn interfaces.Transactio
 	}
 
 	// Check if the source exists
-	sourceExists, err := GetModelsService().SourceModel.SourceIDExistsNew(ctx, txn.SourceID, []int64{txn.ScopeID})
+	sourceExists, err := GetModelsService().SourceModel.SourceIDExists(ctx, txn.SourceID, []int64{txn.ScopeID})
 	if err != nil {
 		return errors.Wrap(err, "error checking if source exists")
 	}

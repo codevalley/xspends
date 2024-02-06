@@ -26,12 +26,12 @@ func (m *MockSourceModel) UpdateSource(ctx context.Context, source *interfaces.S
 	return args.Error(0)
 }
 
-func (m *MockSourceModel) DeleteSourceNew(ctx context.Context, sourceID int64, scopes []int64, otx ...*sql.Tx) error {
+func (m *MockSourceModel) DeleteSource(ctx context.Context, sourceID int64, scopes []int64, otx ...*sql.Tx) error {
 	args := m.Called(ctx, sourceID, scopes, otx)
 	return args.Error(0)
 }
 
-func (m *MockSourceModel) GetSourceByIDNew(ctx context.Context, sourceID int64, scopes []int64, otx ...*sql.Tx) (*interfaces.Source, error) {
+func (m *MockSourceModel) GetSourceByID(ctx context.Context, sourceID int64, scopes []int64, otx ...*sql.Tx) (*interfaces.Source, error) {
 	args := m.Called(ctx, sourceID, scopes, otx)
 	return args.Get(0).(*interfaces.Source), args.Error(1)
 }
@@ -41,12 +41,12 @@ func (m *MockSourceModel) GetScopedSources(ctx context.Context, page int, itemsP
 	return args.Get(0).([]interfaces.Source), args.Error(1)
 }
 
-func (m *MockSourceModel) GetSourcesNew(ctx context.Context, scopes []int64, otx ...*sql.Tx) ([]interfaces.Source, error) {
+func (m *MockSourceModel) GetSources(ctx context.Context, scopes []int64, otx ...*sql.Tx) ([]interfaces.Source, error) {
 	args := m.Called(ctx, scopes, otx)
 	return args.Get(0).([]interfaces.Source), args.Error(1)
 }
 
-func (m *MockSourceModel) SourceIDExistsNew(ctx context.Context, sourceID int64, scopes []int64, otx ...*sql.Tx) (bool, error) {
+func (m *MockSourceModel) SourceIDExists(ctx context.Context, sourceID int64, scopes []int64, otx ...*sql.Tx) (bool, error) {
 	args := m.Called(ctx, sourceID, scopes, otx)
 	return args.Bool(0), args.Error(1)
 }

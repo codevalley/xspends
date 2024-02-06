@@ -133,7 +133,7 @@ func (sm *SourceModel) UpdateSource(ctx context.Context, source *interfaces.Sour
 	return nil
 }
 
-func (sm *SourceModel) DeleteSourceNew(ctx context.Context, sourceID int64, scopes []int64, otx ...*sql.Tx) error {
+func (sm *SourceModel) DeleteSource(ctx context.Context, sourceID int64, scopes []int64, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 	query, args, err := GetQueryBuilder().Delete(sm.TableSources).
 		Where(squirrel.Eq{sm.ColumnID: sourceID, sm.ColumnScope: scopes}).
@@ -151,7 +151,7 @@ func (sm *SourceModel) DeleteSourceNew(ctx context.Context, sourceID int64, scop
 	return nil
 }
 
-func (sm *SourceModel) GetSourceByIDNew(ctx context.Context, sourceID int64, scopes []int64, otx ...*sql.Tx) (*interfaces.Source, error) {
+func (sm *SourceModel) GetSourceByID(ctx context.Context, sourceID int64, scopes []int64, otx ...*sql.Tx) (*interfaces.Source, error) {
 	_, executor := getExecutor(otx...)
 	query, args, err := GetQueryBuilder().Select(sm.ColumnID, sm.ColumnUserID, sm.ColumnName, sm.ColumnType, sm.ColumnBalance, sm.ColumnScope, sm.ColumnCreatedAt, sm.ColumnUpdatedAt).
 		From(sm.TableSources).
@@ -212,7 +212,7 @@ func (sm *SourceModel) GetScopedSources(ctx context.Context, page int, itemsPerP
 	return sources, nil
 }
 
-func (sm *SourceModel) GetSourcesNew(ctx context.Context, scopes []int64, otx ...*sql.Tx) ([]interfaces.Source, error) {
+func (sm *SourceModel) GetSources(ctx context.Context, scopes []int64, otx ...*sql.Tx) ([]interfaces.Source, error) {
 	_, executor := getExecutor(otx...)
 	query, args, err := GetQueryBuilder().Select(sm.ColumnID, sm.ColumnUserID, sm.ColumnName, sm.ColumnType, sm.ColumnBalance, sm.ColumnScope, sm.ColumnCreatedAt, sm.ColumnUpdatedAt).
 		From(sm.TableSources).
@@ -245,7 +245,7 @@ func (sm *SourceModel) GetSourcesNew(ctx context.Context, scopes []int64, otx ..
 	return sources, nil
 }
 
-func (sm *SourceModel) SourceIDExistsNew(ctx context.Context, sourceID int64, scopes []int64, otx ...*sql.Tx) (bool, error) {
+func (sm *SourceModel) SourceIDExists(ctx context.Context, sourceID int64, scopes []int64, otx ...*sql.Tx) (bool, error) {
 	_, executor := getExecutor(otx...)
 
 	query, args, err := GetQueryBuilder().Select("1").

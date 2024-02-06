@@ -49,7 +49,7 @@ func ListSources(c *gin.Context) {
 		return
 	}
 
-	sources, err := impl.GetModelsService().SourceModel.GetSourcesNew(c, []int64{scopeID})
+	sources, err := impl.GetModelsService().SourceModel.GetSources(c, []int64{scopeID})
 	if err != nil {
 		log.Printf("[ListSources] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to fetch sources"})
@@ -82,7 +82,7 @@ func GetSource(c *gin.Context) {
 		// c.JSON(http.StatusNotFound, gin.H{"error": "invalid source ID format"})
 		return
 	}
-	source, err := impl.GetModelsService().SourceModel.GetSourceByIDNew(c, sourceID, []int64{scopeID})
+	source, err := impl.GetModelsService().SourceModel.GetSourceByID(c, sourceID, []int64{scopeID})
 	if err != nil {
 		log.Printf("[GetSource] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "Source not found"})
@@ -182,7 +182,7 @@ func DeleteSource(c *gin.Context) {
 		// c.JSON(http.StatusNotFound, gin.H{"error": "invalid source ID format"})
 		return
 	}
-	if err := impl.GetModelsService().SourceModel.DeleteSourceNew(c, sourceID, []int64{scopeID}); err != nil {
+	if err := impl.GetModelsService().SourceModel.DeleteSource(c, sourceID, []int64{scopeID}); err != nil {
 		log.Printf("[DeleteSource] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete source"})
 		return

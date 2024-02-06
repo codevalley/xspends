@@ -179,7 +179,7 @@ func TestDeleteSource(t *testing.T) {
 		Return(sql.Result(nil), nil).
 		Times(1)
 
-	err := ModelsService.SourceModel.DeleteSourceNew(ctx, sourceID, scopeID)
+	err := ModelsService.SourceModel.DeleteSource(ctx, sourceID, scopeID)
 	assert.NoError(t, err)
 
 	//test for generic query error
@@ -200,7 +200,7 @@ func TestDeleteSource(t *testing.T) {
 		WillReturnError(errors.New("execution error"))
 
 	ctx := context.Background()
-	err = ModelsService.SourceModel.DeleteSourceNew(ctx, sourceID, scopeID)
+	err = ModelsService.SourceModel.DeleteSource(ctx, sourceID, scopeID)
 
 	assert.Error(t, err) // Expecting an error
 
@@ -229,7 +229,7 @@ func TestGetSourceByID(t *testing.T) {
 
 	// Call the function under test
 	ctx := context.Background()
-	source, err := ModelsService.SourceModel.GetSourceByIDNew(ctx, 1, []int64{1})
+	source, err := ModelsService.SourceModel.GetSourceByID(ctx, 1, []int64{1})
 
 	// Assertions
 	assert.NoError(t, err)
@@ -250,7 +250,7 @@ func TestGetSourceByID(t *testing.T) {
 	mock.ExpectQuery("^SELECT (.+) FROM sources WHERE").WithArgs(1, 1).
 		WillReturnError(sql.ErrNoRows)
 
-	exists, err1 := ModelsService.SourceModel.GetSourceByIDNew(ctx, 1, []int64{1})
+	exists, err1 := ModelsService.SourceModel.GetSourceByID(ctx, 1, []int64{1})
 
 	assert.Error(t, err1)
 	assert.True(t, exists == nil) // Source does not exist
@@ -259,7 +259,7 @@ func TestGetSourceByID(t *testing.T) {
 	mock.ExpectQuery("^SELECT (.+) FROM sources WHERE").WithArgs(1, 1).
 		WillReturnError(errors.New("query execution error"))
 
-	_, err = ModelsService.SourceModel.GetSourceByIDNew(ctx, 1, []int64{1})
+	_, err = ModelsService.SourceModel.GetSourceByID(ctx, 1, []int64{1})
 
 	assert.Error(t, err)
 
@@ -297,7 +297,7 @@ func TestGetSources(t *testing.T) {
 		WillReturnRows(mockRows)
 
 	ctx := context.Background()
-	sources, err := ModelsService.SourceModel.GetSourcesNew(ctx, scopes)
+	sources, err := ModelsService.SourceModel.GetSources(ctx, scopes)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, sources)
@@ -312,7 +312,7 @@ func TestGetSources(t *testing.T) {
 		WithArgs(scopes[0]).
 		WillReturnError(errors.New("query execution error"))
 
-	_, err = ModelsService.SourceModel.GetSourcesNew(ctx, scopes)
+	_, err = ModelsService.SourceModel.GetSources(ctx, scopes)
 
 	assert.Error(t, err)
 
@@ -326,7 +326,7 @@ func TestGetSources(t *testing.T) {
 		WithArgs(scopes[0]).
 		WillReturnRows(rows)
 
-	_, err = ModelsService.SourceModel.GetSourcesNew(ctx, scopes)
+	_, err = ModelsService.SourceModel.GetSources(ctx, scopes)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "during row processing for sources: row processing error")
@@ -368,7 +368,7 @@ func TestSourceIDExists(t *testing.T) {
 			WithArgs(args...).
 			WillReturnRows(mockRows)
 
-		exists, err := ModelsService.SourceModel.SourceIDExistsNew(ctx, sourceID, scopes)
+		exists, err := ModelsService.SourceModel.SourceIDExists(ctx, sourceID, scopes)
 		assert.NoError(t, err)
 		assert.True(t, exists)
 	}
@@ -380,7 +380,7 @@ func TestSourceIDExists(t *testing.T) {
 			WithArgs(args...).
 			WillReturnError(sql.ErrNoRows)
 
-		exists, err := ModelsService.SourceModel.SourceIDExistsNew(ctx, sourceID, scopes)
+		exists, err := ModelsService.SourceModel.SourceIDExists(ctx, sourceID, scopes)
 		assert.NoError(t, err)
 		assert.False(t, exists)
 	}
@@ -392,7 +392,7 @@ func TestSourceIDExists(t *testing.T) {
 			WithArgs(args...).
 			WillReturnError(errors.New("query execution error"))
 
-		_, err := ModelsService.SourceModel.SourceIDExistsNew(ctx, sourceID, scopes)
+		_, err := ModelsService.SourceModel.SourceIDExists(ctx, sourceID, scopes)
 		assert.Error(t, err)
 	}
 
