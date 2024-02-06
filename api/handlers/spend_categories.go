@@ -114,7 +114,7 @@ func GetCategory(c *gin.Context) {
 		return
 	}
 
-	category, err := impl.GetModelsService().CategoryModel.GetCategoryByIDNew(c, categoryID, []int64{scopeID}, nil)
+	category, err := impl.GetModelsService().CategoryModel.GetCategoryByID(c, categoryID, []int64{scopeID}, nil)
 	if err != nil {
 		log.Printf("[GetCategory] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "category not found"})
@@ -220,7 +220,7 @@ func DeleteCategory(c *gin.Context) {
 		return
 	}
 
-	if err := impl.GetModelsService().CategoryModel.DeleteCategoryNew(c, categoryID, []int64{scopeID}, nil); err != nil {
+	if err := impl.GetModelsService().CategoryModel.DeleteCategory(c, categoryID, []int64{scopeID}, nil); err != nil {
 		log.Printf("[DeleteCategory] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete category"})
 		return
