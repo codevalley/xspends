@@ -138,7 +138,7 @@ func (cm *CategoryModel) UpdateCategory(ctx context.Context, category *interface
 }
 
 // DeleteCategory deletes a category from the database.
-func (cm *CategoryModel) DeleteCategoryNew(ctx context.Context, categoryID int64, scopes []int64, otx ...*sql.Tx) error {
+func (cm *CategoryModel) DeleteCategory(ctx context.Context, categoryID int64, scopes []int64, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
 	//We can add validation here as well
@@ -187,7 +187,7 @@ func (cm *CategoryModel) GetAllScopedCategories(ctx context.Context, scopes []in
 	return categories, nil
 }
 
-func (cm *CategoryModel) GetCategoryByIDNew(ctx context.Context, categoryID int64, scopes []int64, otx ...*sql.Tx) (*interfaces.Category, error) {
+func (cm *CategoryModel) GetCategoryByID(ctx context.Context, categoryID int64, scopes []int64, otx ...*sql.Tx) (*interfaces.Category, error) {
 	_, executor := getExecutor(otx...)
 
 	query, args, err := sqlBuilder.Select(cm.ColumnID, cm.ColumnUserID, cm.ColumnScopeID, cm.ColumnName, cm.ColumnDescription, cm.ColumnIcon, cm.ColumnScopeID, cm.ColumnCreatedAt, cm.ColumnUpdatedAt).
@@ -243,7 +243,7 @@ func (cm *CategoryModel) GetScopedCategories(ctx context.Context, page int, item
 	return categories, nil
 }
 
-func (cm *CategoryModel) CategoryIDExistsNew(ctx context.Context, categoryID int64, scopes []int64, otx ...*sql.Tx) (bool, error) {
+func (cm *CategoryModel) CategoryIDExists(ctx context.Context, categoryID int64, scopes []int64, otx ...*sql.Tx) (bool, error) {
 	_, executor := getExecutor(otx...)
 	query, args, err := sqlBuilder.Select("1").
 		From(cm.TableCategories).

@@ -73,7 +73,7 @@ func TestDeleteCategoryWithDatabaseError(t *testing.T) {
 
 	mockExecutor.EXPECT().ExecContext(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("database error"))
 
-	err := ModelsService.CategoryModel.DeleteCategoryNew(ctx, 1, []int64{1})
+	err := ModelsService.CategoryModel.DeleteCategory(ctx, 1, []int64{1})
 	assert.EqualError(t, err, "executing delete statement failed: database error")
 }
 
@@ -117,7 +117,7 @@ func TestGetCategoryByIDWithCategoryNotFound(t *testing.T) {
 
 	mock.ExpectQuery("^SELECT (.+) FROM categories WHERE").WillReturnRows(sqlmock.NewRows([]string{}))
 
-	_, err = ModelsService.CategoryModel.GetCategoryByIDNew(ctx, 1, []int64{1})
+	_, err = ModelsService.CategoryModel.GetCategoryByID(ctx, 1, []int64{1})
 	assert.EqualError(t, err, "category not found")
 }
 
@@ -139,7 +139,7 @@ func TestGetCategoryByIDWithDatabaseError(t *testing.T) {
 
 	mock.ExpectQuery("^SELECT (.+) FROM categories WHERE").WillReturnError(errors.New("database error"))
 
-	_, err = ModelsService.CategoryModel.GetCategoryByIDNew(ctx, 1, []int64{1})
+	_, err = ModelsService.CategoryModel.GetCategoryByID(ctx, 1, []int64{1})
 	assert.EqualError(t, err, "querying category by ID failed: database error")
 }
 
@@ -183,7 +183,7 @@ func TestCategoryIDExistsWithDatabaseError(t *testing.T) {
 
 	mock.ExpectQuery("^SELECT (.+) FROM categories WHERE").WillReturnError(errors.New("database error"))
 
-	exists, err := ModelsService.CategoryModel.CategoryIDExistsNew(ctx, 1, []int64{1}, nil)
+	exists, err := ModelsService.CategoryModel.CategoryIDExists(ctx, 1, []int64{1}, nil)
 	assert.EqualError(t, err, "checking category existence failed: database error")
 	assert.False(t, exists)
 }
@@ -220,7 +220,7 @@ func TestGetCategoryByIDWithEmptyIcon(t *testing.T) {
 
 	mock.ExpectQuery("^SELECT (.+) FROM categories WHERE").WillReturnRows(rows)
 
-	category, err := ModelsService.CategoryModel.GetCategoryByIDNew(ctx, 1, []int64{1})
+	category, err := ModelsService.CategoryModel.GetCategoryByID(ctx, 1, []int64{1})
 	assert.NoError(t, err)
 	assert.Equal(t, expectedCategory, category)
 }
@@ -273,7 +273,7 @@ func TestCategoryIDExistsWithNonExistentCategory(t *testing.T) {
 		WithArgs(categoryID, scopeID).
 		WillReturnRows(sqlmock.NewRows([]string{}))
 
-	actualExists, err := ModelsService.CategoryModel.CategoryIDExistsNew(ctx, categoryID, []int64{scopeID})
+	actualExists, err := ModelsService.CategoryModel.CategoryIDExists(ctx, categoryID, []int64{scopeID})
 	assert.NoError(t, err)
 	assert.False(t, actualExists)
 }
@@ -301,7 +301,7 @@ func TestDeleteCategoryWithDatabase(t *testing.T) {
 		WithArgs(categoryID, scopeID).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	err = ModelsService.CategoryModel.DeleteCategoryNew(ctx, categoryID, []int64{scopeID})
+	err = ModelsService.CategoryModel.DeleteCategory(ctx, categoryID, []int64{scopeID})
 	assert.NoError(t, err)
 }
 
@@ -341,7 +341,7 @@ func TestGetCategoryByIDWithDatabase(t *testing.T) {
 		WithArgs(categoryID, scopeID).
 		WillReturnRows(rows)
 
-	category, err := ModelsService.CategoryModel.GetCategoryByIDNew(ctx, categoryID, []int64{scopeID})
+	category, err := ModelsService.CategoryModel.GetCategoryByID(ctx, categoryID, []int64{scopeID})
 	assert.NoError(t, err)
 	assert.Equal(t, expectedCategory, category)
 }
@@ -370,7 +370,7 @@ func TestCategoryIDExistsWithDatabase(t *testing.T) {
 		WithArgs(categoryID, scopeID).
 		WillReturnRows(sqlmock.NewRows([]string{"category_id"}).AddRow(categoryID))
 
-	actualExists, err := ModelsService.CategoryModel.CategoryIDExistsNew(ctx, categoryID, []int64{scopeID})
+	actualExists, err := ModelsService.CategoryModel.CategoryIDExists(ctx, categoryID, []int64{scopeID})
 	assert.NoError(t, err)
 	assert.Equal(t, exists, actualExists)
 }

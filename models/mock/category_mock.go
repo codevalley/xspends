@@ -26,19 +26,9 @@ func (m *MockCategoryModel) UpdateCategory(ctx context.Context, category *interf
 	return args.Error(0)
 }
 
-func (m *MockCategoryModel) DeleteCategory(ctx context.Context, categoryID int64, userID int64, otx ...*sql.Tx) error {
-	args := m.Called(ctx, categoryID, userID, otx)
-	return args.Error(0)
-}
-
 func (m *MockCategoryModel) GetAllCategories(ctx context.Context, userID int64, otx ...*sql.Tx) ([]interfaces.Category, error) {
 	args := m.Called(ctx, userID, otx)
 	return args.Get(0).([]interfaces.Category), args.Error(1)
-}
-
-func (m *MockCategoryModel) GetCategoryByID(ctx context.Context, categoryID int64, userID int64, otx ...*sql.Tx) (*interfaces.Category, error) {
-	args := m.Called(ctx, categoryID, userID, otx)
-	return args.Get(0).(*interfaces.Category), args.Error(1)
 }
 
 func (m *MockCategoryModel) GetPagedCategories(ctx context.Context, page int, itemsPerPage int, userID int64, otx ...*sql.Tx) ([]interfaces.Category, error) {
@@ -46,12 +36,7 @@ func (m *MockCategoryModel) GetPagedCategories(ctx context.Context, page int, it
 	return args.Get(0).([]interfaces.Category), args.Error(1)
 }
 
-func (m *MockCategoryModel) CategoryIDExists(ctx context.Context, categoryID int64, userID int64, otx ...*sql.Tx) (bool, error) {
-	args := m.Called(ctx, categoryID, userID, otx)
-	return args.Bool(0), args.Error(1)
-}
-
-func (m *MockCategoryModel) DeleteCategoryNew(ctx context.Context, categoryID int64, scopes []int64, otx ...*sql.Tx) error {
+func (m *MockCategoryModel) DeleteCategory(ctx context.Context, categoryID int64, scopes []int64, otx ...*sql.Tx) error {
 	args := m.Called(ctx, categoryID, scopes, otx)
 	return args.Error(0)
 }
@@ -61,7 +46,7 @@ func (m *MockCategoryModel) GetAllScopedCategories(ctx context.Context, scopes [
 	return args.Get(0).([]interfaces.Category), args.Error(1)
 }
 
-func (m *MockCategoryModel) GetCategoryByIDNew(ctx context.Context, categoryID int64, scopes []int64, otx ...*sql.Tx) (*interfaces.Category, error) {
+func (m *MockCategoryModel) GetCategoryByID(ctx context.Context, categoryID int64, scopes []int64, otx ...*sql.Tx) (*interfaces.Category, error) {
 	args := m.Called(ctx, categoryID, scopes, otx)
 	return args.Get(0).(*interfaces.Category), args.Error(1)
 }
@@ -71,7 +56,7 @@ func (m *MockCategoryModel) GetScopedCategories(ctx context.Context, page int, i
 	return args.Get(0).([]interfaces.Category), args.Error(1)
 }
 
-func (m *MockCategoryModel) CategoryIDExistsNew(ctx context.Context, categoryID int64, scopes []int64, otx ...*sql.Tx) (bool, error) {
+func (m *MockCategoryModel) CategoryIDExists(ctx context.Context, categoryID int64, scopes []int64, otx ...*sql.Tx) (bool, error) {
 	args := m.Called(ctx, categoryID, scopes, otx)
 	return args.Bool(0), args.Error(1)
 }
