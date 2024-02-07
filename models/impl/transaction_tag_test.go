@@ -90,12 +90,13 @@ func TestGetTagsByTransactionID(t *testing.T) {
 	transactionID := int64(1)
 
 	// Set up expectations for QueryContext to return mock rows
-	mockRows := sqlmock.NewRows([]string{"id", "name"}).
+	mockRows := sqlmock.NewRows([]string{"tag_id", "name"}).
 		AddRow(1, "Tag1").
 		AddRow(2, "Tag2")
 
+	//TODO: Remove hardcoded literals in SQL queries
 	// Update the expected SQL query pattern to match the actual query
-	expectedSQLPattern := `SELECT t\.id, t\.name FROM tags t JOIN transaction_tags tt ON t\.id = tt\.tag_id WHERE tt\.transaction_id = \?`
+	expectedSQLPattern := `SELECT tag_id, name FROM tags t JOIN transaction_tags tt ON t\.tag_id = tt\.tag_id WHERE tt\.transaction_id = \?`
 
 	mock.ExpectQuery(expectedSQLPattern).WithArgs(transactionID).
 		WillReturnRows(mockRows)
@@ -121,9 +122,9 @@ func TestUpdateTagsForTransaction(t *testing.T) {
 	defer tearDown()
 
 	transactionID := int64(1)
-	userID := int64(1)
+	scopes := []int64{1}
 	tags := []string{"Tag1", "Tag2"}
-
+	userID := int64(1)
 	// Create a sqlmock database connection
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -144,11 +145,12 @@ func TestUpdateTagsForTransaction(t *testing.T) {
 		tagID := int64(1) // Mock tag ID
 
 		// Adjust the expected SQL query pattern to match the actual query
-		expectedSQLPattern := `SELECT id, user_id, name, created_at, updated_at FROM tags WHERE name = \? AND user_id = \?`
+		expectedSQLPattern := `SELECT tag_id, user_id, name, scope_id, created_at, updated_at FROM tags WHERE name = ? AND scope_id IN (?)`
 
 		mock.ExpectQuery(expectedSQLPattern).
-			WithArgs(tagName, userID).
-			WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "name", "created_at", "updated_at"}).AddRow(tagID, userID, tagName, time.Now(), time.Now()))
+			WithArgs(tagName, sqlmock.AnyArg()).
+			WillReturnRows(sqlmock.NewRows([]string{"tag_id", "user_id", "name", "scope_id", "created_at", "updated_at"}).
+				AddRow(tagID, userID, tagName, scopes[0], time.Now(), time.Now()))
 
 		// Mocking InsertTransactionTag
 		mock.ExpectExec("INSERT INTO transaction_tags").
@@ -156,7 +158,7 @@ func TestUpdateTagsForTransaction(t *testing.T) {
 			WillReturnResult(sqlmock.NewResult(1, 1)) // assuming 1 row affected
 	}
 
-	err = ModelsService.TransactionTagModel.UpdateTagsForTransaction(ctx, transactionID, tags, userID)
+	err = ModelsService.TransactionTagModel.UpdateTagsForTransaction(ctx, transactionID, tags, scopes)
 	assert.NoError(t, err)
 
 	// Ensure all expectations were met
@@ -175,6 +177,7 @@ func TestAddTagsToTransaction(t *testing.T) {
 
 	transactionID := int64(1)
 	userID := int64(1)
+	scopes := []int64{1}
 	tags := []string{"Tag1", "Tag2"}
 
 	// Create a sqlmock database connection
@@ -192,9 +195,10 @@ func TestAddTagsToTransaction(t *testing.T) {
 		tagID := int64(1) // Mock tag ID
 
 		// Mocking GetTagByName
-		mock.ExpectQuery(`SELECT id, user_id, name, created_at, updated_at FROM tags WHERE name = \? AND user_id = \?`).
-			WithArgs(tagName, userID).
-			WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "name", "created_at", "updated_at"}).AddRow(tagID, userID, tagName, time.Now(), time.Now()))
+		mock.ExpectQuery(`SELECT tag_id, user_id, name, scope_id, created_at, updated_at FROM tags WHERE name = \? AND scope_id IN (\?)`).
+			WithArgs(tagName, scopes[0]).
+			WillReturnRows(sqlmock.NewRows([]string{"tag_id", "user_id", "name", "scope_id", "created_at", "updated_at"}).
+				AddRow(tagID, userID, tagName, scopes[0], time.Now(), time.Now()))
 
 		// Mocking InsertTransactionTag
 		mock.ExpectExec("INSERT INTO transaction_tags").
@@ -202,15 +206,15 @@ func TestAddTagsToTransaction(t *testing.T) {
 			WillReturnResult(sqlmock.NewResult(1, 1)) // assuming 1 row affected
 	}
 
-	err = ModelsService.TransactionTagModel.AddTagsToTransaction(ctx, transactionID, tags, userID)
+	err = ModelsService.TransactionTagModel.AddTagsToTransaction(ctx, transactionID, tags, scopes)
 	assert.NoError(t, err)
 
 	// Testing error scenario when GetTagByName fails
-	mock.ExpectQuery(`SELECT id, user_id, name, created_at, updated_at FROM tags WHERE name = \? AND user_id = \?`).
-		WithArgs(tags[0], userID).
+	mock.ExpectQuery(`SELECT tag_id, user_id, name, created_at, updated_at FROM tags WHERE name = \? AND scope_id IN (\?)`).
+		WithArgs(tags[0], scopes[0]).
 		WillReturnError(errors.New("error getting tag by name"))
 
-	err = ModelsService.TransactionTagModel.AddTagsToTransaction(ctx, transactionID, tags[:1], userID)
+	err = ModelsService.TransactionTagModel.AddTagsToTransaction(ctx, transactionID, tags[:1], scopes)
 	assert.Error(t, err)
 
 	// Ensure all expectations were met
