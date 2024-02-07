@@ -1,6 +1,7 @@
 package impl
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 	"time"
@@ -121,10 +122,6 @@ func TestUpdateTagsForTransaction(t *testing.T) {
 	})
 	defer tearDown()
 
-	transactionID := int64(1)
-	scopes := []int64{1}
-	tags := []string{"Tag1", "Tag2"}
-	userID := int64(1)
 	// Create a sqlmock database connection
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -134,6 +131,10 @@ func TestUpdateTagsForTransaction(t *testing.T) {
 
 	// Replace the DBService Executor with the mock db
 	ModelsService.DBService.Executor = db
+	transactionID := int64(1)
+	userID := int64(1)
+	scopes := []int64{1, 2, 3} // Assuming multiple scopes for demonstration
+	tags := []string{"Tag1", "Tag2"}
 
 	// Mocking the DeleteTagsFromTransaction SQL query
 	mock.ExpectExec("DELETE FROM transaction_tags WHERE transaction_id = ?").
@@ -142,23 +143,24 @@ func TestUpdateTagsForTransaction(t *testing.T) {
 
 	// Mocking the GetTagByName and InsertTransactionTag SQL query for each tag
 	for _, tagName := range tags {
-		tagID := int64(1) // Mock tag ID
+		tagID := int64(1) // Mock tag ID for simplicity
 
-		// Adjust the expected SQL query pattern to match the actual query
-		expectedSQLPattern := `SELECT tag_id, user_id, name, scope_id, created_at, updated_at FROM tags WHERE name = ? AND scope_id IN (?)`
-
-		mock.ExpectQuery(expectedSQLPattern).
-			WithArgs(tagName, sqlmock.AnyArg()).
+		// Correctly handling IN clause with multiple values
+		// Note: You might need to adjust this based on how your actual application constructs the query
+		mock.ExpectQuery(`SELECT tag_id, user_id, name, scope_id, created_at, updated_at FROM tags WHERE name = \? AND scope_id IN \(\?,\?,\?\)`).
+			WithArgs(tagName, scopes[0], scopes[1], scopes[2]).
 			WillReturnRows(sqlmock.NewRows([]string{"tag_id", "user_id", "name", "scope_id", "created_at", "updated_at"}).
 				AddRow(tagID, userID, tagName, scopes[0], time.Now(), time.Now()))
 
-		// Mocking InsertTransactionTag
+		// Mocking InsertTransactionTag for each tag
+		// This part of your test seems correct; adjust if necessary based on actual logic
 		mock.ExpectExec("INSERT INTO transaction_tags").
 			WithArgs(transactionID, tagID, sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnResult(sqlmock.NewResult(1, 1)) // assuming 1 row affected
 	}
 
-	err = ModelsService.TransactionTagModel.UpdateTagsForTransaction(ctx, transactionID, tags, scopes)
+	// Execute the method under test
+	err = ModelsService.TransactionTagModel.UpdateTagsForTransaction(context.Background(), transactionID, tags, scopes)
 	assert.NoError(t, err)
 
 	// Ensure all expectations were met
@@ -174,12 +176,6 @@ func TestAddTagsToTransaction(t *testing.T) {
 		config.TagModel = NewTagModel()
 	})
 	defer tearDown()
-
-	transactionID := int64(1)
-	userID := int64(1)
-	scopes := []int64{1}
-	tags := []string{"Tag1", "Tag2"}
-
 	// Create a sqlmock database connection
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -189,6 +185,11 @@ func TestAddTagsToTransaction(t *testing.T) {
 
 	// Replace the DBService Executor with the mock db
 	ModelsService.DBService.Executor = db
+
+	transactionID := int64(1)
+	userID := int64(1)
+	scopes := []int64{1}
+	tags := []string{"Tag1", "Tag2"}
 
 	// Mocking the GetTagByName and InsertTransactionTag SQL query for each tag
 	for _, tagName := range tags {
