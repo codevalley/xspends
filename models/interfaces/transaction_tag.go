@@ -20,10 +20,7 @@ type TransactionTagService interface {
 	InsertTransactionTag(ctx context.Context, transactionID, tagID int64, otx ...*sql.Tx) error
 	DeleteTransactionTag(ctx context.Context, transactionID, tagID int64, otx ...*sql.Tx) error
 	DeleteTagsFromTransaction(ctx context.Context, transactionID int64, otx ...*sql.Tx) error
-	//deprecated methods
-	AddTagsToTransaction(ctx context.Context, transactionID int64, tags []string, userID int64, otx ...*sql.Tx) error
-	UpdateTagsForTransaction(ctx context.Context, transactionID int64, tags []string, userID int64, otx ...*sql.Tx) error
-	//deprecated methods end
-	AddTagsToTransactionNew(ctx context.Context, transactionID int64, tags []string, scopes []int64, otx ...*sql.Tx) error
-	UpdateTagsForTransactionNew(ctx context.Context, transactionID int64, tags []string, scopes []int64, otx ...*sql.Tx) error
+
+	AddTagsToTransaction(ctx context.Context, transactionID int64, tags []string, scopes []int64, otx ...*sql.Tx) error
+	UpdateTagsForTransaction(ctx context.Context, transactionID int64, tags []string, scopes []int64, otx ...*sql.Tx) error
 }

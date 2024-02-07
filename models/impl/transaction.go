@@ -100,7 +100,8 @@ func (tm *TransactionModel) InsertTransaction(ctx context.Context, txn interface
 		return errors.Wrap(err, "handling transaction tags failed")
 	}
 	// Associate tags with the transaction
-	if err := GetModelsService().TransactionTagModel.AddTagsToTransaction(ctx, txn.ID, txn.Tags, txn.UserID, otx...); err != nil {
+	//Deprecated
+	if err := GetModelsService().TransactionTagModel.AddTagsToTransaction(ctx, txn.ID, txn.Tags, []int64{txn.UserID}, otx...); err != nil {
 		return errors.Wrap(err, "adding tags to transaction failed")
 	}
 	commitOrRollback(executor, isExternalTx, err)
@@ -135,7 +136,7 @@ func (tm *TransactionModel) InsertTransactionNew(ctx context.Context, txn interf
 		return errors.Wrap(err, "handling transaction tags failed")
 	}
 	// Associate tags with the transaction
-	if err := GetModelsService().TransactionTagModel.AddTagsToTransactionNew(ctx, txn.ID, txn.Tags, []int64{txn.ScopeID}, otx...); err != nil {
+	if err := GetModelsService().TransactionTagModel.AddTagsToTransaction(ctx, txn.ID, txn.Tags, []int64{txn.ScopeID}, otx...); err != nil {
 		return errors.Wrap(err, "adding tags to transaction failed")
 	}
 	commitOrRollback(executor, isExternalTx, err)
@@ -173,7 +174,8 @@ func (tm *TransactionModel) UpdateTransaction(ctx context.Context, txn interface
 	if err := addMissingTags(ctx, txn.ID, txn.Tags, txn.UserID, otx...); err != nil {
 		return errors.Wrap(err, "adding missing tags failed")
 	}
-	if err := GetModelsService().TransactionTagModel.UpdateTagsForTransaction(ctx, txn.ID, txn.Tags, txn.UserID, otx...); err != nil {
+	//deprecated
+	if err := GetModelsService().TransactionTagModel.UpdateTagsForTransaction(ctx, txn.ID, txn.Tags, []int64{txn.UserID}, otx...); err != nil {
 		return errors.Wrap(err, "updating tags for transaction failed")
 	}
 
@@ -212,7 +214,7 @@ func (tm *TransactionModel) UpdateTransactionNew(ctx context.Context, txn interf
 	if err := addMissingTagsNew(ctx, txn, otx...); err != nil {
 		return errors.Wrap(err, "adding missing tags failed")
 	}
-	if err := GetModelsService().TransactionTagModel.UpdateTagsForTransactionNew(ctx, txn.ID, txn.Tags, []int64{txn.ScopeID}, otx...); err != nil {
+	if err := GetModelsService().TransactionTagModel.UpdateTagsForTransaction(ctx, txn.ID, txn.Tags, []int64{txn.ScopeID}, otx...); err != nil {
 		return errors.Wrap(err, "updating tags for transaction failed")
 	}
 

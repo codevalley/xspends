@@ -32,25 +32,13 @@ func (m *MockTransactionTagModel) DeleteTransactionTag(ctx context.Context, tran
 }
 
 // AddTagsToTransaction mocks the AddTagsToTransaction method.
-func (m *MockTransactionTagModel) AddTagsToTransaction(ctx context.Context, transactionID int64, tags []string, userID int64, otx ...*sql.Tx) error {
-	args := m.Called(ctx, transactionID, tags, userID, otx)
-	return args.Error(0)
-}
-
-// UpdateTagsForTransaction mocks the UpdateTagsForTransaction method.
-func (m *MockTransactionTagModel) UpdateTagsForTransaction(ctx context.Context, transactionID int64, tags []string, userID int64, otx ...*sql.Tx) error {
-	args := m.Called(ctx, transactionID, tags, userID, otx)
-	return args.Error(0)
-}
-
-// AddTagsToTransaction mocks the AddTagsToTransaction method.
-func (m *MockTransactionTagModel) AddTagsToTransactionNew(ctx context.Context, transactionID int64, tags []string, scope []int64, otx ...*sql.Tx) error {
+func (m *MockTransactionTagModel) AddTagsToTransaction(ctx context.Context, transactionID int64, tags []string, scope []int64, otx ...*sql.Tx) error {
 	args := m.Called(ctx, transactionID, tags, scope, otx)
 	return args.Error(0)
 }
 
 // UpdateTagsForTransaction mocks the UpdateTagsForTransaction method.
-func (m *MockTransactionTagModel) UpdateTagsForTransactionNew(ctx context.Context, transactionID int64, tags []string, scope []int64, otx ...*sql.Tx) error {
+func (m *MockTransactionTagModel) UpdateTagsForTransaction(ctx context.Context, transactionID int64, tags []string, scope []int64, otx ...*sql.Tx) error {
 	args := m.Called(ctx, transactionID, tags, scope, otx)
 	return args.Error(0)
 }

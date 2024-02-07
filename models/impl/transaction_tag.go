@@ -132,27 +132,7 @@ func (tm *TransactionTagModel) DeleteTransactionTag(ctx context.Context, transac
 	return nil
 }
 
-// deprecated: Move to scope model
-func (tm *TransactionTagModel) AddTagsToTransaction(ctx context.Context, transactionID int64, tags []string, userID int64, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(otx...)
-
-	for _, tagName := range tags {
-		//TODO: Won't work as expected. Review and close
-		tag, err := GetModelsService().TagModel.GetTagByName(ctx, tagName, []int64{0}, otx...)
-		if err != nil {
-			return errors.Wrap(err, "error getting tag by name")
-		}
-		err = GetModelsService().TransactionTagModel.InsertTransactionTag(ctx, transactionID, tag.ID, otx...)
-		if err != nil {
-			return errors.Wrap(err, "error associating tag with transaction")
-		}
-	}
-
-	commitOrRollback(executor, isExternalTx, nil)
-	return nil
-}
-
-func (tm *TransactionTagModel) AddTagsToTransactionNew(ctx context.Context, transactionID int64, tags []string, scopes []int64, otx ...*sql.Tx) error {
+func (tm *TransactionTagModel) AddTagsToTransaction(ctx context.Context, transactionID int64, tags []string, scopes []int64, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
 	for _, tagName := range tags {
@@ -170,8 +150,7 @@ func (tm *TransactionTagModel) AddTagsToTransactionNew(ctx context.Context, tran
 	return nil
 }
 
-// deprecated: Move to scope model
-func (tm *TransactionTagModel) UpdateTagsForTransaction(ctx context.Context, transactionID int64, tags []string, userID int64, otx ...*sql.Tx) error {
+func (tm *TransactionTagModel) UpdateTagsForTransaction(ctx context.Context, transactionID int64, tags []string, scopes []int64, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
 	err := GetModelsService().TransactionTagModel.DeleteTagsFromTransaction(ctx, transactionID, otx...)
@@ -179,24 +158,7 @@ func (tm *TransactionTagModel) UpdateTagsForTransaction(ctx context.Context, tra
 		return errors.Wrap(err, "error removing existing tags from transaction")
 	}
 
-	err = GetModelsService().TransactionTagModel.AddTagsToTransaction(ctx, transactionID, tags, userID, otx...)
-	if err != nil {
-		return errors.Wrap(err, "error adding new tags to transaction")
-	}
-
-	commitOrRollback(executor, isExternalTx, nil)
-	return nil
-}
-
-func (tm *TransactionTagModel) UpdateTagsForTransactionNew(ctx context.Context, transactionID int64, tags []string, scopes []int64, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(otx...)
-
-	err := GetModelsService().TransactionTagModel.DeleteTagsFromTransaction(ctx, transactionID, otx...)
-	if err != nil {
-		return errors.Wrap(err, "error removing existing tags from transaction")
-	}
-
-	err = GetModelsService().TransactionTagModel.AddTagsToTransactionNew(ctx, transactionID, tags, scopes, otx...)
+	err = GetModelsService().TransactionTagModel.AddTagsToTransaction(ctx, transactionID, tags, scopes, otx...)
 	if err != nil {
 		return errors.Wrap(err, "error adding new tags to transaction")
 	}
