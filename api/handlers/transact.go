@@ -65,8 +65,9 @@ func getTransactionID(c *gin.Context) (int64, bool) {
 // @Failure 500 {object} map[string]string "Unable to create transaction"
 // @Router /transactions [post]
 func CreateTransaction(c *gin.Context) {
-	userID, ok := getUserID(c)
-	if !ok {
+	userID, okUser := getUserID(c)
+	scopeID, okScope := getScopeID(c)
+	if !okUser || !okScope {
 		return
 	}
 
@@ -77,6 +78,7 @@ func CreateTransaction(c *gin.Context) {
 		return
 	}
 	newTransaction.UserID = userID
+	newTransaction.ScopeID = scopeID
 	if err := impl.GetModelsService().TransactionModel.InsertTransaction(c, newTransaction); err != nil {
 		log.Printf("[CreateTransaction] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create transaction"})
@@ -101,12 +103,13 @@ func GetTransaction(c *gin.Context) {
 	if !ok {
 		return
 	}
-	userID, ok := getUserID(c)
-	if !ok {
+	_, okUser := getUserID(c)
+	scopeID, okScope := getScopeID(c)
+	if !okUser || !okScope {
 		return
 	}
 
-	transaction, err := impl.GetModelsService().TransactionModel.GetTransactionByID(c, transactionID, userID)
+	transaction, err := impl.GetModelsService().TransactionModel.GetTransactionByID(c, transactionID, []int64{scopeID})
 	if err != nil {
 		log.Printf("[GetTransaction] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "transaction not found"})
@@ -130,8 +133,9 @@ func GetTransaction(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Unable to update transaction"
 // @Router /transactions/{id} [put]
 func UpdateTransaction(c *gin.Context) {
-	userID, ok := getUserID(c)
-	if !ok {
+	userID, okUser := getUserID(c)
+	scopeID, okScope := getScopeID(c)
+	if !okUser || !okScope {
 		return
 	}
 	transactionID, ok := getTransactionID(c)
@@ -146,8 +150,9 @@ func UpdateTransaction(c *gin.Context) {
 		return
 	}
 	uTxn.UserID = userID
+	uTxn.ScopeID = scopeID
 	uTxn.ID = transactionID
-	oTxn, err := impl.GetModelsService().TransactionModel.GetTransactionByID(c, transactionID, userID)
+	oTxn, err := impl.GetModelsService().TransactionModel.GetTransactionByID(c, transactionID, []int64{scopeID})
 	if err != nil {
 		log.Printf("[UpdateTransaction] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "unable to find transaction"})
@@ -195,12 +200,13 @@ func DeleteTransaction(c *gin.Context) {
 	if !ok {
 		return
 	}
-	userID, ok := getUserID(c)
-	if !ok {
+	_, okUser := getUserID(c)
+	scopeID, okScope := getScopeID(c)
+	if !okUser || !okScope {
 		return
 	}
 
-	if err := impl.GetModelsService().TransactionModel.DeleteTransaction(c, transactionID, userID); err != nil {
+	if err := impl.GetModelsService().TransactionModel.DeleteTransaction(c, transactionID, []int64{scopeID}); err != nil {
 		log.Printf("[DeleteTransaction] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete transaction"})
 		return
@@ -230,14 +236,16 @@ func DeleteTransaction(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Unable to fetch transactions"
 // @Router /transactions [get]
 func ListTransactions(c *gin.Context) {
-	userID, ok := getUserID(c)
-	if !ok {
+	userID, okUser := getUserID(c)
+	scopeID, okScope := getScopeID(c)
+	if !okUser || !okScope {
 		return
 	}
 
 	// Create a filter from the query parameters.
 	filter := interfaces.TransactionFilter{
 		UserID:       userID,
+		ScopeID:      scopeID,
 		StartDate:    c.DefaultQuery("start_date", ""),
 		EndDate:      c.DefaultQuery("end_date", ""),
 		Category:     c.DefaultQuery("category", ""),
