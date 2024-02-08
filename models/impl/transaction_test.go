@@ -540,7 +540,7 @@ func TestGetTagsForTransaction(t *testing.T) {
 		}
 
 		// Set up the mock expectation for SQL query
-		mockM.ExpectQuery("SELECT t.tag_id, t.name FROM tags t JOIN transaction_tags tt ON t.tag_id = tt.tag_id WHERE tt.transaction_id = ?").
+		mockM.ExpectQuery("SELECT tag_id, name FROM tags t JOIN transaction_tags tt ON t.tag_id = tt.tag_id WHERE tt.transaction_id = ?").
 			WithArgs(transactionID).
 			WillReturnRows(rows)
 
@@ -563,7 +563,7 @@ func TestGetTagsForTransaction(t *testing.T) {
 		db, mockM = setupNewMock(t)
 
 		// Set up the mock expectation for SQL query with an error
-		mockM.ExpectQuery("SELECT t.tag_id, t.name FROM tags t JOIN transaction_tags tt ON t.tag_id = tt.tag_id WHERE tt.transaction_id = ?").
+		mockM.ExpectQuery("SELECT tag_id, name FROM tags t JOIN transaction_tags tt ON t.tag_id = tt.tag_id WHERE tt.transaction_id = ?").
 			WithArgs(transactionID).
 			WillReturnError(sql.ErrConnDone) // Simulate an error scenario
 
