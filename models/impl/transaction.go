@@ -72,7 +72,7 @@ func NewTransactionModel() *TransactionModel {
 	}
 }
 
-// deprecated: InsertTransaction inserts a new transaction into the database.
+// InsertTransaction inserts a new transaction into the database.
 func (tm *TransactionModel) InsertTransaction(ctx context.Context, txn interfaces.Transaction, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
@@ -96,43 +96,7 @@ func (tm *TransactionModel) InsertTransaction(ctx context.Context, txn interface
 		return errors.Wrap(err, "insert transaction failed")
 	}
 
-	if err := addMissingTags(ctx, txn.ID, txn.Tags, txn.UserID, otx...); err != nil {
-		return errors.Wrap(err, "handling transaction tags failed")
-	}
-	// Associate tags with the transaction
-	//Deprecated
-	if err := GetModelsService().TransactionTagModel.AddTagsToTransaction(ctx, txn.ID, txn.Tags, []int64{txn.UserID}, otx...); err != nil {
-		return errors.Wrap(err, "adding tags to transaction failed")
-	}
-	commitOrRollback(executor, isExternalTx, err)
-	return nil
-}
-
-// InsertTransaction inserts a new transaction into the database.
-func (tm *TransactionModel) InsertTransactionNew(ctx context.Context, txn interfaces.Transaction, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(otx...)
-
-	txn.ID, _ = util.GenerateSnowflakeID()
-	txn.Timestamp = time.Now()
-
-	if err := validateForeignKeyReferences(ctx, txn, otx...); err != nil {
-		return errors.Wrap(err, "validating foreign key references failed")
-	}
-
-	query, args, err := squirrel.Insert(tm.TableTransactions).
-		Columns(tm.ColumnID, tm.ColumnUserID, tm.ColumnSourceID, tm.ColumnCategoryID, tm.ColumnTimestamp, tm.ColumnAmount, tm.ColumnType, tm.ColumnDescription, tm.ColumnScope).
-		Values(txn.ID, txn.UserID, txn.SourceID, txn.CategoryID, txn.Timestamp, txn.Amount, txn.Type, txn.Description, txn.ScopeID).
-		PlaceholderFormat(squirrel.Question).
-		ToSql()
-	if err != nil {
-		return errors.Wrap(err, "failed to build insert query for transaction")
-	}
-
-	if _, err := executor.ExecContext(ctx, query, args...); err != nil {
-		return errors.Wrap(err, "insert transaction failed")
-	}
-
-	if err := addMissingTagsNew(ctx, txn, otx...); err != nil {
+	if err := addMissingTags(ctx, txn, otx...); err != nil {
 		return errors.Wrap(err, "handling transaction tags failed")
 	}
 	// Associate tags with the transaction
@@ -143,48 +107,7 @@ func (tm *TransactionModel) InsertTransactionNew(ctx context.Context, txn interf
 	return nil
 }
 
-// deprecated: UpdateTransaction updates an existing transaction in the database.
 func (tm *TransactionModel) UpdateTransaction(ctx context.Context, txn interfaces.Transaction, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(otx...)
-
-	// Validate foreign key references
-	if err := validateForeignKeyReferences(ctx, txn, otx...); err != nil {
-		return errors.Wrap(err, "validating foreign key references failed")
-	}
-
-	// Update transaction in the database
-	query, args, err := GetQueryBuilder().Update(tm.TableTransactions).
-		Set(tm.ColumnSourceID, txn.SourceID).
-		Set(tm.ColumnCategoryID, txn.CategoryID).
-		Set(tm.ColumnAmount, txn.Amount).
-		Set(tm.ColumnType, txn.Type).
-		Set(tm.ColumnDescription, txn.Description).
-		Where(squirrel.Eq{tm.ColumnID: txn.ID, tm.ColumnUserID: txn.UserID}).
-		PlaceholderFormat(squirrel.Question).
-		ToSql()
-	if err != nil {
-		return errors.Wrap(err, "failed to build update query for transaction")
-	}
-
-	if _, err := executor.ExecContext(ctx, query, args...); err != nil {
-		return errors.Wrap(err, "update transaction failed")
-	}
-
-	// Add any missing tags and update tags associated with the transaction
-	if err := addMissingTags(ctx, txn.ID, txn.Tags, txn.UserID, otx...); err != nil {
-		return errors.Wrap(err, "adding missing tags failed")
-	}
-	//deprecated
-	if err := GetModelsService().TransactionTagModel.UpdateTagsForTransaction(ctx, txn.ID, txn.Tags, []int64{txn.UserID}, otx...); err != nil {
-		return errors.Wrap(err, "updating tags for transaction failed")
-	}
-
-	commitOrRollback(executor, isExternalTx, err)
-
-	return nil
-}
-
-func (tm *TransactionModel) UpdateTransactionNew(ctx context.Context, txn interfaces.Transaction, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
 	// Validate foreign key references
@@ -211,7 +134,7 @@ func (tm *TransactionModel) UpdateTransactionNew(ctx context.Context, txn interf
 	}
 
 	// Add any missing tags and update tags associated with the transaction
-	if err := addMissingTagsNew(ctx, txn, otx...); err != nil {
+	if err := addMissingTags(ctx, txn, otx...); err != nil {
 		return errors.Wrap(err, "adding missing tags failed")
 	}
 	if err := GetModelsService().TransactionTagModel.UpdateTagsForTransaction(ctx, txn.ID, txn.Tags, []int64{txn.ScopeID}, otx...); err != nil {
@@ -223,28 +146,7 @@ func (tm *TransactionModel) UpdateTransactionNew(ctx context.Context, txn interf
 	return nil
 }
 
-// deprecated: DeleteTransaction removes a transaction from the database.
-func (tm *TransactionModel) DeleteTransaction(ctx context.Context, transactionID int64, userID int64, otx ...*sql.Tx) error {
-	isExternalTx, executor := getExecutor(otx...)
-
-	query, args, err := GetQueryBuilder().Delete(tm.TableTransactions).
-		Where(squirrel.Eq{tm.ColumnID: transactionID, tm.ColumnUserID: userID}).
-		PlaceholderFormat(squirrel.Question).
-		ToSql()
-	if err != nil {
-		return errors.Wrap(err, "failed to build delete query for transaction")
-	}
-
-	if _, err := executor.ExecContext(ctx, query, args...); err != nil {
-		return errors.Wrap(err, "delete transaction failed")
-	}
-
-	commitOrRollback(executor, isExternalTx, err)
-
-	return nil
-}
-
-func (tm *TransactionModel) DeleteTransactionNew(ctx context.Context, transactionID int64, scopes []int64, otx ...*sql.Tx) error {
+func (tm *TransactionModel) DeleteTransaction(ctx context.Context, transactionID int64, scopes []int64, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
 	query, args, err := GetQueryBuilder().Delete(tm.TableTransactions).
@@ -264,31 +166,7 @@ func (tm *TransactionModel) DeleteTransactionNew(ctx context.Context, transactio
 	return nil
 }
 
-// deprecated: GetTransactionByID retrieves a single transaction from the database by its ID.
-func (tm *TransactionModel) GetTransactionByID(ctx context.Context, transactionID int64, userID int64, otx ...*sql.Tx) (*interfaces.Transaction, error) {
-	_, executor := getExecutor(otx...)
-
-	query, args, err := GetQueryBuilder().Select(tm.ColumnID, tm.ColumnUserID, tm.ColumnSourceID, tm.ColumnCategoryID, tm.ColumnTimestamp, tm.ColumnAmount, tm.ColumnType, tm.ColumnDescription).
-		From(tm.TableTransactions).
-		Where(squirrel.Eq{tm.ColumnID: transactionID, tm.ColumnUserID: userID}).
-		PlaceholderFormat(squirrel.Question).
-		ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to build query for retrieving transaction by ID")
-	}
-
-	row := executor.QueryRowContext(ctx, query, args...)
-	var transaction interfaces.Transaction
-	if err := row.Scan(&transaction.ID, &transaction.UserID, &transaction.SourceID, &transaction.CategoryID, &transaction.Timestamp, &transaction.Amount, &transaction.Type, &transaction.Description); err != nil {
-		return nil, errors.Wrap(err, "get transaction by ID failed")
-	}
-
-	getTagsForTransaction(ctx, &transaction, otx...)
-
-	return &transaction, nil
-}
-
-func (tm *TransactionModel) GetTransactionByIDNew(ctx context.Context, transactionID int64, scopes []int64, otx ...*sql.Tx) (*interfaces.Transaction, error) {
+func (tm *TransactionModel) GetTransactionByID(ctx context.Context, transactionID int64, scopes []int64, otx ...*sql.Tx) (*interfaces.Transaction, error) {
 	_, executor := getExecutor(otx...)
 
 	query, args, err := GetQueryBuilder().Select(tm.ColumnID, tm.ColumnUserID, tm.ColumnSourceID, tm.ColumnCategoryID, tm.ColumnTimestamp, tm.ColumnAmount, tm.ColumnType, tm.ColumnDescription, tm.ColumnScope).
@@ -449,30 +327,8 @@ func validateForeignKeyReferences(ctx context.Context, txn interfaces.Transactio
 	return nil
 }
 
-// deprecated: addMissingTags ensures that all tags are present in the database and associates them with the user.
-func addMissingTags(ctx context.Context, transactionID int64, tagNames []string, userID int64, otx ...*sql.Tx) error {
-	// Ensure all tags are present in the database
-	for _, tagName := range tagNames {
-		//TODO: Won't work as expected. Review and close
-		tag, _ := GetModelsService().TagModel.GetTagByName(ctx, tagName, []int64{1}, otx...)
-
-		if tag == nil {
-			// Tag does not exist; create it
-			newTag := interfaces.Tag{
-				UserID: userID,
-				Name:   tagName,
-			}
-			if err := GetModelsService().TagModel.InsertTag(ctx, &newTag, otx...); err != nil {
-				return errors.Wrapf(err, "failed to insert new tag '%s'", tagName)
-			}
-		}
-	}
-
-	return nil
-}
-
 // addMissingTags ensures that all tags are present in the database and associates them with the user.
-func addMissingTagsNew(ctx context.Context, txn interfaces.Transaction, otx ...*sql.Tx) error {
+func addMissingTags(ctx context.Context, txn interfaces.Transaction, otx ...*sql.Tx) error {
 	// Ensure all tags are present in the database
 	for _, tagName := range txn.Tags {
 		tag, _ := GetModelsService().TagModel.GetTagByName(ctx, tagName, []int64{txn.ScopeID}, otx...)

@@ -55,6 +55,7 @@ func TestInsertTransactionV2(t *testing.T) {
 	txn := interfaces.Transaction{
 		UserID:      1,
 		SourceID:    1,
+		ScopeID:     1,
 		CategoryID:  1,
 		Amount:      100.0,
 		Type:        "expense",
@@ -72,15 +73,15 @@ func TestInsertTransactionV2(t *testing.T) {
 		ModelsService.TagModel = mockTagModel
 		setupForeignKeyMocks(mockM, txn)
 		mockM.ExpectExec("INSERT INTO transactions").
-			WithArgs(sqlmock.AnyArg(), txn.UserID, txn.SourceID, txn.CategoryID, sqlmock.AnyArg(), txn.Amount, txn.Type, txn.Description).
+			WithArgs(sqlmock.AnyArg(), txn.UserID, txn.SourceID, txn.CategoryID, sqlmock.AnyArg(), txn.Amount, txn.Type, txn.Description, txn.ScopeID).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
 		// Setup for tag handling
 		for _, tag := range txn.Tags {
 			mockTagModel.On(
 				"GetTagByName",
-				mock.Anything, tag, txn.UserID, mock.Anything,
-			).Return(&interfaces.Tag{ID: 1, Name: tag, UserID: txn.UserID}, nil).Once()
+				mock.Anything, tag, []int64{txn.ScopeID}, mock.Anything,
+			).Return(&interfaces.Tag{ID: 1, Name: tag, UserID: txn.UserID, ScopeID: txn.ScopeID}, nil).Once()
 
 			mockTagModel.On(
 				"InsertTag",
@@ -90,7 +91,7 @@ func TestInsertTransactionV2(t *testing.T) {
 
 		mockTransactionTagModel.On(
 			"AddTagsToTransaction",
-			mock.Anything, mock.Anything, mock.Anything, txn.UserID, mock.Anything,
+			mock.Anything, mock.Anything, mock.Anything, []int64{txn.ScopeID}, mock.Anything,
 		).Return(nil).Once()
 
 		// Call the method under test
@@ -122,7 +123,7 @@ func TestInsertTransactionV2(t *testing.T) {
 		setupForeignKeyMocks(mockM, txn) // Assumes a function to set up foreign key validation
 
 		mockM.ExpectExec("INSERT INTO transactions").
-			WithArgs(sqlmock.AnyArg(), txn.UserID, txn.SourceID, txn.CategoryID, sqlmock.AnyArg(), txn.Amount, txn.Type, txn.Description).
+			WithArgs(sqlmock.AnyArg(), txn.UserID, txn.SourceID, txn.CategoryID, sqlmock.AnyArg(), txn.Amount, txn.Type, txn.Description, txn.ScopeID).
 			WillReturnError(sql.ErrConnDone) // Simulate a connection error or similar
 
 		err := ModelsService.TransactionModel.InsertTransaction(context.Background(), txn)
@@ -141,15 +142,15 @@ func TestInsertTransactionV2(t *testing.T) {
 
 		// Set up mocks for successful transaction insert
 		mockM.ExpectExec("INSERT INTO transactions").
-			WithArgs(sqlmock.AnyArg(), txn.UserID, txn.SourceID, txn.CategoryID, sqlmock.AnyArg(), txn.Amount, txn.Type, txn.Description).
+			WithArgs(sqlmock.AnyArg(), txn.UserID, txn.SourceID, txn.CategoryID, sqlmock.AnyArg(), txn.Amount, txn.Type, txn.Description, txn.ScopeID).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
 		// Setup for tag handling
 		for _, tag := range txn.Tags {
 			mockTagModel.On(
 				"GetTagByName",
-				mock.Anything, tag, txn.UserID, mock.Anything,
-			).Return(&interfaces.Tag{ID: 1, Name: tag, UserID: txn.UserID}, nil).Once()
+				mock.Anything, tag, []int64{txn.ScopeID}, mock.Anything,
+			).Return(&interfaces.Tag{ID: 1, Name: tag, UserID: txn.UserID, ScopeID: txn.ScopeID}, nil).Once()
 
 			mockTagModel.On(
 				"InsertTag",
@@ -159,7 +160,7 @@ func TestInsertTransactionV2(t *testing.T) {
 		// Simulate a failure in AddTagsToTransaction
 		mockTransactionTagModel.On(
 			"AddTagsToTransaction",
-			mock.Anything, mock.Anything, mock.Anything, txn.UserID, mock.Anything,
+			mock.Anything, mock.Anything, mock.Anything, []int64{txn.ScopeID}, mock.Anything,
 		).Return(sql.ErrConnDone).Once() // Use an appropriate error
 
 		err := ModelsService.TransactionModel.InsertTransaction(context.Background(), txn)
@@ -183,6 +184,7 @@ func TestUpdateTransactionV2(t *testing.T) {
 		ID:          1, // Assume an existing transaction ID for update
 		UserID:      1,
 		SourceID:    1,
+		ScopeID:     1,
 		CategoryID:  1,
 		Amount:      150.0,
 		Type:        "income",
@@ -202,7 +204,7 @@ func TestUpdateTransactionV2(t *testing.T) {
 
 		// Set up mock for successful update
 		mockM.ExpectExec("UPDATE transactions").
-			WithArgs(txn.SourceID, txn.CategoryID, txn.Amount, txn.Type, txn.Description, txn.ID, txn.UserID).
+			WithArgs(txn.SourceID, txn.CategoryID, txn.Amount, txn.Type, txn.Description, txn.ID, txn.ScopeID).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
 		// Set up mocks for tag handling
@@ -210,7 +212,7 @@ func TestUpdateTransactionV2(t *testing.T) {
 			mockTagModel.On(
 				"GetTagByName",
 				mock.Anything, tag, txn.UserID, mock.Anything,
-			).Return(&interfaces.Tag{ID: 1, Name: tag, UserID: txn.UserID}, nil).Once()
+			).Return(&interfaces.Tag{ID: 1, Name: tag, UserID: txn.UserID, ScopeID: txn.ScopeID}, nil).Once()
 
 			mockTagModel.On(
 				"InsertTag",
@@ -220,7 +222,7 @@ func TestUpdateTransactionV2(t *testing.T) {
 
 		mockTransactionTagModel.On(
 			"UpdateTagsForTransaction",
-			mock.Anything, txn.ID, txn.Tags, txn.UserID, mock.Anything,
+			mock.Anything, txn.ID, txn.Tags, []int64{txn.ScopeID}, mock.Anything,
 		).Return(nil).Once()
 
 		// Call the method under test
@@ -251,7 +253,7 @@ func TestUpdateTransactionV2(t *testing.T) {
 
 		// Simulate a failure during the execution of the update query
 		mockM.ExpectExec("UPDATE transactions").
-			WithArgs(txn.SourceID, txn.CategoryID, txn.Amount, txn.Type, txn.Description, txn.ID, txn.UserID).
+			WithArgs(txn.SourceID, txn.CategoryID, txn.Amount, txn.Type, txn.Description, txn.ID, txn.ScopeID).
 			WillReturnError(sql.ErrConnDone)
 
 		// Call the update method and expect an error
@@ -270,15 +272,15 @@ func TestUpdateTransactionV2(t *testing.T) {
 
 		// Set up mocks for successful transaction update
 		mockM.ExpectExec("UPDATE transactions").
-			WithArgs(txn.SourceID, txn.CategoryID, txn.Amount, txn.Type, txn.Description, txn.ID, txn.UserID).
+			WithArgs(txn.SourceID, txn.CategoryID, txn.Amount, txn.Type, txn.Description, txn.ID, txn.ScopeID).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
 		// Setup for tag handling
 		for _, tag := range txn.Tags {
 			mockTagModel.On(
 				"GetTagByName",
-				mock.Anything, tag, txn.UserID, mock.Anything,
-			).Return(&interfaces.Tag{ID: 1, Name: tag, UserID: txn.UserID}, nil).Once()
+				mock.Anything, tag, []int64{txn.ScopeID}, mock.Anything,
+			).Return(&interfaces.Tag{ID: 1, Name: tag, UserID: txn.UserID, ScopeID: txn.ScopeID}, nil).Once()
 
 			mockTagModel.On(
 				"InsertTag",
@@ -289,7 +291,7 @@ func TestUpdateTransactionV2(t *testing.T) {
 		// Simulate a failure in UpdateTagsForTransaction
 		mockTransactionTagModel.On(
 			"UpdateTagsForTransaction",
-			mock.Anything, txn.ID, txn.Tags, txn.UserID, mock.Anything,
+			mock.Anything, txn.ID, txn.Tags, []int64{txn.ScopeID}, mock.Anything,
 		).Return(sql.ErrConnDone).Once() // Use an appropriate error
 
 		// Call the update method and expect an error
@@ -309,19 +311,18 @@ func TestDeleteTransactionV2(t *testing.T) {
 	defer tearDown()
 
 	transactionID := int64(1) // Assume an existing transaction ID for deletion
-	userID := int64(1)
-
+	scopes := []int64{1}
 	db, mockM := setupNewMock(t)
 	defer db.Close()
 
 	t.Run("Successful Deletion", func(t *testing.T) {
 		// Set up mock for successful deletion
 		mockM.ExpectExec("DELETE FROM transactions").
-			WithArgs(transactionID, userID).
+			WithArgs(transactionID, scopes).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
 		// Call the method under test
-		err := ModelsService.TransactionModel.DeleteTransaction(context.Background(), transactionID, userID)
+		err := ModelsService.TransactionModel.DeleteTransaction(context.Background(), transactionID, scopes)
 		assert.NoError(t, err)
 		assert.NoError(t, mockM.ExpectationsWereMet())
 	})
@@ -331,11 +332,11 @@ func TestDeleteTransactionV2(t *testing.T) {
 
 		// Simulate a failure during the execution of the delete query
 		mockM.ExpectExec("DELETE FROM transactions").
-			WithArgs(transactionID, userID).
+			WithArgs(transactionID, scopes).
 			WillReturnError(sql.ErrConnDone)
 
 		// Call the delete method and expect an error
-		err := ModelsService.TransactionModel.DeleteTransaction(context.Background(), transactionID, userID)
+		err := ModelsService.TransactionModel.DeleteTransaction(context.Background(), transactionID, scopes)
 		assert.Error(t, err)
 		assert.NoError(t, mockM.ExpectationsWereMet())
 	})
@@ -345,11 +346,11 @@ func TestDeleteTransactionV2(t *testing.T) {
 
 		// Set up mock for a deletion attempt on a non-existent transaction
 		mockM.ExpectExec("DELETE FROM transactions").
-			WithArgs(transactionID, userID).
+			WithArgs(transactionID, scopes).
 			WillReturnResult(sqlmock.NewResult(0, 0)) // Indicate no rows were affected
 
 		// Call the delete method and check if error or some indication of non-existence is handled
-		err := ModelsService.TransactionModel.DeleteTransaction(context.Background(), transactionID, userID)
+		err := ModelsService.TransactionModel.DeleteTransaction(context.Background(), transactionID, scopes)
 		// Assert based on how your application should behave (error or just a no-op)
 		// Here it is assumed the method won't error out if no transaction was found
 		assert.NoError(t, err)
@@ -374,11 +375,13 @@ func TestGetTransactionByIDV2(t *testing.T) {
 
 	transactionID := int64(1) // Assume some transaction ID
 	userID := int64(1)        // Assume some user ID
+	scopes := []int64{1}
 
 	// Assume a mock transaction to be returned
 	mockTransaction := interfaces.Transaction{
 		ID:          transactionID,
 		UserID:      userID,
+		ScopeID:     1,
 		SourceID:    1,
 		CategoryID:  1,
 		Timestamp:   time.Now(),
@@ -391,33 +394,33 @@ func TestGetTransactionByIDV2(t *testing.T) {
 	defer db.Close()
 
 	t.Run("Successful Retrieval", func(t *testing.T) {
-		rows := sqlmock.NewRows([]string{"id", "user_id", "source_id", "category_id", "timestamp", "amount", "type", "description"}).
-			AddRow(mockTransaction.ID, mockTransaction.UserID, mockTransaction.SourceID, mockTransaction.CategoryID, mockTransaction.Timestamp, mockTransaction.Amount, mockTransaction.Type, mockTransaction.Description)
+		rows := sqlmock.NewRows([]string{"transaction_id", "user_id", "source_id", "category_id", "timestamp", "amount", "type", "description", "scope_id"}).
+			AddRow(mockTransaction.ID, mockTransaction.UserID, mockTransaction.SourceID, mockTransaction.CategoryID, mockTransaction.Timestamp, mockTransaction.Amount, mockTransaction.Type, mockTransaction.Description, mockTransaction.ScopeID)
 
-		mockM.ExpectQuery("SELECT (.+) FROM transactions WHERE").WithArgs(transactionID, userID).WillReturnRows(rows)
+		mockM.ExpectQuery("SELECT (.+) FROM transactions WHERE").WithArgs(transactionID, scopes).WillReturnRows(rows)
 
 		// Assume getTagsForTransaction is properly implemented or mocked
 		// Mock the call to getTagsForTransaction if it makes an external call
 
-		transaction, err := ModelsService.TransactionModel.GetTransactionByID(context.Background(), transactionID, userID)
+		transaction, err := ModelsService.TransactionModel.GetTransactionByID(context.Background(), transactionID, scopes)
 		assert.NoError(t, err)
 		assert.Equal(t, mockTransaction, *transaction)
 		assert.NoError(t, mockM.ExpectationsWereMet())
 	})
 
 	t.Run("Transaction Not Found", func(t *testing.T) {
-		mockM.ExpectQuery("SELECT (.+) FROM transactions WHERE").WithArgs(transactionID, userID).WillReturnRows(sqlmock.NewRows(nil)) // Return empty result set
+		mockM.ExpectQuery("SELECT (.+) FROM transactions WHERE").WithArgs(transactionID, scopes).WillReturnRows(sqlmock.NewRows(nil)) // Return empty result set
 
-		transaction, err := ModelsService.TransactionModel.GetTransactionByID(context.Background(), transactionID, userID)
+		transaction, err := ModelsService.TransactionModel.GetTransactionByID(context.Background(), transactionID, scopes)
 		assert.Error(t, err) // Assuming function returns error on not found
 		assert.Nil(t, transaction)
 		assert.NoError(t, mockM.ExpectationsWereMet())
 	})
 
 	t.Run("Query Execution Error", func(t *testing.T) {
-		mockM.ExpectQuery("SELECT (.+) FROM transactions WHERE").WithArgs(transactionID, userID).WillReturnError(sql.ErrConnDone) // Simulate query execution error
+		mockM.ExpectQuery("SELECT (.+) FROM transactions WHERE").WithArgs(transactionID, scopes).WillReturnError(sql.ErrConnDone) // Simulate query execution error
 
-		transaction, err := ModelsService.TransactionModel.GetTransactionByID(context.Background(), transactionID, userID)
+		transaction, err := ModelsService.TransactionModel.GetTransactionByID(context.Background(), transactionID, scopes)
 		assert.Error(t, err)
 		assert.Nil(t, transaction)
 		assert.NoError(t, mockM.ExpectationsWereMet())
@@ -434,6 +437,7 @@ func TestGetTransactionsByFilterV2(t *testing.T) {
 	defer tearDown()
 
 	userID := int64(1) // Assume some user ID
+	scopes := []int64{1}
 	filter := interfaces.TransactionFilter{
 		UserID: userID,
 		// Set additional filter criteria as needed for testing
@@ -448,9 +452,9 @@ func TestGetTransactionsByFilterV2(t *testing.T) {
 			// Define one or more mock transactions as per filter criteria
 		}
 
-		rows := sqlmock.NewRows([]string{"id", "user_id", "source_id", "category_id", "timestamp", "amount", "type", "description"})
+		rows := sqlmock.NewRows([]string{"transaction_id", "user_id", "source_id", "category_id", "timestamp", "amount", "type", "description", "scope_id"})
 		for _, txn := range mockTransactions {
-			rows = rows.AddRow(txn.ID, txn.UserID, txn.SourceID, txn.CategoryID, txn.Timestamp, txn.Amount, txn.Type, txn.Description)
+			rows = rows.AddRow(txn.ID, txn.UserID, txn.SourceID, txn.CategoryID, txn.Timestamp, txn.Amount, txn.Type, txn.Description, txn.ScopeID)
 		}
 
 		mockM.ExpectQuery("SELECT (.+) FROM transactions").WillReturnRows(rows)
@@ -473,7 +477,8 @@ func TestGetTransactionsByFilterV2(t *testing.T) {
 	})
 
 	t.Run("Row Scan Error", func(t *testing.T) {
-		rows := sqlmock.NewRows([]string{"id", "user_id", "source_id", "category_id", "timestamp", "amount", "type", "description"}).AddRow(1, userID, 1, 1, time.Now(), 100.0, "expense", "Description")
+		rows := sqlmock.NewRows([]string{"transaction_id", "user_id", "source_id", "category_id", "timestamp", "amount", "type", "description", "scope_id"}).
+			AddRow(1, userID, 1, 1, time.Now(), 100.0, "expense", "Description", scopes[0])
 		mockM.ExpectQuery("SELECT (.+) FROM transactions").WillReturnRows(rows)
 
 		_ = rows.RowError(0, sql.ErrConnDone) // Simulate row scan error on the first row
@@ -500,11 +505,12 @@ func TestGetTagsForTransaction(t *testing.T) {
 	// Assumed transaction details
 	transactionID := int64(1)
 	userID := int64(1)
-
+	scopes := []int64{1}
 	// Mock transaction to use in test
 	transaction := &interfaces.Transaction{
-		ID:     transactionID,
-		UserID: userID,
+		ID:      transactionID,
+		UserID:  userID,
+		ScopeID: scopes[0],
 		// Other necessary fields...
 	}
 
@@ -521,13 +527,13 @@ func TestGetTagsForTransaction(t *testing.T) {
 		}
 
 		// Set up SQL mock rows to simulate database response
-		rows := sqlmock.NewRows([]string{"id", "name"})
+		rows := sqlmock.NewRows([]string{"transaction_id", "name"})
 		for _, tag := range mockTags {
 			rows.AddRow(tag.ID, tag.Name)
 		}
 
 		// Set up the mock expectation for SQL query
-		mockM.ExpectQuery("SELECT t.id, t.name FROM tags t JOIN transaction_tags tt ON t.id = tt.tag_id WHERE tt.transaction_id = ?").
+		mockM.ExpectQuery("SELECT t.tag_id, t.name FROM tags t JOIN transaction_tags tt ON t.tag_id = tt.tag_id WHERE tt.transaction_id = ?").
 			WithArgs(transactionID).
 			WillReturnRows(rows)
 
@@ -550,7 +556,7 @@ func TestGetTagsForTransaction(t *testing.T) {
 		db, mockM = setupNewMock(t)
 
 		// Set up the mock expectation for SQL query with an error
-		mockM.ExpectQuery("SELECT t.id, t.name FROM tags t JOIN transaction_tags tt ON t.id = tt.tag_id WHERE tt.transaction_id = ?").
+		mockM.ExpectQuery("SELECT t.tag_id, t.name FROM tags t JOIN transaction_tags tt ON t.tag_id = tt.tag_id WHERE tt.transaction_id = ?").
 			WithArgs(transactionID).
 			WillReturnError(sql.ErrConnDone) // Simulate an error scenario
 
@@ -578,6 +584,7 @@ func TestValidateForeignKeyReferences(t *testing.T) {
 		UserID:     1,
 		SourceID:   1,
 		CategoryID: 1,
+		ScopeID:    1,
 		// ... other necessary fields
 	}
 
@@ -629,11 +636,17 @@ func TestAddMissingTags(t *testing.T) {
 	defer tearDown()
 
 	// Assuming these variables are defined and needed for the test
+	txn := interfaces.Transaction{
+		UserID:     1,
+		SourceID:   1,
+		CategoryID: 1,
+		ScopeID:    1,
+		// ... other necessary fields
+	}
 	ctx := context.Background()
-	transactionID := int64(1)            // example transaction ID
 	userID := int64(1)                   // example user ID
 	tagNames := []string{"Tag1", "Tag2"} // example tag names
-
+	scopes := []int64{1}                 // example scope IDs
 	// Mock TagModel
 	mockTagModel := new(xmock.MockTagModel)
 	ModelsService.TagModel = mockTagModel
@@ -646,15 +659,17 @@ func TestAddMissingTags(t *testing.T) {
 				"GetTagByName",
 				mock.Anything, // Context
 				tagName,
+				scopes,
 				userID,
 				mock.Anything, // Transaction options (if any)
-			).Return(&interfaces.Tag{ID: 1, Name: tagName, UserID: userID}, nil).Once()
+			).Return(&interfaces.Tag{ID: 1, Name: tagName, UserID: userID, ScopeID: scopes[0]}, nil).Once()
 		} else {
 			// Assume the tag does not exist and needs to be inserted
 			mockTagModel.On(
 				"GetTagByName",
 				mock.Anything,
 				tagName,
+				scopes,
 				userID,
 				mock.Anything,
 			).Return((*interfaces.Tag)(nil), nil).Once() // Tag not found
@@ -663,13 +678,14 @@ func TestAddMissingTags(t *testing.T) {
 				"InsertTag",
 				mock.Anything,
 				mock.MatchedBy(func(tag *interfaces.Tag) bool { return tag.Name == tagName }), // Ensuring the tag name matches
+				scopes,
 				mock.Anything,
 			).Return(nil).Once()
 		}
 	}
 
 	// Call the function under test
-	err := addMissingTags(ctx, transactionID, tagNames, userID, nil) // Assuming nil is a valid argument for otx
+	err := addMissingTags(ctx, txn, nil) // Assuming nil is a valid argument for otx
 
 	// Assertions
 	assert.NoError(t, err)
