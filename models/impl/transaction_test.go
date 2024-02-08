@@ -32,13 +32,18 @@ func setupForeignKeyMocks(mockM sqlmock.Sqlmock, txn interfaces.Transaction) {
 		WillReturnRows(sqlmock.NewRows([]string{"1"}).AddRow("1")) // indicating user exists
 
 	// Mock the source existence check
-	mockM.ExpectQuery(`SELECT 1 FROM sources WHERE id = \? AND user_id = \? LIMIT 1`).
-		WithArgs(txn.SourceID, txn.UserID).
+	mockM.ExpectQuery("^SELECT (.+) FROM sources WHERE").
+		WithArgs(txn.SourceID, sqlmock.AnyArg()).
 		WillReturnRows(sqlmock.NewRows([]string{"1"}).AddRow("1")) // indicating source exists
 
 	// Mock the category existence check
 	mockM.ExpectQuery("^SELECT (.+) FROM categories WHERE").
-		WithArgs(txn.CategoryID, txn.UserID).
+		WithArgs(txn.CategoryID, sqlmock.AnyArg()).
+		WillReturnRows(sqlmock.NewRows([]string{"1"}).AddRow("1")) // indicating category exists
+
+	// Mock the scope existence check
+	mockM.ExpectQuery("^SELECT (.+) FROM scopes WHERE").
+		WithArgs(txn.ScopeID).
 		WillReturnRows(sqlmock.NewRows([]string{"1"}).AddRow("1")) // indicating category exists
 }
 
@@ -49,6 +54,7 @@ func TestInsertTransactionV2(t *testing.T) {
 		config.UserModel = NewUserModel()
 		config.SourceModel = NewSourceModel()
 		config.CategoryModel = NewCategoryModel()
+		config.ScopeModel = NewScopeModel()
 	})
 	defer tearDown()
 

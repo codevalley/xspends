@@ -316,7 +316,7 @@ func validateForeignKeyReferences(ctx context.Context, txn interfaces.Transactio
 	}
 
 	// Check if the scope exists
-	scopeExists, err := GetModelsService().ScopeModel.ScopeIDExists(ctx, txn.CategoryID)
+	scopeExists, err := GetModelsService().ScopeModel.ScopeIDExists(ctx, txn.ScopeID)
 	if err != nil {
 		return errors.Wrap(err, "error checking if scope exists")
 	}
