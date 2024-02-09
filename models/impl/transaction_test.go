@@ -648,6 +648,7 @@ func TestAddMissingTags(t *testing.T) {
 		SourceID:   1,
 		CategoryID: 1,
 		ScopeID:    1,
+		Tags:       []string{"Tag1", "Tag2"},
 		// ... other necessary fields
 	}
 	ctx := context.Background()
@@ -657,7 +658,6 @@ func TestAddMissingTags(t *testing.T) {
 	// Mock TagModel
 	mockTagModel := new(xmock.MockTagModel)
 	ModelsService.TagModel = mockTagModel
-
 	// Mock the behavior of GetTagByName and InsertTag
 	for _, tagName := range tagNames {
 		if tagName == "Tag1" {
@@ -667,9 +667,8 @@ func TestAddMissingTags(t *testing.T) {
 				mock.Anything, // Context
 				tagName,
 				scopes,
-				userID,
 				mock.Anything, // Transaction options (if any)
-			).Return(&interfaces.Tag{ID: 1, Name: tagName, UserID: userID, ScopeID: scopes[0]}, nil).Once()
+			).Return(&interfaces.Tag{ID: 1, Name: tagName, UserID: userID, ScopeID: scopes[0]}, nil)
 		} else {
 			// Assume the tag does not exist and needs to be inserted
 			mockTagModel.On(
@@ -677,20 +676,17 @@ func TestAddMissingTags(t *testing.T) {
 				mock.Anything,
 				tagName,
 				scopes,
-				userID,
 				mock.Anything,
-			).Return((*interfaces.Tag)(nil), nil).Once() // Tag not found
+			).Return((*interfaces.Tag)(nil), nil) // Tag not found
 
 			mockTagModel.On(
 				"InsertTag",
 				mock.Anything,
 				mock.MatchedBy(func(tag *interfaces.Tag) bool { return tag.Name == tagName }), // Ensuring the tag name matches
-				scopes,
 				mock.Anything,
-			).Return(nil).Once()
+			).Return(nil)
 		}
 	}
-
 	// Call the function under test
 	err := addMissingTags(ctx, txn, nil) // Assuming nil is a valid argument for otx
 
