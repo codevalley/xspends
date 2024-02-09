@@ -70,7 +70,7 @@ func (s *UserStorer) Create(ctx context.Context, user authboss.User) error {
 	if !ok {
 		return fmt.Errorf("%w: %s", errors.New(userTypeAssertionFailed), "Create")
 	}
-
+	log.Printf("[Create] Inserting user: %v", u)
 	return GetModelsService().UserModel.InsertUser(ctx, u, nil) //TODO add DBService / transaction support
 }
 

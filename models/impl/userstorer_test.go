@@ -32,13 +32,13 @@ func TestUserStorer_Load(t *testing.T) {
 	}
 
 	// Prepare the mock response
-	rows := sqlmock.NewRows([]string{"id", "username", "name", "email", "currency", "password"}).
+	rows := sqlmock.NewRows([]string{"user_id", "username", "name", "email", "currency", "password"}).
 		AddRow("1", expectedUser.Username, "Test User", expectedUser.Email, "USD", "hashedpassword")
 
 	// Set up the expected SQL query that will be run
 	// Note that the sqlquery variable comes from your actual GetUserByUsername method,
 	// so ensure it matches exactly with what's being executed there.
-	sqlquery := "SELECT id, username, name, email, currency, password FROM users WHERE username = ?"
+	sqlquery := "SELECT user_id, username, name, email, currency, password FROM users WHERE username = ?"
 	mock.ExpectQuery(sqlquery).
 		WithArgs(username).
 		WillReturnRows(rows)
@@ -86,7 +86,7 @@ func TestUserStorer_Save(t *testing.T) {
 	}
 
 	// This should match the actual SQL query string
-	expectedSQL := "UPDATE users SET currency = ?, email = ?, name = ?, password = ?, updated_at = ?, username = ? WHERE id = ?"
+	expectedSQL := "UPDATE users SET currency = ?, email = ?, name = ?, password = ?, updated_at = ?, username = ? WHERE user_id = ?"
 
 	// Mock the database call
 	mockExecutor.EXPECT().
@@ -115,6 +115,8 @@ func TestUserStorer_Create(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
 		config.UserModel = NewUserModel()
+		config.ScopeModel = NewScopeModel()
+		config.UserScopeModel = NewUserScopeModel()
 	}) // Assume setUp properly initializes mocks and other necessary stuff
 	defer tearDown()
 	_, mock, err := sqlmock.New()
@@ -133,16 +135,36 @@ func TestUserStorer_Create(t *testing.T) {
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
+	// Ensure the SQL query and other arguments match exactly with those used in the InsertUser method
+	mockExecutor.EXPECT().
+		ExecContext(
+			gomock.Any(), // The context
+			"INSERT INTO scopes (scope_id,type) VALUES (?,?)", // The SQL query
+			gomock.Any(), // Match each argument
+			gomock.Any(),
+		).                                   //WithArgs(sqlmock.AnyArg(), "user").
+		Return(sqlmock.NewResult(1, 1), nil) // Simulate successful execution
 
-	// This should exactly match the actual SQL query string used in the InsertUser method
-	expectedSQL := "INSERT INTO users (id,username,name,email,currency,password,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)"
+	// Ensure the SQL query and other arguments match exactly with those used in the InsertUser method
+	mockExecutor.EXPECT().
+		ExecContext(
+			gomock.Any(), // The context
+			"INSERT INTO user_scopes (user_id,scope_id,role) VALUES (?,?,?) ON DUPLICATE KEY UPDATE role = VALUES(role)", // The SQL query
+			gomock.Any(), // Match each argument
+			gomock.Any(),
+			gomock.Any(),
+		).                                   //.WithArgs(newUser.ID, scopeID, "owner")
+		Return(sqlmock.NewResult(1, 1), nil) // Simulate successful execution
 
+	// Expectation for inserting a new user
+	expectedSQL := "INSERT INTO users (user_id,username,name,email,scope_id,currency,password,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?)"
 	// Ensure the SQL query and other arguments match exactly with those used in the InsertUser method
 	mockExecutor.EXPECT().
 		ExecContext(
 			gomock.Any(), // The context
 			expectedSQL,  // The SQL query
 			gomock.Any(), // Match each argument
+			gomock.Any(),
 			gomock.Any(),
 			gomock.Any(),
 			gomock.Any(),

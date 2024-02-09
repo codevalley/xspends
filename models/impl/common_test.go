@@ -36,6 +36,9 @@ func setUp(t *testing.T, modifyConfig func(*ModelsConfig)) func() {
 		SourceModel:         new(mock.MockSourceModel),
 		UserModel:           new(mock.MockUserModel),
 		TagModel:            new(mock.MockTagModel),
+		ScopeModel:          new(mock.MockScopeModel),
+		UserScopeModel:      new(mock.MockUserScopeModel),
+		GroupModel:          new(mock.MockGroupModel),
 		TransactionTagModel: new(mock.MockTransactionTagModel),
 		TransactionModel:    new(mock.MockTransactionModel),
 	}
