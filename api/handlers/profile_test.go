@@ -46,6 +46,7 @@ func TestGetUserProfile(t *testing.T) {
 				mockUserModel.On("GetUserByID", mock.Anything, userID, mock.Anything).Return(&interfaces.User{
 					ID:        userID,
 					Name:      "John Doe",
+					Scope:     1,
 					CreatedAt: time.Date(0001, 01, 01, 00, 00, 00, 00, time.UTC),
 					UpdatedAt: time.Date(0001, 01, 01, 00, 00, 00, 00, time.UTC),
 					Email:     "",
@@ -61,6 +62,7 @@ func TestGetUserProfile(t *testing.T) {
 				"email": "",
 				"id": 1,
 				"name": "John Doe",
+				"scope_id":1,
 				"updated_at": "0001-01-01T00:00:00Z",
 				"username": ""
 			}`,
@@ -137,6 +139,7 @@ func TestUpdateUserProfile(t *testing.T) {
 				"email": "",
 				"id": 1,
 				"name": "Jane Doe",
+				"scope_id":0,
 				"updated_at": "0001-01-01T00:00:00Z",
 				"username": ""
 			}`,
