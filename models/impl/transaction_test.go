@@ -583,7 +583,7 @@ func TestValidateForeignKeyReferences(t *testing.T) {
 		config.UserModel = NewUserModel()
 		config.SourceModel = NewSourceModel()
 		config.CategoryModel = NewCategoryModel()
-
+		config.ScopeModel = NewScopeModel()
 	})
 	defer tearDown()
 
