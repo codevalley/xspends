@@ -16,6 +16,8 @@ func TestInsertUser(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
 		config.UserModel = NewUserModel()
+		config.ScopeModel = NewScopeModel()
+		config.UserScopeModel = NewUserScopeModel()
 	})
 	defer tearDown()
 
@@ -26,6 +28,26 @@ func TestInsertUser(t *testing.T) {
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
+	// Ensure the SQL query and other arguments match exactly with those used in the InsertUser method
+	mockExecutor.EXPECT().
+		ExecContext(
+			gomock.Any(), // The context
+			"INSERT INTO scopes (scope_id,type) VALUES (?,?)", // The SQL query
+			gomock.Any(), // Match each argument
+			gomock.Any(),
+		).                                   //WithArgs(sqlmock.AnyArg(), "user").
+		Return(sqlmock.NewResult(1, 1), nil) // Simulate successful execution
+
+	// Ensure the SQL query and other arguments match exactly with those used in the InsertUser method
+	mockExecutor.EXPECT().
+		ExecContext(
+			gomock.Any(), // The context
+			"INSERT INTO user_scopes (user_id,scope_id,role) VALUES (?,?,?) ON DUPLICATE KEY UPDATE role = VALUES(role)", // The SQL query
+			gomock.Any(), // Match each argument
+			gomock.Any(),
+			gomock.Any(),
+		).                                   //.WithArgs(newUser.ID, scopeID, "owner")
+		Return(sqlmock.NewResult(1, 1), nil) // Simulate successful execution
 	mockExecutor.EXPECT().
 		ExecContext(gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(sql.Result(nil), nil).
@@ -62,17 +84,34 @@ func TestDeleteUser(t *testing.T) {
 	tearDown := setUp(t, func(config *ModelsConfig) {
 		// Replace the mocked CategoryModel with a real one just for this test
 		config.UserModel = NewUserModel()
+		config.ScopeModel = NewScopeModel()
+		config.UserScopeModel = NewUserScopeModel()
 	})
 	defer tearDown()
 
 	userID := int64(1)
 
-	mockExecutor.EXPECT().
-		ExecContext(gomock.Any(), gomock.Any(), gomock.Any()).
-		Return(sql.Result(nil), nil).
-		Times(1)
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("An error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+	mockDBService := &DBService{Executor: db}
+	mockModelService := &ModelsServiceContainer{
+		DBService:      mockDBService,
+		UserModel:      NewUserModel(),
+		ScopeModel:     NewScopeModel(),
+		UserScopeModel: NewUserScopeModel(),
+		// Initialize other models as necessary
+	}
+	ModelsService = mockModelService
 
-	err := ModelsService.UserModel.DeleteUser(ctx, userID)
+	rows := sqlmock.NewRows([]string{"user_id", "username", "name", "email", "scope_id", "currency", "password"}).
+		AddRow(userID, "testuser", "Test User", "test@example.com", 1, "USD", "hashedpassword")
+	mock.ExpectQuery("^SELECT (.+) FROM users WHERE").WithArgs(userID).WillReturnRows(rows)
+
+	mock.ExpectExec("^DELETE FROM users WHERE").WithArgs(userID).WillReturnResult(sqlmock.NewResult(1, 1))
+	err = ModelsService.UserModel.DeleteUser(ctx, userID)
 	assert.NoError(t, err)
 }
 func TestGetUserByID(t *testing.T) {
@@ -92,8 +131,8 @@ func TestGetUserByID(t *testing.T) {
 
 	// Set up expectations
 	userID := int64(1)
-	rows := sqlmock.NewRows([]string{"id", "username", "name", "email", "currency", "password"}).
-		AddRow(userID, "testuser", "Test User", "test@example.com", "USD", "hashedpassword")
+	rows := sqlmock.NewRows([]string{"user_id", "username", "name", "email", "scope_id", "currency", "password"}).
+		AddRow(userID, "testuser", "Test User", "test@example.com", 1, "USD", "hashedpassword")
 	mock.ExpectQuery("^SELECT (.+) FROM users WHERE").WithArgs(userID).WillReturnRows(rows)
 
 	// Call the function under test

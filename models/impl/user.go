@@ -192,6 +192,7 @@ func (um *UserModel) DeleteUser(ctx context.Context, id int64, otx ...*sql.Tx) e
 
 	_, err = executor.ExecContext(ctx, sqlquery, args...)
 	if err != nil {
+		log.Printf("[DeleteUser??] Error: %v", err)
 		return errors.Wrap(err, "deleting user failed")
 	}
 
@@ -202,7 +203,7 @@ func (um *UserModel) DeleteUser(ctx context.Context, id int64, otx ...*sql.Tx) e
 func (um *UserModel) GetUserByID(ctx context.Context, id int64, otx ...*sql.Tx) (*interfaces.User, error) {
 	_, executor := getExecutor(otx...)
 
-	sqlquery, args, err := squirrel.Select(um.ColumnID, um.ColumnUsername, um.ColumnName, um.ColumnEmail, um.ColumnCurrency, um.ColumnPassword).
+	sqlquery, args, err := squirrel.Select(um.ColumnID, um.ColumnUsername, um.ColumnName, um.ColumnEmail, um.ColumnScope, um.ColumnCurrency, um.ColumnPassword).
 		From(um.TableUsers).
 		Where(squirrel.Eq{um.ColumnID: id}).
 		PlaceholderFormat(squirrel.Question).
@@ -213,7 +214,7 @@ func (um *UserModel) GetUserByID(ctx context.Context, id int64, otx ...*sql.Tx) 
 	}
 
 	user := &interfaces.User{}
-	err = executor.QueryRowContext(ctx, sqlquery, args...).Scan(&user.ID, &user.Username, &user.Name, &user.Email, &user.Currency, &user.Password)
+	err = executor.QueryRowContext(ctx, sqlquery, args...).Scan(&user.ID, &user.Username, &user.Name, &user.Email, &um.ColumnScope, &user.Currency, &user.Password)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrUserNotFound
