@@ -174,39 +174,20 @@ func TestDeleteSource(t *testing.T) {
 	sourceID := int64(1)
 	scopeID := []int64{1}
 
+	//test for successful delete
 	mockExecutor.EXPECT().
 		ExecContext(gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(sql.Result(nil), nil).
 		Times(1)
-
 	err := ModelsService.SourceModel.DeleteSource(ctx, sourceID, scopeID)
 	assert.NoError(t, err)
 
 	//test for generic query error
-	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatalf("An error '%s' was not expected when opening a stub database connection", err)
-	}
-	defer db.Close()
-	mockDBService := &DBService{Executor: db}
-	mockModelService := &ModelsServiceContainer{
-		DBService:   mockDBService,
-		SourceModel: NewSourceModel(),
-	}
-	ModelsService = mockModelService
-	// Set up the expected query with sqlmock to return an error
-	mock.ExpectExec(`DELETE FROM sources WHERE source_id = \? AND scope_id IN (?)`).
-		WithArgs(sourceID, scopeID).
-		WillReturnError(errors.New("execution error"))
-
-	ctx := context.Background()
+	mockExecutor.EXPECT().ExecContext(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil, errors.New("database error")).
+		Times(1)
 	err = ModelsService.SourceModel.DeleteSource(ctx, sourceID, scopeID)
-
-	assert.Error(t, err) // Expecting an error
-
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Errorf("there were unfulfilled expectations: %s", err)
-	}
+	assert.EqualError(t, err, "executing delete for source: database error")
 }
 
 func TestGetSourceByID(t *testing.T) {
