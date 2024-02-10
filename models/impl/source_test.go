@@ -195,7 +195,7 @@ func TestDeleteSource(t *testing.T) {
 	}
 	ModelsService = mockModelService
 	// Set up the expected query with sqlmock to return an error
-	mock.ExpectExec(`DELETE FROM sources WHERE id = \? AND scope_id IN (?)`).
+	mock.ExpectExec(`DELETE FROM sources WHERE source_id = \? AND scope_id IN (?)`).
 		WithArgs(sourceID, scopeID).
 		WillReturnError(errors.New("execution error"))
 

@@ -456,6 +456,7 @@ func TestDeleteSource(t *testing.T) {
 		name           string
 		setupMock      func()
 		userID         string
+		scopeID        string
 		sourceID       string
 		expectedStatus int
 		expectedBody   string
@@ -463,11 +464,12 @@ func TestDeleteSource(t *testing.T) {
 		{
 			name: "Successful deletion",
 			setupMock: func() {
-				mockSourceModel.On("DeleteSource", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("int64"), mock.AnythingOfType("int64"), mock.AnythingOfType("[]*sql.Tx")).
-					Return(nil).Once()
+				mockSourceModel.On("DeleteSource", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("int64"), mock.AnythingOfType("[]int64"), mock.Anything).Return(nil).Once()
+
 			},
 			userID:         "1",
 			sourceID:       "1",
+			scopeID:        "1",
 			expectedStatus: http.StatusOK,
 			expectedBody:   `{"message": "Source deleted successfully"}`,
 		},
@@ -478,6 +480,7 @@ func TestDeleteSource(t *testing.T) {
 			},
 			userID:         "",
 			sourceID:       "1",
+			scopeID:        "1",
 			expectedStatus: http.StatusUnauthorized,
 			expectedBody:   `{"error": "user not authenticated"}`,
 		},
@@ -488,17 +491,18 @@ func TestDeleteSource(t *testing.T) {
 			},
 			userID:         "1",
 			sourceID:       "",
+			scopeID:        "1",
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"error": "source ID is required"}`,
 		},
 		{
 			name: "Error during source deletion",
 			setupMock: func() {
-				mockSourceModel.On("DeleteSource", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("int64"), mock.AnythingOfType("int64"), mock.AnythingOfType("[]*sql.Tx")).
-					Return(errors.New("Failed to delete source")).Once()
+				mockSourceModel.On("DeleteSource", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("int64"), mock.AnythingOfType("[]int64"), mock.Anything).Return(errors.New("Failed to delete source")).Once()
 			},
 			userID:         "1",
 			sourceID:       "1",
+			scopeID:        "1",
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody:   `{"error": "Failed to delete source"}`,
 		},
@@ -516,9 +520,14 @@ func TestDeleteSource(t *testing.T) {
 				userID, _ := strconv.ParseInt(tc.userID, 10, 64)
 				c.Set("userID", userID)
 			}
+			if tc.scopeID != "" {
+				scopeID, _ := strconv.ParseInt(tc.scopeID, 10, 64)
+				c.Set("scopeID", scopeID)
+			}
 			// Set user_id and source_id in Params
 			c.Params = gin.Params{
 				gin.Param{Key: "user_id", Value: tc.userID},
+				gin.Param{Key: "scope_id", Value: tc.scopeID},
 				gin.Param{Key: "id", Value: tc.sourceID},
 			}
 			// Invoke code under test
