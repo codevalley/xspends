@@ -8,7 +8,7 @@ import (
 
 // Source struct as defined in your implementation.
 type Source struct {
-	ID        int64     `json:"id"`
+	ID        int64     `json:"source_id"`
 	UserID    int64     `json:"user_id"`
 	Name      string    `json:"name"`
 	Type      string    `json:"type"`

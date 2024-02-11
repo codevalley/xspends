@@ -181,28 +181,31 @@ func TestGetSource(t *testing.T) {
 		setupMock      func()
 		userID         string
 		sourceID       string
+		scopeID        string
 		expectedStatus int
 		expectedBody   string
 	}{
 		{
 			name: "Successful retrieval",
 			setupMock: func() {
-				mockSourceModel.On("GetSourceByID", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("int64"), mock.AnythingOfType("int64"), mock.AnythingOfType("[]*sql.Tx")).
-					Return(&interfaces.Source{ID: 1, Name: "Source 1"}, nil).Once()
+				mockSourceModel.On("GetSourceByID", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("int64"), mock.AnythingOfType("[]int64"), mock.AnythingOfType("[]*sql.Tx")).
+					Return(&interfaces.Source{ID: 1, ScopeID: 1, Name: "Source 1"}, nil).Once()
 			},
 			userID:         "1",
 			sourceID:       "1",
+			scopeID:        "1",
 			expectedStatus: http.StatusOK,
 			expectedBody:   "Source 1",
 		},
 		{
 			name: "Source not found",
 			setupMock: func() {
-				mockSourceModel.On("GetSourceByID", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("int64"), mock.AnythingOfType("int64"), mock.AnythingOfType("[]*sql.Tx")).
+				mockSourceModel.On("GetSourceByID", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("int64"), mock.AnythingOfType("[]int64"), mock.AnythingOfType("[]*sql.Tx")).
 					Return((*interfaces.Source)(nil), errors.New("source not found")).Once()
 			},
 			userID:         "1",
 			sourceID:       "1",
+			scopeID:        "1",
 			expectedStatus: http.StatusNotFound,
 			expectedBody:   "Source not found",
 		},
@@ -213,6 +216,7 @@ func TestGetSource(t *testing.T) {
 			},
 			userID:         "1",
 			sourceID:       "NaN", // Assuming this is an invalid ID
+			scopeID:        "1",
 			expectedStatus: http.StatusNotFound,
 			expectedBody:   "invalid source ID format",
 		},
@@ -223,6 +227,7 @@ func TestGetSource(t *testing.T) {
 			},
 			userID:         "1",
 			sourceID:       "", // Assuming this is an invalid ID
+			scopeID:        "1",
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   "source ID is required",
 		},
@@ -233,6 +238,7 @@ func TestGetSource(t *testing.T) {
 			},
 			userID:         "", // Assuming 0 indicates unauthorized or missing user
 			sourceID:       "1",
+			scopeID:        "1",
 			expectedStatus: http.StatusUnauthorized,
 			expectedBody:   "user not authenticated",
 		},
@@ -249,13 +255,16 @@ func TestGetSource(t *testing.T) {
 			// Set user_id and source_id in Params
 			c.Params = gin.Params{
 				gin.Param{Key: "user_id", Value: tc.userID},
+				gin.Param{Key: "scope_id", Value: tc.scopeID},
 				gin.Param{Key: "id", Value: tc.sourceID},
 			}
 
 			// Set userID in the context
 			if tc.userID != "" {
 				userID, _ := strconv.ParseInt(tc.userID, 10, 64)
+				scopeID, _ := strconv.ParseInt(tc.scopeID, 10, 64)
 				c.Set("userID", userID)
+				c.Set("scopeID", scopeID)
 			}
 
 			tc.setupMock()
@@ -277,6 +286,7 @@ func TestCreateSource(t *testing.T) {
 		name           string
 		setupMock      func()
 		userID         string
+		scopeID        string
 		requestBody    string
 		expectedStatus int
 		expectedBody   string
@@ -289,8 +299,9 @@ func TestCreateSource(t *testing.T) {
 			},
 			requestBody:    `{"name": "New Source"}`,
 			userID:         "1",
+			scopeID:        "1",
 			expectedStatus: http.StatusCreated,
-			expectedBody:   `{"balance":0, "created_at":"0001-01-01T00:00:00Z", "id":0, "name":"New Source", "type":"", "updated_at":"0001-01-01T00:00:00Z", "user_id":1}`,
+			expectedBody:   `{"balance":0, "created_at":"0001-01-01T00:00:00Z", "scope_id":1, "source_id":0, "name":"New Source", "type":"", "updated_at":"0001-01-01T00:00:00Z", "user_id":1}`,
 		},
 		{
 			setupMock: func() {
@@ -298,6 +309,7 @@ func TestCreateSource(t *testing.T) {
 			},
 			name:           "Invalid JSON",
 			userID:         "1",
+			scopeID:        "1",
 			requestBody:    `{"name": "New Source",}`,
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"error":"Invalid source data"}`,
@@ -308,6 +320,7 @@ func TestCreateSource(t *testing.T) {
 				// No mock setup needed as the handler should return error before reaching the model
 			},
 			userID:         "", // Assuming 0 indicates unauthorized or missing user
+			scopeID:        "",
 			requestBody:    `{"name": "New Source"}`,
 			expectedStatus: http.StatusUnauthorized,
 			expectedBody:   `{"error":"user not authenticated"}`,
@@ -320,6 +333,7 @@ func TestCreateSource(t *testing.T) {
 			},
 			requestBody:    `{"name": "New Source"}`,
 			userID:         "1",
+			scopeID:        "1",
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody:   `{"error":"Failed to create source"}`,
 		},
@@ -329,6 +343,7 @@ func TestCreateSource(t *testing.T) {
 				// No mock setup needed as the handler should return error before reaching the model
 			},
 			userID:         "1", // Assuming 0 indicates unauthorized or missing user
+			scopeID:        "1",
 			requestBody:    "",
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"error": "Invalid source data"}`,
@@ -346,7 +361,9 @@ func TestCreateSource(t *testing.T) {
 			// Set userID in the context
 			if tc.userID != "" {
 				userID, _ := strconv.ParseInt(tc.userID, 10, 64)
+				scopeID, _ := strconv.ParseInt(tc.scopeID, 10, 64)
 				c.Set("userID", userID)
+				c.Set("scopeID", scopeID)
 			}
 			// Invoke code under test
 			tc.setupMock()
@@ -370,6 +387,7 @@ func TestUpdateSource(t *testing.T) {
 		name           string
 		setupMock      func()
 		userID         string
+		scopeID        string
 		requestBody    string
 		expectedStatus int
 		expectedBody   string
@@ -382,8 +400,9 @@ func TestUpdateSource(t *testing.T) {
 			},
 			requestBody:    `{"name": "Updated Source"}`,
 			userID:         "1",
+			scopeID:        "1",
 			expectedStatus: http.StatusOK,
-			expectedBody:   `{"balance":0, "created_at":"0001-01-01T00:00:00Z", "id":0, "name":"Updated Source", "type":"", "updated_at":"0001-01-01T00:00:00Z", "user_id":1}`,
+			expectedBody:   `{"balance":0, "created_at":"0001-01-01T00:00:00Z", "scope_id":1, "source_id":0, "name":"Updated Source", "type":"", "updated_at":"0001-01-01T00:00:00Z", "user_id":1}`,
 		},
 		{
 			name: "Invalid request body",
@@ -392,6 +411,7 @@ func TestUpdateSource(t *testing.T) {
 			},
 			requestBody:    `{"name": "Updated Source",}`,
 			userID:         "1",
+			scopeID:        "1",
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"error":"Invalid source data"}`,
 		},
@@ -403,6 +423,7 @@ func TestUpdateSource(t *testing.T) {
 			},
 			requestBody:    `{"name": "Updated Source"}`,
 			userID:         "1",
+			scopeID:        "1",
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody:   `{"error":"Failed to update source"}`,
 		},
@@ -413,6 +434,7 @@ func TestUpdateSource(t *testing.T) {
 			},
 			requestBody:    `{"name": "Updated Source"}`,
 			userID:         "",
+			scopeID:        "",
 			expectedStatus: http.StatusUnauthorized,
 			expectedBody:   `{"error":"user not authenticated"}`,
 		},
@@ -424,6 +446,7 @@ func TestUpdateSource(t *testing.T) {
 			},
 			requestBody:    `{"name": "Updated Source"}`,
 			userID:         "1",
+			scopeID:        "",
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody:   `{"error":"Failed to update source"}`,
 		},
@@ -440,7 +463,9 @@ func TestUpdateSource(t *testing.T) {
 			// Set userID in the context
 			if tc.userID != "" {
 				userID, _ := strconv.ParseInt(tc.userID, 10, 64)
+				scopeID, _ := strconv.ParseInt(tc.scopeID, 10, 64)
 				c.Set("userID", userID)
+				c.Set("scopeID", scopeID)
 			}
 			// Invoke code under test
 			tc.setupMock()

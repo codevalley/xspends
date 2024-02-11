@@ -44,8 +44,11 @@ import (
 // @Router /sources [get]
 func ListSources(c *gin.Context) {
 	_, okUser := getUserID(c)
+	if !okUser {
+		return
+	}
 	scopeID, okScope := getScopeID(c)
-	if !okUser || !okScope {
+	if !okScope {
 		return
 	}
 
@@ -104,8 +107,11 @@ func GetSource(c *gin.Context) {
 // @Router /sources [post]
 func CreateSource(c *gin.Context) {
 	userID, okUser := getUserID(c)
+	if !okUser {
+		return
+	}
 	scopeID, okScope := getScopeID(c)
-	if !okUser || !okScope {
+	if !okScope {
 		return
 	}
 	var newSource interfaces.Source
@@ -138,8 +144,11 @@ func CreateSource(c *gin.Context) {
 // @Router /sources/{id} [put]
 func UpdateSource(c *gin.Context) {
 	userID, okUser := getUserID(c)
+	if !okUser {
+		return
+	}
 	scopeID, okScope := getScopeID(c)
-	if !okUser || !okScope {
+	if !okScope {
 		return
 	}
 	var updatedSource interfaces.Source
@@ -172,8 +181,11 @@ func UpdateSource(c *gin.Context) {
 // @Router /sources/{id} [delete]
 func DeleteSource(c *gin.Context) {
 	_, okUser := getUserID(c)
+	if !okUser {
+		return
+	}
 	scopeID, okScope := getScopeID(c)
-	if !okUser || !okScope {
+	if !okScope {
 		return
 	}
 	sourceID, ok := getSourceID(c)
