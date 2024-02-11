@@ -67,8 +67,11 @@ func getCategoryID(c *gin.Context) (int64, bool) {
 // @Router /categories [get]
 func ListCategories(c *gin.Context) {
 	_, okUser := getUserID(c)
+	if !okUser {
+		return
+	}
 	scopeID, okScope := getScopeID(c)
-	if !okUser || !okScope {
+	if !okScope {
 		return
 	}
 	//TODO: Extract literals like this to constants
@@ -102,8 +105,11 @@ func ListCategories(c *gin.Context) {
 // @Router /categories/{id} [get]
 func GetCategory(c *gin.Context) {
 	_, okUser := getUserID(c)
+	if !okUser {
+		return
+	}
 	scopeID, okScope := getScopeID(c)
-	if !okUser || !okScope {
+	if !okScope {
 		return
 	}
 
@@ -137,8 +143,11 @@ func GetCategory(c *gin.Context) {
 // @Router /categories [post]
 func CreateCategory(c *gin.Context) {
 	userID, okUser := getUserID(c)
+	if !okUser {
+		return
+	}
 	scopeID, okScope := getScopeID(c)
-	if !okUser || !okScope {
+	if !okScope {
 		return
 	}
 
@@ -173,11 +182,13 @@ func CreateCategory(c *gin.Context) {
 // @Router /categories/{id} [put]
 func UpdateCategory(c *gin.Context) {
 	userID, okUser := getUserID(c)
-	scopeID, okScope := getScopeID(c)
-	if !okUser || !okScope {
+	if !okUser {
 		return
 	}
-
+	scopeID, okScope := getScopeID(c)
+	if !okScope {
+		return
+	}
 	var updatedCategory interfaces.Category
 	if err := c.ShouldBindJSON(&updatedCategory); err != nil {
 		log.Printf("[UpdateCategory] Error: %v", err)
@@ -208,8 +219,11 @@ func UpdateCategory(c *gin.Context) {
 // @Router /categories/{id} [delete]
 func DeleteCategory(c *gin.Context) {
 	_, okUser := getUserID(c)
+	if !okUser {
+		return
+	}
 	scopeID, okScope := getScopeID(c)
-	if !okUser || !okScope {
+	if !okScope {
 		return
 	}
 

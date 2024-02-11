@@ -103,6 +103,7 @@ func TestListCategories(t *testing.T) {
 		name           string
 		setupMock      func()
 		userID         string
+		ScopeID        string
 		page           string
 		itemsPerPage   string
 		expectedStatus int
@@ -113,9 +114,10 @@ func TestListCategories(t *testing.T) {
 			setupMock: func() {
 				page, _ := strconv.Atoi("1")
 				itemsPerPage, _ := strconv.Atoi("10")
-				mockCategoryModel.On("GetPagedCategories", isContext, page, itemsPerPage, int64(1), mock.AnythingOfType("[]*sql.Tx")).Return([]interfaces.Category{{ID: 1, Name: "Category 1"}}, nil).Once()
+				mockCategoryModel.On("GetScopedCategories", isContext, page, itemsPerPage, []int64{1}, mock.AnythingOfType("[]*sql.Tx")).Return([]interfaces.Category{{ID: 1, ScopeID: 1, Name: "Category 1"}}, nil).Once()
 			},
 			userID:         "1",
+			ScopeID:        "1",
 			page:           "1",
 			itemsPerPage:   "10",
 			expectedStatus: http.StatusOK,
@@ -124,9 +126,10 @@ func TestListCategories(t *testing.T) {
 		{
 			name: "No categories found",
 			setupMock: func() {
-				mockCategoryModel.On("GetPagedCategories", isContext, 1, 10, int64(1), mock.AnythingOfType("[]*sql.Tx")).Return([]interfaces.Category{}, nil).Once()
+				mockCategoryModel.On("GetScopedCategories", isContext, 1, 10, []int64{1}, mock.AnythingOfType("[]*sql.Tx")).Return([]interfaces.Category{}, nil).Once()
 			},
 			userID:         "1",
+			ScopeID:        "1",
 			page:           "1",
 			itemsPerPage:   "10",
 			expectedStatus: http.StatusOK,
@@ -134,10 +137,11 @@ func TestListCategories(t *testing.T) {
 		}, {
 			name: "Internal server error",
 			setupMock: func() {
-				mockCategoryModel.On("GetPagedCategories", isContext, 1, 10, int64(1), mock.AnythingOfType("[]*sql.Tx")).
+				mockCategoryModel.On("GetScopedCategories", isContext, 1, 10, []int64{1}, mock.AnythingOfType("[]*sql.Tx")).
 					Return([]interfaces.Category{}, errors.New("internal server error")).Once()
 			},
 			userID:         "1",
+			ScopeID:        "1",
 			page:           "1",
 			itemsPerPage:   "10",
 			expectedStatus: http.StatusInternalServerError,
@@ -149,6 +153,7 @@ func TestListCategories(t *testing.T) {
 				// No mock setup needed as the handler should return error before reaching the model
 			},
 			userID:         "", // Assuming 0 indicates unauthorized or missing user
+			ScopeID:        "",
 			expectedStatus: http.StatusUnauthorized,
 			expectedBody:   "user not authenticated",
 		},
@@ -164,7 +169,9 @@ func TestListCategories(t *testing.T) {
 
 			if tc.userID != "" {
 				userID, _ := strconv.ParseInt(tc.userID, 10, 64)
+				scopeID, _ := strconv.ParseInt(tc.ScopeID, 10, 64)
 				c.Set("userID", userID)
+				c.Set("scopeID", scopeID)
 			}
 			q := c.Request.URL.Query()
 			q.Add("page", tc.page)
@@ -187,6 +194,7 @@ func TestGetCategory(t *testing.T) {
 		name           string
 		setupMock      func()
 		userID         string
+		scopeID        string
 		categoryID     string
 		expectedStatus int
 		expectedBody   string
@@ -194,10 +202,11 @@ func TestGetCategory(t *testing.T) {
 		{
 			name: "Successful retrieval",
 			setupMock: func() {
-				mockCategoryModel.On("GetCategoryByID", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("int64"), mock.AnythingOfType("int64"), mock.AnythingOfType("[]*sql.Tx")).
-					Return(&interfaces.Category{ID: 1, Name: "Category 1"}, nil).Once()
+				mockCategoryModel.On("GetCategoryByID", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("int64"), mock.AnythingOfType("[]int64"), mock.AnythingOfType("[]*sql.Tx")).
+					Return(&interfaces.Category{ID: 1, ScopeID: 1, Name: "Category 1"}, nil).Once()
 			},
 			userID:         "1",
+			scopeID:        "1",
 			categoryID:     "1",
 			expectedStatus: http.StatusOK,
 			expectedBody:   "Category 1",
@@ -205,10 +214,11 @@ func TestGetCategory(t *testing.T) {
 		{
 			name: "Category not found",
 			setupMock: func() {
-				mockCategoryModel.On("GetCategoryByID", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("int64"), mock.AnythingOfType("int64"), mock.AnythingOfType("[]*sql.Tx")).
+				mockCategoryModel.On("GetCategoryByID", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("int64"), mock.AnythingOfType("[]int64"), mock.AnythingOfType("[]*sql.Tx")).
 					Return((*interfaces.Category)(nil), errors.New("category not found")).Once()
 			},
 			userID:         "1",
+			scopeID:        "1",
 			categoryID:     "1",
 			expectedStatus: http.StatusNotFound,
 			expectedBody:   "category not found",
@@ -219,6 +229,7 @@ func TestGetCategory(t *testing.T) {
 				// No mock setup needed as the handler should return error before reaching the model
 			},
 			userID:         "1",
+			scopeID:        "1",
 			categoryID:     "NaN", // Assuming this is an invalid ID
 			expectedStatus: http.StatusNotFound,
 			expectedBody:   "invalid category ID format",
@@ -229,6 +240,7 @@ func TestGetCategory(t *testing.T) {
 				// No mock setup needed as the handler should return error before reaching the model
 			},
 			userID:         "1",
+			scopeID:        "1",
 			categoryID:     "", // Assuming this is an invalid ID
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   "category ID is required",
@@ -239,6 +251,7 @@ func TestGetCategory(t *testing.T) {
 				// No mock setup needed as the handler should return error before reaching the model
 			},
 			userID:         "", // Assuming 0 indicates unauthorized or missing user
+			scopeID:        "",
 			categoryID:     "1",
 			expectedStatus: http.StatusUnauthorized,
 			expectedBody:   "user not authenticated",
@@ -257,13 +270,16 @@ func TestGetCategory(t *testing.T) {
 			// Set user_id and category_id in Params
 			c.Params = gin.Params{
 				gin.Param{Key: "user_id", Value: tc.userID},
+				gin.Param{Key: "scope_id", Value: tc.scopeID},
 				gin.Param{Key: "id", Value: tc.categoryID},
 			}
 
 			// Set userID in the context
 			if tc.userID != "" {
 				userID, _ := strconv.ParseInt(tc.userID, 10, 64)
+				scopeID, _ := strconv.ParseInt(tc.scopeID, 10, 64)
 				c.Set("userID", userID)
+				c.Set("scopeID", scopeID)
 			}
 
 			tc.setupMock()
@@ -284,6 +300,7 @@ func TestCreateCategory(t *testing.T) {
 		name           string
 		setupMock      func()
 		userID         string
+		scopeID        string
 		requestBody    string
 		expectedStatus int
 		expectedBody   string
@@ -296,8 +313,9 @@ func TestCreateCategory(t *testing.T) {
 			},
 			requestBody:    `{"name": "New Category"}`,
 			userID:         "1",
+			scopeID:        "1",
 			expectedStatus: http.StatusCreated,
-			expectedBody:   `{"created_at":"0001-01-01T00:00:00Z", "description":"", "icon":"", "id":0, "name":"New Category", "updated_at":"0001-01-01T00:00:00Z", "user_id":1}`,
+			expectedBody:   `{"created_at":"0001-01-01T00:00:00Z", "description":"", "icon":"", "category_id":0, "name":"New Category", "scope_id":1, "updated_at":"0001-01-01T00:00:00Z", "user_id":1}`,
 		},
 		{
 			setupMock: func() {
@@ -305,6 +323,7 @@ func TestCreateCategory(t *testing.T) {
 			},
 			name:           "Invalid JSON",
 			userID:         "1",
+			scopeID:        "1",
 			requestBody:    `{"name": "New Category",}`,
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"error":"invalid JSON"}`,
@@ -315,6 +334,7 @@ func TestCreateCategory(t *testing.T) {
 				// No mock setup needed as the handler should return error before reaching the model
 			},
 			userID:         "", // Assuming 0 indicates unauthorized or missing user
+			scopeID:        "",
 			requestBody:    `{"name": "New Category"}`,
 			expectedStatus: http.StatusUnauthorized,
 			expectedBody:   `{"error":"user not authenticated"}`,
@@ -327,6 +347,7 @@ func TestCreateCategory(t *testing.T) {
 			},
 			requestBody:    `{"name": "New Category"}`,
 			userID:         "1",
+			scopeID:        "1",
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody:   `{"error":"unable to create category"}`,
 		},
@@ -336,6 +357,7 @@ func TestCreateCategory(t *testing.T) {
 				// No mock setup needed as the handler should return error before reaching the model
 			},
 			userID:         "1", // Assuming 0 indicates unauthorized or missing user
+			scopeID:        "1",
 			requestBody:    "",
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"error": "invalid JSON"}`,
@@ -353,7 +375,9 @@ func TestCreateCategory(t *testing.T) {
 			// Set userID in the context
 			if tc.userID != "" {
 				userID, _ := strconv.ParseInt(tc.userID, 10, 64)
+				scopeID, _ := strconv.ParseInt(tc.scopeID, 10, 64)
 				c.Set("userID", userID)
+				c.Set("scopeID", scopeID)
 			}
 			// Invoke code under test
 			tc.setupMock()
@@ -377,6 +401,7 @@ func TestUpdateCategory(t *testing.T) {
 		name           string
 		setupMock      func()
 		userID         string
+		scopeID        string
 		requestBody    string
 		expectedStatus int
 		expectedBody   string
@@ -389,8 +414,9 @@ func TestUpdateCategory(t *testing.T) {
 			},
 			requestBody:    `{"name": "Updated Category"}`,
 			userID:         "1",
+			scopeID:        "1",
 			expectedStatus: http.StatusOK,
-			expectedBody:   `{"created_at":"0001-01-01T00:00:00Z", "description":"", "icon":"", "id":0, "name":"Updated Category", "updated_at":"0001-01-01T00:00:00Z", "user_id":1}`,
+			expectedBody:   `{"created_at":"0001-01-01T00:00:00Z", "description":"", "icon":"", "category_id":0, "name":"Updated Category", "scope_id":1, "updated_at":"0001-01-01T00:00:00Z", "user_id":1}`,
 		},
 		{
 			name: "Invalid request body",
@@ -399,6 +425,7 @@ func TestUpdateCategory(t *testing.T) {
 			},
 			requestBody:    `{"name": "Updated Category",}`,
 			userID:         "1",
+			scopeID:        "1",
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"error":"invalid JSON"}`,
 		},
@@ -410,6 +437,7 @@ func TestUpdateCategory(t *testing.T) {
 			},
 			requestBody:    `{"name": "Updated Category"}`,
 			userID:         "1",
+			scopeID:        "1",
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody:   `{"error":"unable to update category"}`,
 		},
@@ -420,6 +448,7 @@ func TestUpdateCategory(t *testing.T) {
 			},
 			requestBody:    `{"name": "Updated Category"}`,
 			userID:         "",
+			scopeID:        "",
 			expectedStatus: http.StatusUnauthorized,
 			expectedBody:   `{"error":"user not authenticated"}`,
 		},
@@ -431,6 +460,7 @@ func TestUpdateCategory(t *testing.T) {
 			},
 			requestBody:    `{"name": "Updated Category"}`,
 			userID:         "1",
+			scopeID:        "1",
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody:   `{"error":"unable to update category"}`,
 		},
@@ -447,7 +477,9 @@ func TestUpdateCategory(t *testing.T) {
 			// Set userID in the context
 			if tc.userID != "" {
 				userID, _ := strconv.ParseInt(tc.userID, 10, 64)
+				scopeID, _ := strconv.ParseInt(tc.scopeID, 10, 64)
 				c.Set("userID", userID)
+				c.Set("scopeID", scopeID)
 			}
 			// Invoke code under test
 			tc.setupMock()
@@ -471,6 +503,7 @@ func TestDeleteCategory(t *testing.T) {
 		name           string
 		setupMock      func()
 		userID         string
+		scopeID        string
 		categoryID     string
 		expectedStatus int
 		expectedBody   string
@@ -478,10 +511,11 @@ func TestDeleteCategory(t *testing.T) {
 		{
 			name: "Successful deletion",
 			setupMock: func() {
-				mockCategoryModel.On("DeleteCategory", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("int64"), mock.AnythingOfType("int64"), mock.AnythingOfType("[]*sql.Tx")).
+				mockCategoryModel.On("DeleteCategory", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("int64"), mock.AnythingOfType("[]int64"), mock.AnythingOfType("[]*sql.Tx")).
 					Return(nil).Once()
 			},
 			userID:         "1",
+			scopeID:        "1",
 			categoryID:     "1",
 			expectedStatus: http.StatusOK,
 			expectedBody:   `{"message": "category deleted successfully"}`,
@@ -492,6 +526,7 @@ func TestDeleteCategory(t *testing.T) {
 				// No mock setup needed as the handler should return error before reaching the model
 			},
 			userID:         "",
+			scopeID:        "",
 			categoryID:     "1",
 			expectedStatus: http.StatusUnauthorized,
 			expectedBody:   `{"error": "user not authenticated"}`,
@@ -502,6 +537,7 @@ func TestDeleteCategory(t *testing.T) {
 				// No mock setup needed as the handler should return error before reaching the model
 			},
 			userID:         "1",
+			scopeID:        "1",
 			categoryID:     "",
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"error": "category ID is required"}`,
@@ -509,10 +545,11 @@ func TestDeleteCategory(t *testing.T) {
 		{
 			name: "Error during category deletion",
 			setupMock: func() {
-				mockCategoryModel.On("DeleteCategory", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("int64"), mock.AnythingOfType("int64"), mock.AnythingOfType("[]*sql.Tx")).
+				mockCategoryModel.On("DeleteCategory", mock.AnythingOfType("*gin.Context"), mock.AnythingOfType("int64"), mock.AnythingOfType("[]int64"), mock.AnythingOfType("[]*sql.Tx")).
 					Return(errors.New("unable to delete category")).Once()
 			},
 			userID:         "1",
+			scopeID:        "1",
 			categoryID:     "1",
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody:   `{"error": "unable to delete category"}`,
@@ -529,7 +566,9 @@ func TestDeleteCategory(t *testing.T) {
 			// Set userID in the context
 			if tc.userID != "" {
 				userID, _ := strconv.ParseInt(tc.userID, 10, 64)
+				scopeID, _ := strconv.ParseInt(tc.scopeID, 10, 64)
 				c.Set("userID", userID)
+				c.Set("scopeID", scopeID)
 			}
 			// Set user_id and category_id in Params
 			c.Params = gin.Params{
