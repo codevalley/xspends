@@ -102,24 +102,27 @@ func TestListSources(t *testing.T) {
 		name           string
 		setupMock      func()
 		userID         string
+		scopeID        string
 		expectedStatus int
 		expectedBody   string
 	}{
 		{
 			name: "Successful retrieval",
 			setupMock: func() {
-				mockSourceModel.On("GetSources", isContext, int64(1), mock.AnythingOfType("[]*sql.Tx")).Return([]interfaces.Source{{ID: 1, Name: "Source 1"}}, nil).Once()
+				mockSourceModel.On("GetSources", isContext, []int64{1}, mock.AnythingOfType("[]*sql.Tx")).Return([]interfaces.Source{{ID: 1, ScopeID: 1, Name: "Source 1"}}, nil).Once()
 			},
 			userID:         "1",
+			scopeID:        "1",
 			expectedStatus: http.StatusOK,
 			expectedBody:   "Source 1",
 		},
 		{
 			name: "Error fetching sources",
 			setupMock: func() {
-				mockSourceModel.On("GetSources", isContext, int64(1), mock.AnythingOfType("[]*sql.Tx")).Return([]interfaces.Source{}, errors.New("database error")).Once()
+				mockSourceModel.On("GetSources", isContext, []int64{1}, mock.AnythingOfType("[]*sql.Tx")).Return([]interfaces.Source{}, errors.New("database error")).Once()
 			},
 			userID:         "1",
+			scopeID:        "1",
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody:   "Unable to fetch sources",
 		},
@@ -129,15 +132,17 @@ func TestListSources(t *testing.T) {
 				// No mock setup needed as the handler should return error before reaching the model
 			},
 			userID:         "", // Assuming empty string indicates unauthorized or missing user
+			scopeID:        "",
 			expectedStatus: http.StatusUnauthorized,
 			expectedBody:   "user not authenticated", // or whatever your actual unauthorized response is
 		},
 		{
 			name: "No sources found",
 			setupMock: func() {
-				mockSourceModel.On("GetSources", isContext, int64(1), mock.AnythingOfType("[]*sql.Tx")).Return([]interfaces.Source{}, nil).Once()
+				mockSourceModel.On("GetSources", isContext, []int64{1}, mock.AnythingOfType("[]*sql.Tx")).Return([]interfaces.Source{}, nil).Once()
 			},
 			userID:         "1",
+			scopeID:        "1",
 			expectedStatus: http.StatusOK,
 			expectedBody:   "[]", // Assuming an empty JSON array is returned for no sources
 		},
@@ -150,10 +155,13 @@ func TestListSources(t *testing.T) {
 			c, _ := gin.CreateTestContext(w)
 			c.Request = r
 			c.Params = gin.Params{gin.Param{Key: "user_id", Value: tc.userID}}
+			c.Params = gin.Params{gin.Param{Key: "scope_id", Value: tc.scopeID}}
 
 			if tc.userID != "" {
 				userID, _ := strconv.ParseInt(tc.userID, 10, 64)
+				scopeID, _ := strconv.ParseInt(tc.scopeID, 10, 64)
 				c.Set("userID", userID)
+				c.Set("scopeID", scopeID)
 			}
 
 			tc.setupMock()
