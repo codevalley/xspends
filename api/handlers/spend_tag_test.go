@@ -286,6 +286,17 @@ func TestCreateTag(t *testing.T) {
 			requestBody:    `{"name":"New Tag"}`,
 			expectedStatus: http.StatusCreated,
 			expectedBody:   `{"created_at":"0001-01-01T00:00:00Z", "name":"New Tag", "scope_id":1, "tag_id":0, "updated_at":"0001-01-01T00:00:00Z", "user_id":1}`, // Adapt based on actual response structure
+		}, {
+			name: "Tag creation fails",
+			setupMock: func() {
+				newTag := &interfaces.Tag{UserID: 1, ScopeID: 1, Name: "New Tag"}
+				mockTagModel.On("InsertTag", mock.AnythingOfType("*gin.Context"), newTag, mock.AnythingOfType("[]*sql.Tx")).Return(errors.New("failed to create tag")).Once()
+			},
+			userID:         "1",
+			scopeID:        "1",
+			requestBody:    `{"name":"New Tag"}`,
+			expectedStatus: http.StatusInternalServerError,
+			expectedBody:   `{"error": "unable to create tag"}`,
 		},
 		{
 			name: "Invalid JSON",
@@ -361,27 +372,44 @@ func TestUpdateTag(t *testing.T) {
 		name           string
 		setupMock      func()
 		userID         string
+		scopeID        string
 		tagID          string
 		requestBody    string
 		expectedStatus int
 		expectedBody   string
 	}{
 		{
+			name: "Tag update fails",
+			setupMock: func() {
+				// Set up the expected tag and ensure it matches the call in your handler.
+				updatedTag := &interfaces.Tag{ID: 0, UserID: 1, ScopeID: 1, Name: "Updated Tag"}
+				// Setup the mock expectation with the correct parameters.
+				mockTagModel.On("UpdateTag", mock.AnythingOfType("*gin.Context"), updatedTag, mock.AnythingOfType("[]*sql.Tx")).Return(errors.New("failed to update tag")).Once() // simulate failure
+			},
+			userID:         "1",
+			scopeID:        "1",                                // assuming this is the user making the update
+			requestBody:    `{"id":1, "name":"Updated Tag"}`,   // make sure this matches what your handler expects
+			expectedStatus: http.StatusInternalServerError,     // or whatever is appropriate for a failure in update
+			expectedBody:   `{"error":"unable to update tag"}`, // expected error message
+		},
+		{
 			name: "Successful update",
 			setupMock: func() {
 				// Assuming the ID and UserID are known and correct as 1
-				updatedTag := &interfaces.Tag{ID: 0, UserID: 1, Name: "Updated Tag"}
+				updatedTag := &interfaces.Tag{ID: 0, UserID: 1, ScopeID: 1, Name: "Updated Tag"}
 				mockTagModel.On("UpdateTag", mock.AnythingOfType("*gin.Context"), updatedTag, mock.AnythingOfType("[]*sql.Tx")).Return(nil).Once()
 			},
 			userID:         "1",
+			scopeID:        "1",
 			requestBody:    `{"name":"Updated Tag"}`,
 			expectedStatus: http.StatusOK,
 			expectedBody: `{
-				"id": 0,
-				"user_id": 1,
+				"scope_id": 1,
+				"tag_id": 0,
 				"name": "Updated Tag",
 				"created_at": "0001-01-01T00:00:00Z",
-				"updated_at": "0001-01-01T00:00:00Z"
+				"updated_at": "0001-01-01T00:00:00Z",
+				"user_id": 1
 			}`, // Adjust based on actual response structure
 		},
 		{
@@ -390,6 +418,7 @@ func TestUpdateTag(t *testing.T) {
 				// No mock setup needed as the handler should return error before reaching the model
 			},
 			userID:         "1",
+			scopeID:        "1",
 			tagID:          "1",
 			requestBody:    `{"name": "Invalid JSON",}`,
 			expectedStatus: http.StatusBadRequest,
@@ -401,25 +430,13 @@ func TestUpdateTag(t *testing.T) {
 				// No mock setup needed as the handler should return error before reaching the model
 			},
 			userID:         "", // Assuming empty indicates unauthorized or missing user
+			scopeID:        "1",
 			tagID:          "1",
 			requestBody:    `{"name":"Updated Tag"}`,
 			expectedStatus: http.StatusUnauthorized,
 			expectedBody:   `{"error": "user not authenticated"}`,
 		},
-		{
-			name: "Tag update fails",
-			setupMock: func() {
-				// Set up the expected tag and ensure it matches the call in your handler.
-				updatedTag := &interfaces.Tag{ID: 1, UserID: 1, Name: "Updated Tag"}
-				// Setup the mock expectation with the correct parameters.
-				mockTagModel.On("UpdateTag", mock.AnythingOfType("*gin.Context"), updatedTag, mock.AnythingOfType("[]*sql.Tx")).
-					Return(errors.New("failed to update tag")).Once() // simulate failure
-			},
-			userID:         "1",                                // assuming this is the user making the update
-			requestBody:    `{"id":1, "name":"Updated Tag"}`,   // make sure this matches what your handler expects
-			expectedStatus: http.StatusInternalServerError,     // or whatever is appropriate for a failure in update
-			expectedBody:   `{"error":"unable to update tag"}`, // expected error message
-		},
+
 		// ... potentially more test cases for specific error conditions or edge cases ...
 	}
 
@@ -431,9 +448,11 @@ func TestUpdateTag(t *testing.T) {
 			c.Request = r
 
 			// Set userID in the context if available
-			if tc.userID != "" {
+			if tc.userID != "" && tc.scopeID != "" {
 				userID, _ := strconv.ParseInt(tc.userID, 10, 64)
+				scopeID, _ := strconv.ParseInt(tc.scopeID, 10, 64)
 				c.Set("userID", userID)
+				c.Set("scopeID", scopeID)
 			}
 
 			// Mock setup
@@ -459,6 +478,7 @@ func TestDeleteTag(t *testing.T) {
 		name           string
 		setupMock      func()
 		userID         string
+		scopeID        string
 		tagID          string
 		expectedStatus int
 		expectedBody   string
@@ -466,12 +486,13 @@ func TestDeleteTag(t *testing.T) {
 		{
 			name: "Successful deletion",
 			setupMock: func() {
-				tagID := int64(1)  // Assuming tag ID 1 for deletion
-				userID := int64(1) // Assuming user ID 1 for ownership
-				mockTagModel.On("DeleteTag", mock.AnythingOfType("*gin.Context"), tagID, userID, mock.AnythingOfType("[]*sql.Tx")).Return(nil).Once()
+				tagID := int64(1) // Assuming tag ID 1 for deletion
+				scopeID := int64(1)
+				mockTagModel.On("DeleteTag", mock.AnythingOfType("*gin.Context"), tagID, []int64{scopeID}, mock.AnythingOfType("[]*sql.Tx")).Return(nil).Once()
 			},
 			userID:         "1",
 			tagID:          "1",
+			scopeID:        "1",
 			expectedStatus: http.StatusOK,
 			expectedBody:   `{"message": "tag deleted successfully"}`,
 		},
@@ -479,9 +500,9 @@ func TestDeleteTag(t *testing.T) {
 			name: "Tag not found or error in deletion",
 			setupMock: func() {
 				tagID := int64(1)
-				userID := int64(1)
+				scopeID := int64(1)
 				// Simulate an error during deletion
-				mockTagModel.On("DeleteTag", mock.AnythingOfType("*gin.Context"), tagID, userID, mock.AnythingOfType("[]*sql.Tx")).
+				mockTagModel.On("DeleteTag", mock.AnythingOfType("*gin.Context"), tagID, []int64{scopeID}, mock.AnythingOfType("[]*sql.Tx")).
 					Return(errors.New("failed to delete tag")).Once()
 			},
 			userID:         "1",
@@ -505,7 +526,9 @@ func TestDeleteTag(t *testing.T) {
 			c.Request = req
 			if tc.userID != "" {
 				userID, _ := strconv.ParseInt(tc.userID, 10, 64)
+				scopeID, _ := strconv.ParseInt(tc.userID, 10, 64)
 				c.Set("userID", userID)
+				c.Set("scopeID", scopeID)
 			}
 
 			c.Params = []gin.Param{{Key: "id", Value: tc.tagID}}
