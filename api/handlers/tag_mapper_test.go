@@ -48,8 +48,8 @@ func TestListTransactionTags(t *testing.T) {
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody: `[
-				{"id":1, "name":"Tag1", "created_at":"0001-01-01T00:00:00Z", "updated_at":"0001-01-01T00:00:00Z", "user_id":0},
-				{"id":2, "name":"Tag2", "created_at":"0001-01-01T00:00:00Z", "updated_at":"0001-01-01T00:00:00Z", "user_id":0}
+				{"tag_id":1, "name":"Tag1", "scope_id":0, "created_at":"0001-01-01T00:00:00Z", "updated_at":"0001-01-01T00:00:00Z", "user_id":0},
+				{"tag_id":2, "name":"Tag2", "scope_id":0, "created_at":"0001-01-01T00:00:00Z", "updated_at":"0001-01-01T00:00:00Z", "user_id":0}
 			]`,
 		},
 		// Add more test cases as necessary
@@ -109,11 +109,12 @@ func TestAddTagToTransaction(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
-			r := httptest.NewRequest("POST", "/transactions/"+tc.transactionID+"/tags", strings.NewReader(fmt.Sprintf(`{"id":%s}`, tc.tagID)))
+			r := httptest.NewRequest("POST", "/transactions/"+tc.transactionID+"/tags", strings.NewReader(fmt.Sprintf(`{"tag_id":%s}`, tc.tagID)))
 			c, _ := gin.CreateTestContext(w)
 			c.Request = r
 			c.Params = []gin.Param{
 				{Key: "transaction_id", Value: tc.transactionID},
+				{Key: "tag_id", Value: tc.tagID},
 				// Assuming tag ID is part of the URL or body
 			}
 
