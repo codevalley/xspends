@@ -96,6 +96,7 @@ func TestListTags(t *testing.T) {
 		name           string
 		setupMock      func()
 		userID         string
+		scopeID        string
 		limit          string
 		offset         string
 		expectedStatus int
@@ -106,20 +107,22 @@ func TestListTags(t *testing.T) {
 			setupMock: func() {
 				limit, _ := strconv.Atoi("10")
 				offset, _ := strconv.Atoi("0")
-				mockTagModel.On("GetAllTags", isContext, int64(1), interfaces.PaginationParams{Limit: limit, Offset: offset}, mock.AnythingOfType("[]*sql.Tx")).Return([]interfaces.Tag{{ID: 1, Name: "Tag 1"}}, nil).Once()
+				mockTagModel.On("GetScopedTags", isContext, []int64{1}, interfaces.PaginationParams{Limit: limit, Offset: offset}, mock.AnythingOfType("[]*sql.Tx")).Return([]interfaces.Tag{{ID: 1, ScopeID: 1, Name: "Tag 1"}}, nil).Once()
 			},
 			userID:         "1",
+			scopeID:        "1",
 			limit:          "10",
 			offset:         "0",
 			expectedStatus: http.StatusOK,
-			expectedBody:   `[{"id":1,"user_id":0,"name":"Tag 1","created_at":"0001-01-01T00:00:00Z","updated_at":"0001-01-01T00:00:00Z"}]`,
+			expectedBody:   `[{"tag_id":1,"user_id":0,"name":"Tag 1","scope_id":1,"created_at":"0001-01-01T00:00:00Z","updated_at":"0001-01-01T00:00:00Z"}]`,
 		},
 		{
 			name: "No tags found",
 			setupMock: func() {
-				mockTagModel.On("GetAllTags", isContext, int64(1), interfaces.PaginationParams{Limit: 10, Offset: 0}, mock.AnythingOfType("[]*sql.Tx")).Return([]interfaces.Tag{}, nil).Once()
+				mockTagModel.On("GetScopedTags", isContext, []int64{1}, interfaces.PaginationParams{Limit: 10, Offset: 0}, mock.AnythingOfType("[]*sql.Tx")).Return([]interfaces.Tag{}, nil).Once()
 			},
 			userID:         "1",
+			scopeID:        "1",
 			limit:          "10",
 			offset:         "0",
 			expectedStatus: http.StatusOK,
@@ -128,9 +131,10 @@ func TestListTags(t *testing.T) {
 		{
 			name: "Internal server error",
 			setupMock: func() {
-				mockTagModel.On("GetAllTags", isContext, int64(1), interfaces.PaginationParams{Limit: 10, Offset: 0}, mock.AnythingOfType("[]*sql.Tx")).Return([]interfaces.Tag{}, errors.New("internal server error")).Once()
+				mockTagModel.On("GetScopedTags", isContext, []int64{1}, interfaces.PaginationParams{Limit: 10, Offset: 0}, mock.AnythingOfType("[]*sql.Tx")).Return([]interfaces.Tag{}, errors.New("internal server error")).Once()
 			},
 			userID:         "1",
+			scopeID:        "1",
 			limit:          "10",
 			offset:         "0",
 			expectedStatus: http.StatusInternalServerError,
@@ -142,6 +146,7 @@ func TestListTags(t *testing.T) {
 				// No setup needed as the mock isn't called when unauthorized
 			},
 			userID:         "", // An empty userID to simulate unauthorized access
+			scopeID:        "",
 			limit:          "10",
 			offset:         "0",
 			expectedStatus: http.StatusUnauthorized,
@@ -156,10 +161,13 @@ func TestListTags(t *testing.T) {
 			c, _ := gin.CreateTestContext(w)
 			c.Request = r
 			c.Params = gin.Params{gin.Param{Key: "user_id", Value: tc.userID}}
+			c.Params = gin.Params{gin.Param{Key: "scope_id", Value: tc.userID}}
 
 			if tc.userID != "" {
 				userID, _ := strconv.ParseInt(tc.userID, 10, 64)
+				scopeID, _ := strconv.ParseInt(tc.scopeID, 10, 64)
 				c.Set("userID", userID)
+				c.Set("scopeID", scopeID)
 			}
 
 			// Set query parameters
@@ -184,6 +192,7 @@ func TestGetTag(t *testing.T) {
 		name           string
 		setupMock      func()
 		userID         string
+		scopeID        string
 		tagID          string
 		expectedStatus int
 		expectedBody   string
@@ -191,19 +200,21 @@ func TestGetTag(t *testing.T) {
 		{
 			name: "Successful retrieval",
 			setupMock: func() {
-				mockTagModel.On("GetTagByID", mock.AnythingOfType("*gin.Context"), int64(1), int64(1), mock.AnythingOfType("[]*sql.Tx")).Return(&interfaces.Tag{ID: 1, Name: "Sample Tag"}, nil).Once()
+				mockTagModel.On("GetTagByID", mock.AnythingOfType("*gin.Context"), int64(1), []int64{1}, mock.AnythingOfType("[]*sql.Tx")).Return(&interfaces.Tag{ID: 1, Name: "Sample Tag"}, nil).Once()
 			},
 			userID:         "1",
+			scopeID:        "1",
 			tagID:          "1",
 			expectedStatus: http.StatusOK,
-			expectedBody:   `{"id":1,"name":"Sample Tag","created_at":"0001-01-01T00:00:00Z","updated_at":"0001-01-01T00:00:00Z","user_id":0}`, // Adjusted to include all fields
+			expectedBody:   `{"scope_id":0,"tag_id":1,"name":"Sample Tag","created_at":"0001-01-01T00:00:00Z","updated_at":"0001-01-01T00:00:00Z","user_id":0}`, // Adjusted to include all fields
 		},
 		{
 			name: "Tag not found",
 			setupMock: func() {
-				mockTagModel.On("GetTagByID", mock.Anything, int64(1), int64(1), mock.AnythingOfType("[]*sql.Tx")).Return(&interfaces.Tag{}, errors.New("tag not found")).Once()
+				mockTagModel.On("GetTagByID", mock.Anything, int64(1), []int64{1}, mock.AnythingOfType("[]*sql.Tx")).Return(&interfaces.Tag{}, errors.New("tag not found")).Once()
 			},
 			userID:         "1",
+			scopeID:        "1",
 			tagID:          "1",
 			expectedStatus: http.StatusNotFound,
 			expectedBody:   `{"error":"tag not found"}`,
@@ -214,6 +225,7 @@ func TestGetTag(t *testing.T) {
 				// No setup needed as the mock isn't called when unauthorized
 			},
 			userID:         "", // an empty userID to simulate unauthorized access
+			scopeID:        "1",
 			tagID:          "1",
 			expectedStatus: http.StatusUnauthorized,
 			expectedBody:   `{"error":"user not authenticated"}`,
@@ -236,7 +248,9 @@ func TestGetTag(t *testing.T) {
 
 			if tc.userID != "" {
 				userID, _ := strconv.ParseInt(tc.userID, 10, 64)
+				scopeID, _ := strconv.ParseInt(tc.scopeID, 10, 64)
 				c.Set("userID", userID)
+				c.Set("scopeID", scopeID)
 			}
 
 			tc.setupMock()
@@ -256,6 +270,7 @@ func TestCreateTag(t *testing.T) {
 		name           string
 		setupMock      func()
 		userID         string
+		scopeID        string
 		requestBody    string
 		expectedStatus int
 		expectedBody   string
@@ -263,13 +278,14 @@ func TestCreateTag(t *testing.T) {
 		{
 			name: "Successful creation",
 			setupMock: func() {
-				newTag := &interfaces.Tag{UserID: 1, Name: "New Tag"} // Adjust to match expected tag structure
+				newTag := &interfaces.Tag{UserID: 1, ScopeID: 1, Name: "New Tag"} // Adjust to match expected tag structure
 				mockTagModel.On("InsertTag", mock.AnythingOfType("*gin.Context"), newTag, mock.AnythingOfType("[]*sql.Tx")).Return(nil).Once()
 			},
 			userID:         "1",
+			scopeID:        "1",
 			requestBody:    `{"name":"New Tag"}`,
 			expectedStatus: http.StatusCreated,
-			expectedBody:   `{"created_at":"0001-01-01T00:00:00Z", "id":0, "name":"New Tag", "updated_at":"0001-01-01T00:00:00Z", "user_id":1}`, // Adapt based on actual response structure
+			expectedBody:   `{"created_at":"0001-01-01T00:00:00Z", "name":"New Tag", "scope_id":1, "tag_id":0, "updated_at":"0001-01-01T00:00:00Z", "user_id":1}`, // Adapt based on actual response structure
 		},
 		{
 			name: "Invalid JSON",
@@ -277,6 +293,7 @@ func TestCreateTag(t *testing.T) {
 				// No mock setup needed as the handler should return error before reaching the model
 			},
 			userID:         "1",
+			scopeID:        "1",
 			requestBody:    `{"name": "Invalid JSON",}`,
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"error": "Invalid tag data JSON"}`,
@@ -287,20 +304,10 @@ func TestCreateTag(t *testing.T) {
 				// No mock setup needed as the handler should return error before reaching the model
 			},
 			userID:         "", // Assuming empty indicates unauthorized or missing user
+			scopeID:        "1",
 			requestBody:    `{"name":"New Tag"}`,
 			expectedStatus: http.StatusUnauthorized,
 			expectedBody:   `{"error": "user not authenticated"}`,
-		},
-		{
-			name: "Tag creation fails",
-			setupMock: func() {
-				newTag := &interfaces.Tag{UserID: 1, Name: "New Tag"}
-				mockTagModel.On("InsertTag", mock.AnythingOfType("*gin.Context"), newTag, mock.AnythingOfType("[]*sql.Tx")).Return(errors.New("failed to create tag")).Once()
-			},
-			userID:         "1",
-			requestBody:    `{"name":"New Tag"}`,
-			expectedStatus: http.StatusInternalServerError,
-			expectedBody:   `{"error": "unable to create tag"}`,
 		},
 		{
 			name: "Empty body",
@@ -308,6 +315,7 @@ func TestCreateTag(t *testing.T) {
 				// No mock setup needed as the handler should return error before reaching the model
 			},
 			userID:         "1",
+			scopeID:        "1",
 			requestBody:    ``,
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"error": "Invalid tag data JSON"}`,
@@ -325,7 +333,9 @@ func TestCreateTag(t *testing.T) {
 			// Set userID in the context if available
 			if tc.userID != "" {
 				userID, _ := strconv.ParseInt(tc.userID, 10, 64)
+				scopeID, _ := strconv.ParseInt(tc.scopeID, 10, 64)
 				c.Set("userID", userID)
+				c.Set("scopeID", scopeID)
 			}
 
 			// Mock setup

@@ -67,8 +67,12 @@ func getTagID(c *gin.Context) (int64, bool) {
 // @Router /tags [get]
 func ListTags(c *gin.Context) {
 	_, okUser := getUserID(c)
+	if !okUser {
+		return
+	}
+
 	scopeID, okScope := getScopeID(c)
-	if !okUser || !okScope {
+	if !okScope {
 		return
 	}
 
@@ -102,8 +106,12 @@ func ListTags(c *gin.Context) {
 // @Router /tags/{id} [get]
 func GetTag(c *gin.Context) {
 	_, okUser := getUserID(c)
+	if !okUser {
+		return
+	}
+
 	scopeID, okScope := getScopeID(c)
-	if !okUser || !okScope {
+	if !okScope {
 		return
 	}
 
@@ -134,8 +142,12 @@ func GetTag(c *gin.Context) {
 // @Router /tags [post]
 func CreateTag(c *gin.Context) {
 	userID, okUser := getUserID(c)
+	if !okUser {
+		return
+	}
+
 	scopeID, okScope := getScopeID(c)
-	if !okUser || !okScope {
+	if !okScope {
 		return
 	}
 	var newTag interfaces.Tag
@@ -173,8 +185,12 @@ func CreateTag(c *gin.Context) {
 // @Router /tags/{id} [put]
 func UpdateTag(c *gin.Context) {
 	userID, okUser := getUserID(c)
+	if !okUser {
+		return
+	}
+
 	scopeID, okScope := getScopeID(c)
-	if !okUser || !okScope {
+	if !okScope {
 		return
 	}
 
@@ -211,8 +227,12 @@ func UpdateTag(c *gin.Context) {
 // @Router /tags/{id} [delete]
 func DeleteTag(c *gin.Context) {
 	_, okUser := getUserID(c)
+	if !okUser {
+		return
+	}
+
 	scopeID, okScope := getScopeID(c)
-	if !okUser || !okScope {
+	if !okScope {
 		return
 	}
 	tagID, ok := getTagID(c)
