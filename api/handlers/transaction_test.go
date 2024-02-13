@@ -35,6 +35,7 @@ func TestCreateTransaction(t *testing.T) {
 	tests := []struct {
 		name           string
 		userID         string
+		scopeID        string
 		requestBody    string
 		setupMock      func(userID int64, transaction interfaces.Transaction)
 		expectedStatus int
@@ -43,7 +44,8 @@ func TestCreateTransaction(t *testing.T) {
 		{
 			name:        "Successful creation",
 			userID:      "1",
-			requestBody: `{"description":"Test transaction","amount":100}`,
+			scopeID:     "1",
+			requestBody: `{"description":"Test transaction","amount":100,"scope_id":1}`,
 			setupMock: func(userID int64, transaction interfaces.Transaction) {
 				// Adjusting the mock setup to include the third argument
 				mockTransactionModel.On("InsertTransaction", mock.AnythingOfType("*gin.Context"), transaction, mock.AnythingOfType("[]*sql.Tx")).Return(nil).Once()
@@ -53,7 +55,8 @@ func TestCreateTransaction(t *testing.T) {
 				"amount": 100,
 				"category_id": 0,
 				"description": "Test transaction",
-				"id": 0,
+				"transaction_id": 0,
+				"scope_id":1,
 				"source_id": 0,
 				"tags": null,
 				"timestamp": "0001-01-01T00:00:00Z",
@@ -74,6 +77,8 @@ func TestCreateTransaction(t *testing.T) {
 			if tc.setupMock != nil {
 				// Convert userID to int64 and create a transaction object for the mock setup
 				userIDInt, _ := strconv.ParseInt(tc.userID, 10, 64)
+				scopeIDInt, _ := strconv.ParseInt(tc.scopeID, 10, 64)
+				c.Set("scopeID", scopeIDInt)
 				c.Set("userID", userIDInt)
 				var transaction interfaces.Transaction
 				_ = json.Unmarshal([]byte(tc.requestBody), &transaction) // assuming requestBody is a valid JSON for Transaction
@@ -97,6 +102,7 @@ func TestGetTransaction(t *testing.T) {
 	tests := []struct {
 		name           string
 		userID         string
+		scopeID        string
 		transactionID  string
 		setupMock      func(userID int64, transactionID int64)
 		expectedStatus int
@@ -105,17 +111,19 @@ func TestGetTransaction(t *testing.T) {
 		{
 			name:          "Successful retrieval",
 			userID:        "1",
+			scopeID:       "1",
 			transactionID: "123",
 			setupMock: func(userID int64, transactionID int64) {
-				mockTransactionModel.On("GetTransactionByID", mock.AnythingOfType("*gin.Context"), transactionID, userID, mock.AnythingOfType("[]*sql.Tx")).Return(&interfaces.Transaction{
+				mockTransactionModel.On("GetTransactionByID", mock.AnythingOfType("*gin.Context"), transactionID, []int64{1}, mock.AnythingOfType("[]*sql.Tx")).Return(&interfaces.Transaction{
 					ID:          transactionID,
 					UserID:      userID,
+					ScopeID:     1,
 					Description: "Sample Transaction",
 					Amount:      100,
 				}, nil).Once()
 			},
 			expectedStatus: http.StatusOK,
-			expectedBody:   `{"amount":100, "category_id":0, "description":"Sample Transaction", "id":123, "source_id":0, "tags":null, "timestamp":"0001-01-01T00:00:00Z", "type":"", "user_id":1}`,
+			expectedBody:   `{"amount":100, "category_id":0, "description":"Sample Transaction", "scope_id":1, "source_id":0, "tags":null, "timestamp":"0001-01-01T00:00:00Z", "type":"", "transaction_id":123, "user_id":1}`,
 		},
 		// ... other test cases ...
 	}
@@ -129,8 +137,9 @@ func TestGetTransaction(t *testing.T) {
 			c.Params = gin.Params{{Key: "id", Value: tc.transactionID}}
 
 			userIDInt, _ := strconv.ParseInt(tc.userID, 10, 64)
+			scopeIDInt, _ := strconv.ParseInt(tc.scopeID, 10, 64)
 			c.Set("userID", userIDInt)
-
+			c.Set("scopeID", scopeIDInt)
 			transactionIDInt, _ := strconv.ParseInt(tc.transactionID, 10, 64)
 
 			if tc.setupMock != nil {
@@ -152,6 +161,7 @@ func TestUpdateTransaction(t *testing.T) {
 	tests := []struct {
 		name           string
 		userID         string
+		scopeID        string
 		transactionID  string
 		requestBody    string
 		setupMock      func(userID int64, transactionID int64, updatedTransaction interfaces.Transaction)
@@ -161,14 +171,15 @@ func TestUpdateTransaction(t *testing.T) {
 		{
 			name:          "Successful update",
 			userID:        "1",
+			scopeID:       "1",
 			transactionID: "123",
-			requestBody:   `{"description":"Updated description","amount":150}`,
+			requestBody:   `{"description":"Updated description","amount":150,"ScopeID":1}`,
 			setupMock: func(userID int64, transactionID int64, updatedTransaction interfaces.Transaction) {
-				mockTransactionModel.On("GetTransactionByID", mock.AnythingOfType("*gin.Context"), transactionID, userID, mock.AnythingOfType("[]*sql.Tx")).Return(&interfaces.Transaction{ID: transactionID, UserID: userID}, nil).Once()
+				mockTransactionModel.On("GetTransactionByID", mock.AnythingOfType("*gin.Context"), transactionID, []int64{1}, mock.AnythingOfType("[]*sql.Tx")).Return(&interfaces.Transaction{ID: transactionID, UserID: 1, ScopeID: 1}, nil).Once()
 				mockTransactionModel.On("UpdateTransaction", mock.AnythingOfType("*gin.Context"), updatedTransaction, mock.AnythingOfType("[]*sql.Tx")).Return(nil).Once()
 			},
 			expectedStatus: http.StatusOK,
-			expectedBody:   `{"amount":150, "category_id":0, "description":"Updated description", "id":123, "source_id":0, "tags":null, "timestamp":"0001-01-01T00:00:00Z", "type":"", "user_id":1}`,
+			expectedBody:   `{"amount":150, "category_id":0, "description":"Updated description", "transaction_id":123, "scope_id":1, "source_id":0, "tags":null, "timestamp":"0001-01-01T00:00:00Z", "type":"", "user_id":1}`,
 		},
 		// ... other test cases ...
 	}
@@ -182,7 +193,9 @@ func TestUpdateTransaction(t *testing.T) {
 			c.Params = gin.Params{{Key: "id", Value: tc.transactionID}}
 
 			userIDInt, _ := strconv.ParseInt(tc.userID, 10, 64)
+			scopeIDInt, _ := strconv.ParseInt(tc.scopeID, 10, 64)
 			c.Set("userID", userIDInt)
+			c.Set("scopeID", scopeIDInt)
 
 			transactionIDInt, _ := strconv.ParseInt(tc.transactionID, 10, 64)
 
