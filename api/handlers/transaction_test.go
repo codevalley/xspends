@@ -173,7 +173,7 @@ func TestUpdateTransaction(t *testing.T) {
 			userID:        "1",
 			scopeID:       "1",
 			transactionID: "123",
-			requestBody:   `{"description":"Updated description","amount":150,"ScopeID":1}`,
+			requestBody:   `{"description":"Updated description","amount":150,"scope_id":1}`,
 			setupMock: func(userID int64, transactionID int64, updatedTransaction interfaces.Transaction) {
 				mockTransactionModel.On("GetTransactionByID", mock.AnythingOfType("*gin.Context"), transactionID, []int64{1}, mock.AnythingOfType("[]*sql.Tx")).Return(&interfaces.Transaction{ID: transactionID, UserID: 1, ScopeID: 1}, nil).Once()
 				mockTransactionModel.On("UpdateTransaction", mock.AnythingOfType("*gin.Context"), updatedTransaction, mock.AnythingOfType("[]*sql.Tx")).Return(nil).Once()
@@ -222,6 +222,7 @@ func TestDeleteTransaction(t *testing.T) {
 	tests := []struct {
 		name           string
 		userID         string
+		scopeID        string
 		transactionID  string
 		setupMock      func(userID int64, transactionID int64)
 		expectedStatus int
@@ -230,9 +231,10 @@ func TestDeleteTransaction(t *testing.T) {
 		{
 			name:          "Successful deletion",
 			userID:        "1",
+			scopeID:       "1",
 			transactionID: "123",
 			setupMock: func(userID int64, transactionID int64) {
-				mockTransactionModel.On("DeleteTransaction", mock.AnythingOfType("*gin.Context"), transactionID, userID, mock.AnythingOfType("[]*sql.Tx")).Return(nil).Once()
+				mockTransactionModel.On("DeleteTransaction", mock.AnythingOfType("*gin.Context"), transactionID, []int64{1}, mock.AnythingOfType("[]*sql.Tx")).Return(nil).Once()
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody:   `{"message":"transaction deleted successfully"}`,
@@ -249,8 +251,9 @@ func TestDeleteTransaction(t *testing.T) {
 			c.Params = gin.Params{{Key: "id", Value: tc.transactionID}}
 
 			userIDInt, _ := strconv.ParseInt(tc.userID, 10, 64)
+			scopeIDInt, _ := strconv.ParseInt(tc.scopeID, 10, 64)
 			c.Set("userID", userIDInt)
-
+			c.Set("scopeID", scopeIDInt)
 			transactionIDInt, _ := strconv.ParseInt(tc.transactionID, 10, 64)
 
 			if tc.setupMock != nil {
@@ -272,14 +275,16 @@ func TestListTransactions(t *testing.T) {
 	tests := []struct {
 		name           string
 		userID         string
+		scopeID        string
 		queryParams    map[string]string // assuming filters are passed as query parameters
 		setupMock      func(userID int64, filter interfaces.TransactionFilter)
 		expectedStatus int
 		expectedBody   string
 	}{
 		{
-			name:   "Successful retrieval",
-			userID: "1",
+			name:    "Successful retrieval",
+			userID:  "1",
+			scopeID: "1",
 			queryParams: map[string]string{
 				"page":           "1",
 				"items_per_page": "10",
@@ -288,16 +293,17 @@ func TestListTransactions(t *testing.T) {
 			setupMock: func(userID int64, filter interfaces.TransactionFilter) {
 				// Ensure the mock setup matches the actual method call including all parameters
 				mockTransactionModel.On("GetTransactionsByFilter", mock.AnythingOfType("*gin.Context"), filter, mock.AnythingOfType("[]*sql.Tx")).Return([]interfaces.Transaction{
-					{ID: 1, UserID: userID, Amount: 100, Description: "Transaction 1"},
-					{ID: 2, UserID: userID, Amount: 200, Description: "Transaction 2"},
+					{ID: 1, UserID: userID, Amount: 100, ScopeID: 1, Description: "Transaction 1"},
+					{ID: 2, UserID: userID, Amount: 200, ScopeID: 1, Description: "Transaction 2"},
 				}, nil).Once()
 			},
 
 			expectedStatus: http.StatusOK,
 			expectedBody: `[
 				{
-					"id": 1,
+					"transaction_id": 1,
 					"user_id": 1,
+					"scope_id": 1,
 					"amount": 100,
 					"description": "Transaction 1",
 					"category_id": 0,
@@ -307,8 +313,9 @@ func TestListTransactions(t *testing.T) {
 					"type": ""
 				},
 				{
-					"id": 2,
+					"transaction_id": 2,
 					"user_id": 1,
+					"scope_id": 1,
 					"amount": 200,
 					"description": "Transaction 2",
 					"category_id": 0,
@@ -331,12 +338,15 @@ func TestListTransactions(t *testing.T) {
 			c.Request = r
 
 			userIDInt, _ := strconv.ParseInt(tc.userID, 10, 64)
+			scopeIDInt, _ := strconv.ParseInt(tc.scopeID, 10, 64)
 			c.Set("userID", userIDInt)
+			c.Set("scopeID", scopeIDInt)
 
 			if tc.setupMock != nil {
 				// Here, convert query parameters into a TransactionFilter and pass to setupMock
 				filter := interfaces.TransactionFilter{
 					UserID:       userIDInt,
+					ScopeID:      scopeIDInt,
 					Page:         util.GetIntFromQuery(c, "page", 1),
 					ItemsPerPage: util.GetIntFromQuery(c, "items_per_page", 10),
 					SortBy:       c.DefaultQuery("sort_by", "timestamp"),
