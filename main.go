@@ -59,6 +59,9 @@ func main() {
 		TagModel:            impl.NewTagModel(),
 		TransactionTagModel: impl.NewTransactionTagModel(),
 		TransactionModel:    impl.NewTransactionModel(),
+		ScopeModel:          impl.NewScopeModel(),
+		GroupModel:          impl.NewGroupModel(),
+		UserScopeModel:      impl.NewUserScopeModel(),
 	}
 
 	// Initialize ModelsService with real configuration
