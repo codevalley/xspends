@@ -30,6 +30,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -91,7 +92,7 @@ func GenerateTokenWithTTL(userID int64, scopeID int64, sessionID string, expiryM
 			ExpiresAt: expirationTime.Unix(),
 		},
 	}
-
+	log.Printf("Claims: %v", claims)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(JwtKey)
 }
@@ -204,6 +205,7 @@ func JWTRegisterHandler(ab *authboss.Authboss) gin.HandlerFunc {
 		}
 
 		err = userStorer.Create(c.Request.Context(), &newUser)
+		log.Printf("[JWTRegister] New user: %v", newUser)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTRegisterHandler] Error creating user").Error()})
 			return

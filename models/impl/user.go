@@ -106,8 +106,9 @@ func (um *UserModel) InsertUser(ctx context.Context, user *interfaces.User, otx 
 		commitOrRollback(executor, isExternalTx, err)
 		return errors.Wrap(err, "creating new scope failed")
 	}
+	user.Scope = scopeID
 	//Add to user_scopes table
-	GetModelsService().UserScopeModel.UpsertUserScope(ctx, user.ID, scopeID, RoleOwner, otx...)
+	GetModelsService().UserScopeModel.UpsertUserScope(ctx, user.ID, user.Scope, RoleOwner, otx...)
 	// Build and execute the SQL query using Squirrel
 	sqlquery, args, err := squirrel.Insert(um.TableUsers).
 		Columns(um.ColumnID, um.ColumnUsername, um.ColumnName, um.ColumnEmail, um.ColumnScope, um.ColumnCurrency, um.ColumnPassword, um.ColumnCreatedAt, um.ColumnUpdatedAt).
@@ -227,7 +228,7 @@ func (um *UserModel) GetUserByID(ctx context.Context, id int64, otx ...*sql.Tx) 
 func (um *UserModel) GetUserByUsername(ctx context.Context, username string, otx ...*sql.Tx) (*interfaces.User, error) {
 	_, executor := getExecutor(otx...)
 
-	sqlquery, args, err := squirrel.Select(um.ColumnID, um.ColumnUsername, um.ColumnName, um.ColumnEmail, um.ColumnCurrency, um.ColumnPassword).
+	sqlquery, args, err := squirrel.Select(um.ColumnID, um.ColumnUsername, um.ColumnName, um.ColumnEmail, um.ColumnScope, um.ColumnCurrency, um.ColumnPassword).
 		From(um.TableUsers).
 		Where(squirrel.Eq{um.ColumnUsername: username}).
 		PlaceholderFormat(squirrel.Question).
@@ -239,7 +240,7 @@ func (um *UserModel) GetUserByUsername(ctx context.Context, username string, otx
 
 	user := &interfaces.User{}
 
-	err = executor.QueryRowContext(ctx, sqlquery, args...).Scan(&user.ID, &user.Username, &user.Name, &user.Email, &user.Currency, &user.Password)
+	err = executor.QueryRowContext(ctx, sqlquery, args...).Scan(&user.ID, &user.Username, &user.Name, &user.Email, &user.Scope, &user.Currency, &user.Password)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrUserNotFound

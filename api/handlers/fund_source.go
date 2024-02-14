@@ -123,6 +123,8 @@ func CreateSource(c *gin.Context) {
 	newSource.UserID = userID
 	newSource.ScopeID = scopeID
 	if err := impl.GetModelsService().SourceModel.InsertSource(c, &newSource); err != nil {
+		log.Printf("[CreateSource] New: %v ", newSource)
+		log.Printf("[CreateSource] Scope: %d ", scopeID)
 		log.Printf("[CreateSource] Error: %v ", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create source"})
 		return
