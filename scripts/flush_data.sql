@@ -4,4 +4,7 @@ delete from tags;
 delete from transactions;
 delete from sources;    
 delete from categories;
+delete from user_scopes;
+delete from groups;
+delete from scopes;
 delete  from users;
