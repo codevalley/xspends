@@ -78,7 +78,7 @@ func SetupRoutes(r *gin.Engine, kvClient kvstore.RawKVClientInterface) {
 	// All other routes should be protected by the AuthMiddleware
 	// These routes are used for managing sources, categories, tags, and transactions.
 	apiRoutes := r.Group("/")
-	apiRoutes.Use(middleware.AuthMiddleware(ab), middleware.EnsureUserID())
+	apiRoutes.Use(middleware.AuthMiddleware(ab), middleware.EnsureUserID(), middleware.EnsureScopeID())
 	// Source routes
 	// These routes are used for managing sources.
 	sources := apiRoutes.Group("/sources")

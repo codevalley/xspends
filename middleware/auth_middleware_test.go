@@ -21,8 +21,9 @@ func TestEnsureUserID(t *testing.T) {
 
 	// Generate a valid token using the existing method
 	userID := int64(123)
-	sessionID := "session123"                                             // Use an appropriate session ID or equivalent
-	validToken, _ := handlers.GenerateTokenWithTTL(userID, sessionID, 30) // 30 mins or appropriate duration
+	scopeID := int64(123)
+	sessionID := "session123"                                                      // Use an appropriate session ID or equivalent
+	validToken, _ := handlers.GenerateTokenWithTTL(userID, scopeID, sessionID, 30) // 30 mins or appropriate duration
 
 	// Test the success scenario
 	t.Run("Success", func(t *testing.T) {
@@ -56,7 +57,7 @@ func TestAuthMiddlewareOld(t *testing.T) {
 	})
 
 	// Generate a valid token for testing (you'll need to replace this with your actual token generation)
-	validToken, _ := handlers.GenerateTokenWithTTL(123, "session123", 30) // Adjust to use your actual function
+	validToken, _ := handlers.GenerateTokenWithTTL(123, 123, "session123", 30) // Adjust to use your actual function
 
 	// Test the success scenario
 	t.Run("Success", func(t *testing.T) {
@@ -81,7 +82,7 @@ func TestAuthMiddleware(t *testing.T) {
 	})
 
 	// Generate a valid token for testing
-	validToken, _ := handlers.GenerateTokenWithTTL(123, "session123", 30) // Adjust with your actual function
+	validToken, _ := handlers.GenerateTokenWithTTL(123, 123, "session123", 30) // Adjust with your actual function
 
 	// Test the success scenario
 	t.Run("Success", func(t *testing.T) {

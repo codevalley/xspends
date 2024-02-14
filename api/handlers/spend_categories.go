@@ -160,6 +160,8 @@ func CreateCategory(c *gin.Context) {
 	newCategory.UserID = userID
 	newCategory.ScopeID = scopeID
 	if err := impl.GetModelsService().CategoryModel.InsertCategory(c, &newCategory, nil); err != nil {
+		log.Printf("[CreateCategory] UserID: %v", userID)
+		log.Printf("[CreateCategory] ScopeID: %v", scopeID)
 		log.Printf("[CreateCategory] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create category"})
 		return

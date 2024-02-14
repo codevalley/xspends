@@ -40,6 +40,7 @@ import (
 // Initialize AuthBoss.
 var ab *authboss.Authboss
 
+const scopeIDKey = "scopeID"
 const userIDKey = "userID"
 const authKey = "Authorization"
 
@@ -76,7 +77,7 @@ func AuthMiddleware(ab *authboss.Authboss) gin.HandlerFunc {
 		// If the token is valid, store the user data (from the JWT claims) in the context
 
 		c.Set(userIDKey, claims.UserID)
-
+		c.Set(scopeIDKey, claims.ScopeID)
 		// Continue with the request
 		c.Next()
 	}
@@ -87,6 +88,18 @@ func EnsureUserID() gin.HandlerFunc {
 		_, exists := c.Get(userIDKey)
 		if !exists {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+			c.Abort() // This prevents the handler from being executed if the check fails
+			return
+		}
+		c.Next()
+	}
+}
+
+func EnsureScopeID() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		_, exists := c.Get(scopeIDKey)
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Scope missing in request"})
 			c.Abort() // This prevents the handler from being executed if the check fails
 			return
 		}

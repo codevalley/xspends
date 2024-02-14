@@ -49,6 +49,7 @@ import (
 type JWTClaims struct {
 	UserID    int64  `json:"user_id"`
 	SessionID string `json:"session_id"`
+	ScopeID   int64  `json:"scope_id"`
 	jwt.StandardClaims
 }
 
@@ -80,11 +81,12 @@ func getJwtKey() []byte {
 }
 
 // GenerateTokenWithTTL generates a JWT with a specific time-to-live (TTL)
-func GenerateTokenWithTTL(userID int64, sessionID string, expiryMins int) (string, error) {
+func GenerateTokenWithTTL(userID int64, scopeID int64, sessionID string, expiryMins int) (string, error) {
 	expirationTime := time.Now().Add(time.Duration(expiryMins) * time.Minute)
 	claims := &JWTClaims{
 		UserID:    userID,
 		SessionID: sessionID,
+		ScopeID:   scopeID,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 		},
@@ -145,13 +147,13 @@ func RefreshTokenHandler(ctx context.Context, oldRefreshToken string, ab *authbo
 	}
 
 	// Generate new access token
-	newAccessToken, err := GenerateTokenWithTTL(claims.UserID, strconv.FormatInt(newSessionID, 10), tokenExpiryMins)
+	newAccessToken, err := GenerateTokenWithTTL(claims.UserID, claims.ScopeID, strconv.FormatInt(newSessionID, 10), tokenExpiryMins)
 	if err != nil {
 		return "", "", errors.Wrap(err, "[RefreshTokenHandler] could not generate new access token")
 	}
 
 	// Generate new refresh token
-	newRefreshToken, err := GenerateTokenWithTTL(claims.UserID, strconv.FormatInt(newSessionID, 10), refreshTokenExpiryMins)
+	newRefreshToken, err := GenerateTokenWithTTL(claims.UserID, claims.ScopeID, strconv.FormatInt(newSessionID, 10), refreshTokenExpiryMins)
 	if err != nil {
 		return "", "", errors.Wrap(err, "[RefreshTokenHandler] could not generate new refresh token")
 	}
@@ -215,13 +217,13 @@ func JWTRegisterHandler(ab *authboss.Authboss) gin.HandlerFunc {
 
 		sessionID := strconv.FormatInt(newSessionID, 10)
 
-		accessToken, err := GenerateTokenWithTTL(newUser.ID, sessionID, tokenExpiryMins)
+		accessToken, err := GenerateTokenWithTTL(newUser.ID, newUser.Scope, sessionID, tokenExpiryMins)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTRegisterHandler] Error generating access token").Error()})
 			return
 		}
 
-		refreshToken, err := GenerateTokenWithTTL(newUser.ID, sessionID, refreshTokenExpiryMins)
+		refreshToken, err := GenerateTokenWithTTL(newUser.ID, newUser.Scope, sessionID, refreshTokenExpiryMins)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTRegisterHandler] Error generating refresh token").Error()})
 			return
@@ -299,13 +301,13 @@ func JWTLoginHandler(ab *authboss.Authboss) gin.HandlerFunc {
 
 		sessionID := strconv.FormatInt(newSessionID, 10)
 
-		accessToken, err := GenerateTokenWithTTL(user.ID, sessionID, tokenExpiryMins)
+		accessToken, err := GenerateTokenWithTTL(user.ID, user.Scope, sessionID, tokenExpiryMins)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTLoginHandler] Error generating access token").Error()})
 			return
 		}
 
-		refreshToken, err := GenerateTokenWithTTL(user.ID, sessionID, refreshTokenExpiryMins)
+		refreshToken, err := GenerateTokenWithTTL(user.ID, user.Scope, sessionID, refreshTokenExpiryMins)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTLoginHandler] Error generating refresh token").Error()})
 			return
