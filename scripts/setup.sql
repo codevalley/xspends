@@ -14,17 +14,18 @@ CREATE TABLE IF NOT EXISTS `users` (
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`user_id`)
 );
---newly added tables
+
+
 CREATE TABLE IF NOT EXISTS `scopes` (
     `scope_id` BIGINT NOT NULL,
-    `type` ENUM('user', 'group') NOT NULL, --to be changed from enum
+    `type` VARCHAR(64) NOT NULL, 
     PRIMARY KEY (`scope_id`)
 );
 
 CREATE TABLE IF NOT EXISTS `user_scopes` (
     `user_id` BIGINT NOT NULL,
     `scope_id` BIGINT NOT NULL,
-    `role` ENUM('view', 'write', 'owner') DEFAULT 'view',
+    `role` VARCHAR(64) DEFAULT 'view', 
     FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`),
     FOREIGN KEY (`scope_id`) REFERENCES `scopes`(`scope_id`),
     PRIMARY KEY (`user_id`, `scope_id`)
@@ -37,37 +38,22 @@ CREATE TABLE IF NOT EXISTS `groups` (
     `group_name` VARCHAR(255) NOT NULL,
     `description` TEXT,
     `icon` VARCHAR(255),
-    `status` ENUM('active', 'inactive', 'pending') NOT NULL DEFAULT 'active',
+    `status` VARCHAR(64) NOT NULL DEFAULT 'active', 
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`group_id`),
     FOREIGN KEY (`owner_id`) REFERENCES `users`(`user_id`),
     FOREIGN KEY (`scope_id`) REFERENCES `scopes`(`scope_id`)
 );
---end of newly added tables
 
-CREATE TABLE IF NOT EXISTS `categories` (
-    `category_id` BIGINT NOT NULL,
-    `user_id` BIGINT NOT NULL,
-    `scope_id` BIGINT NOT NULL,
-    `name` VARCHAR(255) NOT NULL,
-    `description` TEXT,
-    `icon` VARCHAR(255),
-    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`),
-    PRIMARY KEY (`category_id`),
-    UNIQUE (`user_id`, `name`)
-    FOREIGN KEY (`scope_id`) REFERENCES `scopes`(`scope_id`)
-);
+
 
 CREATE TABLE IF NOT EXISTS `sources` (
     `source_id` BIGINT NOT NULL,
     `user_id` BIGINT NOT NULL,
     `scope_id` BIGINT NOT NULL,
     `name` VARCHAR(255) NOT NULL,
-    --varchar to enum?
-    `type` ENUM('cash', 'bank', 'credit', 'other') NOT NULL,
+    `type` VARCHAR(64) NOT NULL,  
     `balance` DECIMAL(10, 2) DEFAULT 0.00,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -100,7 +86,6 @@ CREATE TABLE IF NOT EXISTS `transactions` (
     `timestamp` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `category_id` BIGINT,
     `description` TEXT,
-    --newly added entries, are they required?
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`),
@@ -120,7 +105,6 @@ CREATE TABLE IF NOT EXISTS `transaction_tags` (
     PRIMARY KEY (`transaction_id`, `tag_id`)
 );
 
--- Indexes for optimized user-specific lookups
 CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_transactions_userid ON transactions(user_id);
