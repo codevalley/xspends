@@ -46,7 +46,20 @@ CREATE TABLE IF NOT EXISTS `groups` (
     FOREIGN KEY (`scope_id`) REFERENCES `scopes`(`scope_id`)
 );
 
-
+CREATE TABLE IF NOT EXISTS `categories` (
+    `category_id` BIGINT NOT NULL,
+    `user_id` BIGINT NOT NULL,
+    `scope_id` BIGINT NOT NULL,
+    `name` VARCHAR(255) NOT NULL,
+    `description` TEXT,
+    `icon` VARCHAR(255),
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`),
+    PRIMARY KEY (`category_id`),
+    UNIQUE (`user_id`, `name`),
+    FOREIGN KEY (`scope_id`) REFERENCES `scopes`(`scope_id`)
+);
 
 CREATE TABLE IF NOT EXISTS `sources` (
     `source_id` BIGINT NOT NULL,
