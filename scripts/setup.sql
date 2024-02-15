@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS `user_scopes` (
     PRIMARY KEY (`user_id`, `scope_id`)
 );
 
-CREATE TABLE IF NOT EXISTS `groups` (
+CREATE TABLE IF NOT EXISTS `user_groups` (
     `group_id` BIGINT NOT NULL,
     `owner_id` BIGINT NOT NULL,
     `scope_id` BIGINT NOT NULL,

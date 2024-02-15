@@ -28,7 +28,7 @@ type GroupModel struct {
 
 func NewGroupModel() *GroupModel {
 	return &GroupModel{
-		TableGroups:               "groups",
+		TableGroups:               "user_groups",
 		ColumnGroupID:             "group_id",
 		ColumnOwnerID:             "owner_id",
 		ColumnScopeID:             "scope_id",
