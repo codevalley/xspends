@@ -77,7 +77,7 @@ if [ -z "$SKIP_SOURCES" ]; then
                "type": "SAVINGS",
                "balance": 10000.0
           }')
-     sourceID=$(echo $response | jq -r .id)
+     sourceID=$(echo $response | jq -r .source_id)
      echo $response
 
      # Create a category
@@ -90,10 +90,11 @@ if [ -z "$SKIP_SOURCES" ]; then
                "description": "Shopping related transactions",
                "icon": "food"
           }')
-     categoryID=$(echo $response | jq -r .id)
+     categoryID=$(echo $response | jq -r .category_id)
      echo $response
 fi
-
+echo "Category id: $categoryID"
+echo "Source id: $sourceID"
 # Create a transaction
 echo -e "\n\nCreating a transaction... source: $sourceID,category: $categoryID"
 response=$(curl -s -X POST "$MINIKUBE_URL/transactions" \
@@ -112,7 +113,7 @@ echo $response
 echo -e "\n\nFetching transactions..."
 response=$(curl -s -X GET "$MINIKUBE_URL/transactions" \
      -H "Authorization: Bearer $accessToken")
-txnID=$(echo $response | jq -r '.[0].id')
+txnID=$(echo $response | jq -r '.[0].transaction_id')
 echo $txnID
 
 # Update a transaction
