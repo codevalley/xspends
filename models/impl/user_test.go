@@ -181,8 +181,8 @@ func TestGetUserByUsername(t *testing.T) {
 		Password: "hashedpassword",
 	}
 
-	rows := sqlmock.NewRows([]string{"id", "username", "name", "email", "currency", "password"}).
-		AddRow(expectedUser.ID, expectedUser.Username, expectedUser.Name, expectedUser.Email, expectedUser.Currency, expectedUser.Password)
+	rows := sqlmock.NewRows([]string{"id", "username", "name", "email", "scope", "currency", "password"}).
+		AddRow(expectedUser.ID, expectedUser.Username, expectedUser.Name, expectedUser.Email, expectedUser.Scope, expectedUser.Currency, expectedUser.Password)
 	mock.ExpectQuery("^SELECT (.+) FROM users WHERE").WithArgs(username).WillReturnRows(rows)
 
 	// Call the function under test
@@ -194,6 +194,7 @@ func TestGetUserByUsername(t *testing.T) {
 	assert.Equal(t, expectedUser.ID, user.ID)
 	assert.Equal(t, expectedUser.Username, user.Username)
 	assert.Equal(t, expectedUser.Name, user.Name)
+	assert.Equal(t, expectedUser.Scope, user.Scope)
 	assert.Equal(t, expectedUser.Email, user.Email)
 	assert.Equal(t, expectedUser.Currency, user.Currency)
 	assert.Equal(t, expectedUser.Password, user.Password)
