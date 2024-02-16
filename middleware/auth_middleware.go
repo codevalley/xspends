@@ -25,7 +25,6 @@ SOFTWARE.
 package middleware
 
 import (
-	"log"
 	"net/http"
 	"strings"
 
@@ -76,7 +75,6 @@ func AuthMiddleware(ab *authboss.Authboss) gin.HandlerFunc {
 		}
 
 		// If the token is valid, store the user data (from the JWT claims) in the context
-		log.Printf("Auth Middleware claims: %v", claims)
 		c.Set(userIDKey, claims.UserID)
 		c.Set(scopeIDKey, claims.ScopeID)
 		// Continue with the request

@@ -120,7 +120,6 @@ func (um *UserModel) InsertUser(ctx context.Context, user *interfaces.User, otx 
 		return errors.Wrap(err, "building SQL query for InsertUser failed")
 	}
 
-	log.Printf("SQL query: %s\n", sqlquery)
 	// Execute the query
 	_, err = executor.ExecContext(ctx, sqlquery, args...)
 	if err != nil {

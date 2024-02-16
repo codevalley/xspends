@@ -29,8 +29,6 @@ package handlers
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -92,7 +90,6 @@ func GenerateTokenWithTTL(userID int64, scopeID int64, sessionID string, expiryM
 			ExpiresAt: expirationTime.Unix(),
 		},
 	}
-	log.Printf("Claims: %v", claims)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(JwtKey)
 }
@@ -100,7 +97,6 @@ func GenerateTokenWithTTL(userID int64, scopeID int64, sessionID string, expiryM
 // RefreshTokenHandler handles the refreshing of JWT tokens
 func RefreshTokenHandler(ctx context.Context, oldRefreshToken string, ab *authboss.Authboss) (string, string, error) {
 	claims := &JWTClaims{}
-	fmt.Println("Token:", oldRefreshToken)
 	tkn, err := jwt.ParseWithClaims(oldRefreshToken, claims, func(token *jwt.Token) (interface{}, error) {
 		return JwtKey, nil
 	})
@@ -205,7 +201,6 @@ func JWTRegisterHandler(ab *authboss.Authboss) gin.HandlerFunc {
 		}
 
 		err = userStorer.Create(c.Request.Context(), &newUser)
-		log.Printf("[JWTRegister] New user: %v", newUser)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrap(err, "[JWTRegisterHandler] Error creating user").Error()})
 			return
