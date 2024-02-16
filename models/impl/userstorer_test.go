@@ -32,13 +32,13 @@ func TestUserStorer_Load(t *testing.T) {
 	}
 
 	// Prepare the mock response
-	rows := sqlmock.NewRows([]string{"user_id", "username", "name", "email", "currency", "password"}).
-		AddRow("1", expectedUser.Username, "Test User", expectedUser.Email, "USD", "hashedpassword")
+	rows := sqlmock.NewRows([]string{"user_id", "username", "name", "email", "scope_id", "currency", "password"}).
+		AddRow("1", expectedUser.Username, "Test User", expectedUser.Email, expectedUser.Scope, "USD", "hashedpassword")
 
 	// Set up the expected SQL query that will be run
 	// Note that the sqlquery variable comes from your actual GetUserByUsername method,
 	// so ensure it matches exactly with what's being executed there.
-	sqlquery := "SELECT user_id, username, name, email, currency, password FROM users WHERE username = ?"
+	sqlquery := "SELECT user_id, username, name, email, scope_id, currency, password FROM users WHERE username = ?"
 	mock.ExpectQuery(sqlquery).
 		WithArgs(username).
 		WillReturnRows(rows)
