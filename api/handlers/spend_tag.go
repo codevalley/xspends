@@ -66,22 +66,17 @@ func getTagID(c *gin.Context) (int64, bool) {
 // @Failure 500 {object} map[string]string "Unable to fetch tags"
 // @Router /tags [get]
 func ListTags(c *gin.Context) {
-	_, okUser := getUserID(c)
-	if !okUser {
-		return
-	}
-
-	scopeID, okScope := getScopeID(c)
-	if !okScope {
+	_, scopes, ok := getUserAndScopes(c, impl.RoleView)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
 
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", strconv.Itoa(defaultLimit)))
 	offset, _ := strconv.Atoi(c.Query("offset"))
 
-	tags, err := impl.GetModelsService().TagModel.GetScopedTags(c, []int64{scopeID}, interfaces.PaginationParams{Limit: limit, Offset: offset}, nil)
+	tags, err := impl.GetModelsService().TagModel.GetScopedTags(c, scopes, interfaces.PaginationParams{Limit: limit, Offset: offset}, nil)
 	if err != nil {
-		log.Printf("[ListTags] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch tags"})
 		return
 	}
@@ -105,13 +100,9 @@ func ListTags(c *gin.Context) {
 // @Failure 404 {object} map[string]string "Tag not found"
 // @Router /tags/{id} [get]
 func GetTag(c *gin.Context) {
-	_, okUser := getUserID(c)
-	if !okUser {
-		return
-	}
-
-	scopeID, okScope := getScopeID(c)
-	if !okScope {
+	_, scopes, ok := getUserAndScopes(c, impl.RoleView)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
 
@@ -120,7 +111,7 @@ func GetTag(c *gin.Context) {
 		return
 	}
 
-	tag, err := impl.GetModelsService().TagModel.GetTagByID(c, tagID, []int64{scopeID}, nil)
+	tag, err := impl.GetModelsService().TagModel.GetTagByID(c, tagID, scopes, nil)
 	if err != nil {
 		log.Printf("[GetTag] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "tag not found"})
@@ -141,13 +132,9 @@ func GetTag(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Unable to create tag"
 // @Router /tags [post]
 func CreateTag(c *gin.Context) {
-	userID, okUser := getUserID(c)
-	if !okUser {
-		return
-	}
-
-	scopeID, okScope := getScopeID(c)
-	if !okScope {
+	userID, scopes, ok := getUserAndScopes(c, impl.RoleWrite)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
 	var newTag interfaces.Tag
@@ -157,7 +144,7 @@ func CreateTag(c *gin.Context) {
 		return
 	}
 	newTag.UserID = userID
-	newTag.ScopeID = scopeID
+	newTag.ScopeID = scopes[0]
 	if len(newTag.Name) > maxTagNameLength {
 		log.Printf("[CreateTag] Error: tag name exceeds maximum length")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "tag name exceeds maximum length"})
@@ -184,13 +171,9 @@ func CreateTag(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Unable to update tag"
 // @Router /tags/{id} [put]
 func UpdateTag(c *gin.Context) {
-	userID, okUser := getUserID(c)
-	if !okUser {
-		return
-	}
-
-	scopeID, okScope := getScopeID(c)
-	if !okScope {
+	userID, scopes, ok := getUserAndScopes(c, impl.RoleWrite)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
 
@@ -201,14 +184,12 @@ func UpdateTag(c *gin.Context) {
 		return
 	}
 	updatedTag.UserID = userID
-	updatedTag.ScopeID = scopeID
+	updatedTag.ScopeID = scopes[0]
 	if len(updatedTag.Name) > maxTagNameLength {
-		log.Printf("[UpdateTag] Error: tag name exceeds maximum length")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "tag name exceeds maximum length"})
 		return
 	}
 	if err := impl.GetModelsService().TagModel.UpdateTag(c, &updatedTag, nil); err != nil {
-		log.Printf("[UpdateTag] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update tag"})
 		return
 	}
@@ -226,13 +207,9 @@ func UpdateTag(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Unable to delete tag"
 // @Router /tags/{id} [delete]
 func DeleteTag(c *gin.Context) {
-	_, okUser := getUserID(c)
-	if !okUser {
-		return
-	}
-
-	scopeID, okScope := getScopeID(c)
-	if !okScope {
+	_, scopes, ok := getUserAndScopes(c, impl.RoleWrite)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
 	tagID, ok := getTagID(c)
@@ -240,7 +217,7 @@ func DeleteTag(c *gin.Context) {
 		return
 	}
 
-	if err := impl.GetModelsService().TagModel.DeleteTag(c, tagID, []int64{scopeID}, nil); err != nil {
+	if err := impl.GetModelsService().TagModel.DeleteTag(c, tagID, scopes, nil); err != nil {
 		log.Printf("[DeleteTag] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete tag"})
 		return
