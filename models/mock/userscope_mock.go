@@ -26,6 +26,11 @@ func (m *MockUserScopeModel) GetUserScope(ctx context.Context, userID, scopeID i
 	return args.Get(0).(*interfaces.UserScope), args.Error(1)
 }
 
+func (m *MockUserScopeModel) GetUserScopesByRole(ctx context.Context, userID int64, role string, otx ...*sql.Tx) ([]interfaces.UserScope, error) {
+	args := m.Called(ctx, userID, role, otx)
+	return args.Get(0).([]interfaces.UserScope), args.Error(1)
+}
+
 // Mock implementation of DeleteUserScope
 func (m *MockUserScopeModel) DeleteUserScope(ctx context.Context, userID, scopeID int64, otx ...*sql.Tx) error {
 	args := m.Called(ctx, userID, scopeID, otx)

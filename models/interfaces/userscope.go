@@ -9,6 +9,7 @@ import (
 type UserScopeService interface {
 	UpsertUserScope(ctx context.Context, userID, scopeID int64, role string, otx ...*sql.Tx) error
 	GetUserScope(ctx context.Context, userID, scopeID int64, otx ...*sql.Tx) (*UserScope, error)
+	GetUserScopesByRole(ctx context.Context, userID int64, role string, otx ...*sql.Tx) ([]UserScope, error)
 	DeleteUserScope(ctx context.Context, userID, scopeID int64, otx ...*sql.Tx) error
 }
 
