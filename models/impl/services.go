@@ -11,6 +11,12 @@ const (
 	RoleView  = "view"
 )
 
+var roleHierarchy = map[string]int{
+	RoleOwner: 3,
+	RoleWrite: 2,
+	RoleView:  1,
+}
+
 var (
 	ModelsService *ModelsServiceContainer
 	once          sync.Once
