@@ -43,16 +43,13 @@ import (
 // @Failure 500 {object} map[string]string "Unable to fetch sources"
 // @Router /sources [get]
 func ListSources(c *gin.Context) {
-	_, okUser := getUserID(c)
-	if !okUser {
-		return
-	}
-	scopeID, okScope := getScopeID(c)
-	if !okScope {
+	_, scopes, ok := getUserAndScopes(c, impl.RoleView)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
 
-	sources, err := impl.GetModelsService().SourceModel.GetSources(c, []int64{scopeID})
+	sources, err := impl.GetModelsService().SourceModel.GetSources(c, scopes)
 	if err != nil {
 		log.Printf("[ListSources] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to fetch sources"})
@@ -73,9 +70,9 @@ func ListSources(c *gin.Context) {
 // @Failure 404 {object} map[string]string "Source not found"
 // @Router /sources/{id} [get]
 func GetSource(c *gin.Context) {
-	_, okUser := getUserID(c)
-	scopeID, okScope := getScopeID(c)
-	if !okUser || !okScope {
+	_, scopes, ok := getUserAndScopes(c, impl.RoleView)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
 
@@ -85,7 +82,7 @@ func GetSource(c *gin.Context) {
 		// c.JSON(http.StatusNotFound, gin.H{"error": "invalid source ID format"})
 		return
 	}
-	source, err := impl.GetModelsService().SourceModel.GetSourceByID(c, sourceID, []int64{scopeID})
+	source, err := impl.GetModelsService().SourceModel.GetSourceByID(c, sourceID, scopes)
 	if err != nil {
 		log.Printf("[GetSource] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "Source not found"})
@@ -106,12 +103,9 @@ func GetSource(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Failed to create source"
 // @Router /sources [post]
 func CreateSource(c *gin.Context) {
-	userID, okUser := getUserID(c)
-	if !okUser {
-		return
-	}
-	scopeID, okScope := getScopeID(c)
-	if !okScope {
+	userID, scopes, ok := getUserAndScopes(c, impl.RoleWrite)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
 	var newSource interfaces.Source
@@ -121,11 +115,8 @@ func CreateSource(c *gin.Context) {
 		return
 	}
 	newSource.UserID = userID
-	newSource.ScopeID = scopeID
+	newSource.ScopeID = scopes[0]
 	if err := impl.GetModelsService().SourceModel.InsertSource(c, &newSource); err != nil {
-		log.Printf("[CreateSource] New: %v ", newSource)
-		log.Printf("[CreateSource] Scope: %d ", scopeID)
-		log.Printf("[CreateSource] Error: %v ", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create source"})
 		return
 	}
@@ -145,12 +136,9 @@ func CreateSource(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Failed to update source"
 // @Router /sources/{id} [put]
 func UpdateSource(c *gin.Context) {
-	userID, okUser := getUserID(c)
-	if !okUser {
-		return
-	}
-	scopeID, okScope := getScopeID(c)
-	if !okScope {
+	userID, scopes, ok := getUserAndScopes(c, impl.RoleWrite)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
 	var updatedSource interfaces.Source
@@ -160,9 +148,8 @@ func UpdateSource(c *gin.Context) {
 		return
 	}
 	updatedSource.UserID = userID
-	updatedSource.ScopeID = scopeID
+	updatedSource.ScopeID = scopes[0]
 	if err := impl.GetModelsService().SourceModel.UpdateSource(c, &updatedSource); err != nil {
-		log.Printf("[UpdateSource] Error: %v", "Failed to update source")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update source"})
 		return
 	}
@@ -182,21 +169,16 @@ func UpdateSource(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Failed to delete source"
 // @Router /sources/{id} [delete]
 func DeleteSource(c *gin.Context) {
-	_, okUser := getUserID(c)
-	if !okUser {
-		return
-	}
-	scopeID, okScope := getScopeID(c)
-	if !okScope {
+	_, scopes, ok := getUserAndScopes(c, impl.RoleWrite)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
 	sourceID, ok := getSourceID(c)
 	if !ok {
-		// c.JSON(http.StatusBadRequest, gin.H{"error": "source ID is required"})
-		// c.JSON(http.StatusNotFound, gin.H{"error": "invalid source ID format"})
 		return
 	}
-	if err := impl.GetModelsService().SourceModel.DeleteSource(c, sourceID, []int64{scopeID}); err != nil {
+	if err := impl.GetModelsService().SourceModel.DeleteSource(c, sourceID, scopes); err != nil {
 		log.Printf("[DeleteSource] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete source"})
 		return

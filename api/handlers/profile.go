@@ -32,7 +32,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func getUserID(c *gin.Context) (int64, bool) {
+func getUserAndScopes(c *gin.Context, role string) (int64, []int64, bool) {
+	userID, okUser := getUser(c)
+	if !okUser {
+		return 0, nil, false
+	}
+	scopes, okScope := getScopes(c, userID, role)
+	if !okScope {
+		return userID, nil, false
+	}
+
+	return userID, scopes, true
+}
+
+func getUser(c *gin.Context) (int64, bool) {
 	userID, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
@@ -48,7 +61,7 @@ func getUserID(c *gin.Context) (int64, bool) {
 	return intUserID, true
 }
 
-func getScopeID(c *gin.Context) (int64, bool) {
+func getScope(c *gin.Context) (int64, bool) {
 	scopeID, exists := c.Get("scopeID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing scope parameter"})
@@ -64,8 +77,26 @@ func getScopeID(c *gin.Context) (int64, bool) {
 	return intScopeID, true
 }
 
+func getScopes(c *gin.Context, userID int64, role string) ([]int64, bool) {
+	scopeID, exists := getScope(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing scope parameter"})
+		return nil, false
+	}
+	scopes := []int64{scopeID}
+	scopeList, err := impl.GetModelsService().UserScopeModel.GetUserScopesByRole(c, userID, role)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "unable to fetch related scopes for user"})
+		return nil, false
+	}
+	for _, scope := range scopeList {
+		scopes = append(scopes, scope.ScopeID)
+	}
+	return scopes, true
+}
+
 func GetUserProfile(c *gin.Context) {
-	userID, ok := getUserID(c)
+	userID, ok := getUser(c)
 	if !ok {
 		return
 	}
@@ -80,7 +111,7 @@ func GetUserProfile(c *gin.Context) {
 }
 
 func UpdateUserProfile(c *gin.Context) {
-	userID, ok := getUserID(c)
+	userID, ok := getUser(c)
 	if !ok {
 		return
 	}
@@ -102,7 +133,7 @@ func UpdateUserProfile(c *gin.Context) {
 }
 
 func DeleteUser(c *gin.Context) {
-	userID, ok := getUserID(c)
+	userID, ok := getUser(c)
 	if !ok {
 		return
 	}
