@@ -1,7 +1,10 @@
 ### TODO
+- Scope list is passed automatically from Handler layer, but we have confusion on Group Scope vs user scope
+- Scope violation error messages have to be more clear for user to be able to show right error on client
+- How does the client know if the scope for an item (like a source) is read only or read-write (scope markers don't go to the client)
+- [---]
 - Should we verify userID or/and scopeID  (in header) for every handler call? Or should the  JWT enough?
 - Updated category tests, remove hardcoded table names
-- Remove 'new' prefix for model methods
 - Add test cases to check missing scope (category, source)
 ### Multi user approach
 - When a user is created, a scope entry for the user (insert to scope where user_id = x)

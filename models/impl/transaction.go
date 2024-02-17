@@ -194,7 +194,7 @@ func (tm *TransactionModel) GetTransactionsByFilter(ctx context.Context, filter 
 	_, executor := getExecutor(otx...)
 	query := GetQueryBuilder().Select(tm.ColumnID, tm.ColumnUserID, tm.ColumnSourceID, tm.ColumnCategoryID, tm.ColumnTimestamp, tm.ColumnAmount, tm.ColumnType, tm.ColumnDescription, tm.ColumnScope).
 		From(tm.TableTransactions).
-		Where(squirrel.Eq{tm.ColumnScope: filter.ScopeID})
+		Where(squirrel.Eq{tm.ColumnScope: filter.Scopes})
 
 	if filter.StartDate != "" {
 		query = query.Where(tm.ColumnTimestamp+" >= ?", filter.StartDate)

@@ -21,7 +21,7 @@ type Transaction struct {
 
 type TransactionFilter struct {
 	UserID       int64
-	ScopeID      int64
+	Scopes       []int64
 	StartDate    string
 	EndDate      string
 	Tags         []string

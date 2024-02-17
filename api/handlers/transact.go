@@ -65,22 +65,20 @@ func getTransactionID(c *gin.Context) (int64, bool) {
 // @Failure 500 {object} map[string]string "Unable to create transaction"
 // @Router /transactions [post]
 func CreateTransaction(c *gin.Context) {
-	userID, okUser := getUserID(c)
-	scopeID, okScope := getScopeID(c)
-	if !okUser || !okScope {
+	userID, scopes, ok := getUserAndScopes(c, impl.RoleWrite)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
 
 	var newTransaction interfaces.Transaction
 	if err := c.ShouldBindJSON(&newTransaction); err != nil {
-		log.Printf("[CreateTransaction] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	newTransaction.UserID = userID
-	newTransaction.ScopeID = scopeID
+	newTransaction.ScopeID = scopes[0]
 	if err := impl.GetModelsService().TransactionModel.InsertTransaction(c, newTransaction); err != nil {
-		log.Printf("[CreateTransaction] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create transaction"})
 		return
 	}
@@ -99,19 +97,17 @@ func CreateTransaction(c *gin.Context) {
 // @Failure 404 {object} map[string]string "Transaction not found"
 // @Router /transactions/{id} [get]
 func GetTransaction(c *gin.Context) {
+	_, scopes, ok := getUserAndScopes(c, impl.RoleView)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
+		return
+	}
 	transactionID, ok := getTransactionID(c)
 	if !ok {
 		return
 	}
-	_, okUser := getUserID(c)
-	scopeID, okScope := getScopeID(c)
-	if !okUser || !okScope {
-		return
-	}
-
-	transaction, err := impl.GetModelsService().TransactionModel.GetTransactionByID(c, transactionID, []int64{scopeID})
+	transaction, err := impl.GetModelsService().TransactionModel.GetTransactionByID(c, transactionID, scopes)
 	if err != nil {
-		log.Printf("[GetTransaction] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "transaction not found"})
 		return
 	}
@@ -133,9 +129,9 @@ func GetTransaction(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Unable to update transaction"
 // @Router /transactions/{id} [put]
 func UpdateTransaction(c *gin.Context) {
-	userID, okUser := getUserID(c)
-	scopeID, okScope := getScopeID(c)
-	if !okUser || !okScope {
+	userID, scopes, ok := getUserAndScopes(c, impl.RoleWrite)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
 	transactionID, ok := getTransactionID(c)
@@ -150,9 +146,9 @@ func UpdateTransaction(c *gin.Context) {
 		return
 	}
 	uTxn.UserID = userID
-	uTxn.ScopeID = scopeID
+	uTxn.ScopeID = scopes[0]
 	uTxn.ID = transactionID
-	oTxn, err := impl.GetModelsService().TransactionModel.GetTransactionByID(c, transactionID, []int64{scopeID})
+	oTxn, err := impl.GetModelsService().TransactionModel.GetTransactionByID(c, transactionID, scopes)
 	if err != nil {
 		log.Printf("[UpdateTransaction] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "unable to find transaction"})
@@ -196,17 +192,17 @@ func UpdateTransaction(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Unable to delete transaction"
 // @Router /transactions/{id} [delete]
 func DeleteTransaction(c *gin.Context) {
+
+	_, scopes, ok := getUserAndScopes(c, impl.RoleWrite)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
+		return
+	}
 	transactionID, ok := getTransactionID(c)
 	if !ok {
 		return
 	}
-	_, okUser := getUserID(c)
-	scopeID, okScope := getScopeID(c)
-	if !okUser || !okScope {
-		return
-	}
-
-	if err := impl.GetModelsService().TransactionModel.DeleteTransaction(c, transactionID, []int64{scopeID}); err != nil {
+	if err := impl.GetModelsService().TransactionModel.DeleteTransaction(c, transactionID, scopes); err != nil {
 		log.Printf("[DeleteTransaction] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete transaction"})
 		return
@@ -236,16 +232,16 @@ func DeleteTransaction(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Unable to fetch transactions"
 // @Router /transactions [get]
 func ListTransactions(c *gin.Context) {
-	userID, okUser := getUserID(c)
-	scopeID, okScope := getScopeID(c)
-	if !okUser || !okScope {
+	userID, scopes, ok := getUserAndScopes(c, impl.RoleView)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
 
 	// Create a filter from the query parameters.
 	filter := interfaces.TransactionFilter{
 		UserID:       userID,
-		ScopeID:      scopeID,
+		Scopes:       scopes,
 		StartDate:    c.DefaultQuery("start_date", ""),
 		EndDate:      c.DefaultQuery("end_date", ""),
 		Category:     c.DefaultQuery("category", ""),
