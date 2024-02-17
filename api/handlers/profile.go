@@ -33,6 +33,7 @@ import (
 )
 
 func getUserAndScopes(c *gin.Context, role string) (int64, []int64, bool) {
+	//TODO: In case of Group, we need to pass the group scope in array[0]
 	userID, okUser := getUser(c)
 	if !okUser {
 		return 0, nil, false
