@@ -346,7 +346,7 @@ func TestListTransactions(t *testing.T) {
 				// Here, convert query parameters into a TransactionFilter and pass to setupMock
 				filter := interfaces.TransactionFilter{
 					UserID:       userIDInt,
-					ScopeID:      scopeIDInt,
+					Scopes:       []int64{scopeIDInt},
 					Page:         util.GetIntFromQuery(c, "page", 1),
 					ItemsPerPage: util.GetIntFromQuery(c, "items_per_page", 10),
 					SortBy:       c.DefaultQuery("sort_by", "timestamp"),
