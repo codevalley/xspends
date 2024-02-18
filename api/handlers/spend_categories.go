@@ -68,6 +68,7 @@ func getCategoryID(c *gin.Context) (int64, bool) {
 func ListCategories(c *gin.Context) {
 	_, scopes, ok := getUserAndScopes(c, impl.RoleView)
 	if !ok {
+		log.Printf("[ListCategories] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
@@ -83,6 +84,7 @@ func ListCategories(c *gin.Context) {
 	}
 
 	if len(categories) == 0 {
+		log.Printf("[ListCategories] Error: %v", "no categories found")
 		c.JSON(http.StatusOK, gin.H{"message": "no categories found"})
 		return
 	}
@@ -103,12 +105,14 @@ func ListCategories(c *gin.Context) {
 func GetCategory(c *gin.Context) {
 	_, scopes, ok := getUserAndScopes(c, impl.RoleView)
 	if !ok {
+		log.Printf("[GetCategory] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
 
 	categoryID, ok := getCategoryID(c)
 	if !ok {
+		log.Printf("[GetCategory] Error: %v", "invalid category ID format")
 		return
 	}
 
@@ -136,12 +140,14 @@ func GetCategory(c *gin.Context) {
 func CreateCategory(c *gin.Context) {
 	userID, scopes, ok := getUserAndScopes(c, impl.RoleWrite)
 	if !ok {
+		log.Printf("[CreateCategory] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
 
 	var newCategory interfaces.Category
 	if err := c.ShouldBindJSON(&newCategory); err != nil {
+		log.Printf("[CreateCategory] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON"})
 		return
 	}
@@ -149,6 +155,7 @@ func CreateCategory(c *gin.Context) {
 	newCategory.UserID = userID
 	newCategory.ScopeID = scopes[0]
 	if err := impl.GetModelsService().CategoryModel.InsertCategory(c, &newCategory, nil); err != nil {
+		log.Printf("[CreateCategory] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create category"})
 		return
 	}
@@ -171,6 +178,7 @@ func CreateCategory(c *gin.Context) {
 func UpdateCategory(c *gin.Context) {
 	userID, scopes, ok := getUserAndScopes(c, impl.RoleWrite)
 	if !ok {
+		log.Printf("[UpdateCategory] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
@@ -205,14 +213,14 @@ func UpdateCategory(c *gin.Context) {
 func DeleteCategory(c *gin.Context) {
 	_, scopes, ok := getUserAndScopes(c, impl.RoleView)
 	if !ok {
+		log.Printf("[DeleteCategory] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
 
 	categoryID, ok := getCategoryID(c)
 	if !ok {
-		// c.JSON(http.StatusBadRequest, gin.H{"error": "category ID is required"})
-		// c.JSON(http.StatusNotFound, gin.H{"error": "invalid category ID format"})
+		log.Printf("[DeleteCategory] Error: %v", "invalid category ID format")
 		return
 	}
 
