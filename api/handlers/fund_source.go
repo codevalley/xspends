@@ -45,6 +45,7 @@ import (
 func ListSources(c *gin.Context) {
 	_, scopes, ok := getUserAndScopes(c, impl.RoleView)
 	if !ok {
+		log.Printf("[ListSources] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
@@ -78,8 +79,7 @@ func GetSource(c *gin.Context) {
 
 	sourceID, ok := getSourceID(c)
 	if !ok {
-		// c.JSON(http.StatusBadRequest, gin.H{"error": "source ID is required"})
-		// c.JSON(http.StatusNotFound, gin.H{"error": "invalid source ID format"})
+		log.Printf("[ListSources]: Missing source ID")
 		return
 	}
 	source, err := impl.GetModelsService().SourceModel.GetSourceByID(c, sourceID, scopes)
@@ -105,6 +105,7 @@ func GetSource(c *gin.Context) {
 func CreateSource(c *gin.Context) {
 	userID, scopes, ok := getUserAndScopes(c, impl.RoleWrite)
 	if !ok {
+		log.Printf("[CreateSource] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
@@ -117,6 +118,7 @@ func CreateSource(c *gin.Context) {
 	newSource.UserID = userID
 	newSource.ScopeID = scopes[0]
 	if err := impl.GetModelsService().SourceModel.InsertSource(c, &newSource); err != nil {
+		log.Printf("[CreateSource] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create source"})
 		return
 	}
@@ -138,6 +140,7 @@ func CreateSource(c *gin.Context) {
 func UpdateSource(c *gin.Context) {
 	userID, scopes, ok := getUserAndScopes(c, impl.RoleWrite)
 	if !ok {
+		log.Printf("[UpdateSource] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
@@ -150,6 +153,7 @@ func UpdateSource(c *gin.Context) {
 	updatedSource.UserID = userID
 	updatedSource.ScopeID = scopes[0]
 	if err := impl.GetModelsService().SourceModel.UpdateSource(c, &updatedSource); err != nil {
+		log.Printf("[UpdateSource] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update source"})
 		return
 	}
@@ -171,11 +175,13 @@ func UpdateSource(c *gin.Context) {
 func DeleteSource(c *gin.Context) {
 	_, scopes, ok := getUserAndScopes(c, impl.RoleWrite)
 	if !ok {
+		log.Printf("[DeleteSource] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
 	sourceID, ok := getSourceID(c)
 	if !ok {
+		log.Printf("[DeleteSource]: Missing source ID")
 		return
 	}
 	if err := impl.GetModelsService().SourceModel.DeleteSource(c, sourceID, scopes); err != nil {
