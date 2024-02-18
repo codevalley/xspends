@@ -24,6 +24,7 @@ SOFTWARE.
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"xspends/models/impl"
 	"xspends/models/interfaces"
@@ -36,10 +37,12 @@ func getUserAndScopes(c *gin.Context, role string) (int64, []int64, bool) {
 	//TODO: In case of Group, we need to pass the group scope in array[0]
 	userID, okUser := getUser(c)
 	if !okUser {
+		log.Printf("[getUserAndScopes] Error: %v", "Missing user information")
 		return 0, nil, false
 	}
 	scopes, okScope := getScopes(c, userID, role)
 	if !okScope {
+		log.Printf("[getUserAndScopes] Error: %v", "Missing scope information")
 		return userID, nil, false
 	}
 
@@ -49,12 +52,14 @@ func getUserAndScopes(c *gin.Context, role string) (int64, []int64, bool) {
 func getUser(c *gin.Context) (int64, bool) {
 	userID, exists := c.Get("userID")
 	if !exists {
+		log.Printf("[getUser] Error: %v", "user not authenticated")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
 		return 0, false
 	}
 
 	intUserID, ok := userID.(int64)
 	if !ok {
+		log.Printf("[getUser] Error: %v", "failed to convert userID to int64")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to convert userID to int64"})
 		return 0, false
 	}
@@ -65,12 +70,14 @@ func getUser(c *gin.Context) (int64, bool) {
 func getScope(c *gin.Context) (int64, bool) {
 	scopeID, exists := c.Get("scopeID")
 	if !exists {
+		log.Printf("[getScope] Error: %v", "missing scope parameter")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing scope parameter"})
 		return 0, false
 	}
 
 	intScopeID, ok := scopeID.(int64)
 	if !ok {
+		log.Printf("[getScope] Error: %v", "failed to convert scopeID to int64")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to convert scopeID to int64"})
 		return 0, false
 	}
@@ -81,12 +88,14 @@ func getScope(c *gin.Context) (int64, bool) {
 func getScopes(c *gin.Context, userID int64, role string) ([]int64, bool) {
 	scopeID, exists := getScope(c)
 	if !exists {
+		log.Printf("[getScopes] Error: %v", "missing scope parameter")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing scope parameter"})
 		return nil, false
 	}
 	scopes := []int64{scopeID}
 	scopeList, err := impl.GetModelsService().UserScopeModel.GetUserScopesByRole(c, userID, role)
 	if err != nil {
+		log.Printf("[getScopes] Error: %v", "unable to fetch related scopes for user")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "unable to fetch related scopes for user"})
 		return nil, false
 	}
@@ -99,11 +108,13 @@ func getScopes(c *gin.Context, userID int64, role string) ([]int64, bool) {
 func GetUserProfile(c *gin.Context) {
 	userID, ok := getUser(c)
 	if !ok {
+		log.Printf("[GetUserProfile] Error: %v", "Missing user information")
 		return
 	}
 
 	user, err := impl.GetModelsService().UserModel.GetUserByID(c, userID, nil)
 	if err != nil {
+		log.Printf("[GetUserProfile] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
 		return
 	}
@@ -114,11 +125,13 @@ func GetUserProfile(c *gin.Context) {
 func UpdateUserProfile(c *gin.Context) {
 	userID, ok := getUser(c)
 	if !ok {
+		log.Printf("[UpdateUserProfile] Error: %v", "Missing user information")
 		return
 	}
 
 	var updatedUser interfaces.User
 	if err := c.ShouldBindJSON(&updatedUser); err != nil {
+		log.Printf("[UpdateUserProfile] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user json"})
 		return
 	}
@@ -126,6 +139,7 @@ func UpdateUserProfile(c *gin.Context) {
 	updatedUser.ID = userID
 
 	if err := impl.GetModelsService().UserModel.UpdateUser(c, &updatedUser, nil); err != nil {
+		log.Printf("[UpdateUserProfile] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update user"})
 		return
 	}
@@ -136,10 +150,12 @@ func UpdateUserProfile(c *gin.Context) {
 func DeleteUser(c *gin.Context) {
 	userID, ok := getUser(c)
 	if !ok {
+		log.Printf("[DeleteUser] Error: %v", "Missing user information")
 		return
 	}
 
 	if err := impl.GetModelsService().UserModel.DeleteUser(c, userID, nil); err != nil {
+		log.Printf("[DeleteUser] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete user"})
 		return
 	}
