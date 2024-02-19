@@ -66,6 +66,7 @@ func getTxnTagID(c *gin.Context) (int64, bool) {
 func ListTransactionTags(c *gin.Context) {
 	transactionID, ok := getTxnTagID(c)
 	if !ok {
+		log.Printf("[ListTransactionTags] Error: transaction ID is required")
 		return
 	}
 
@@ -93,6 +94,7 @@ func ListTransactionTags(c *gin.Context) {
 func AddTagToTransaction(c *gin.Context) {
 	transactionID, ok := getTxnTagID(c)
 	if !ok {
+		log.Printf("[AddTagToTransaction] Error: transaction ID is required")
 		return
 	}
 
@@ -125,11 +127,13 @@ func AddTagToTransaction(c *gin.Context) {
 func RemoveTagFromTransaction(c *gin.Context) {
 	transactionID, ok := getTxnTagID(c)
 	if !ok {
+		log.Printf("[RemoveTagFromTransaction] Error: transaction ID is required")
 		return
 	}
 
 	tagID, ok := getTagID(c)
 	if !ok {
+		log.Printf("[RemoveTagFromTransaction] Error: tag ID is required")
 		return
 	}
 
