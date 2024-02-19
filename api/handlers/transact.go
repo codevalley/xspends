@@ -67,18 +67,21 @@ func getTransactionID(c *gin.Context) (int64, bool) {
 func CreateTransaction(c *gin.Context) {
 	userID, scopes, ok := getUserAndScopes(c, impl.RoleWrite)
 	if !ok {
+		log.Printf("[CreateTransaction] Error: Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
 
 	var newTransaction interfaces.Transaction
 	if err := c.ShouldBindJSON(&newTransaction); err != nil {
+		log.Printf("[CreateTransaction] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	newTransaction.UserID = userID
 	newTransaction.ScopeID = scopes[0]
 	if err := impl.GetModelsService().TransactionModel.InsertTransaction(c, newTransaction); err != nil {
+		log.Printf("[CreateTransaction] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create transaction"})
 		return
 	}
@@ -99,15 +102,18 @@ func CreateTransaction(c *gin.Context) {
 func GetTransaction(c *gin.Context) {
 	_, scopes, ok := getUserAndScopes(c, impl.RoleView)
 	if !ok {
+		log.Printf("[GetTransaction] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
 	transactionID, ok := getTransactionID(c)
 	if !ok {
+		log.Printf("[GetTransaction] Error: %v", "Invalid transaction ID")
 		return
 	}
 	transaction, err := impl.GetModelsService().TransactionModel.GetTransactionByID(c, transactionID, scopes)
 	if err != nil {
+		log.Printf("[GetTransaction] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "transaction not found"})
 		return
 	}
@@ -131,11 +137,13 @@ func GetTransaction(c *gin.Context) {
 func UpdateTransaction(c *gin.Context) {
 	userID, scopes, ok := getUserAndScopes(c, impl.RoleWrite)
 	if !ok {
+		log.Printf("[UpdateTransaction] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
 	transactionID, ok := getTransactionID(c)
 	if !ok {
+		log.Printf("[UpdateTransaction] Error: %v", "Invalid transaction ID")
 		return
 	}
 
@@ -195,11 +203,13 @@ func DeleteTransaction(c *gin.Context) {
 
 	_, scopes, ok := getUserAndScopes(c, impl.RoleWrite)
 	if !ok {
+		log.Printf("[DeleteTransaction] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
 	transactionID, ok := getTransactionID(c)
 	if !ok {
+		log.Printf("[DeleteTransaction] Error: %v", "Invalid transaction ID")
 		return
 	}
 	if err := impl.GetModelsService().TransactionModel.DeleteTransaction(c, transactionID, scopes); err != nil {
@@ -234,6 +244,7 @@ func DeleteTransaction(c *gin.Context) {
 func ListTransactions(c *gin.Context) {
 	userID, scopes, ok := getUserAndScopes(c, impl.RoleView)
 	if !ok {
+		log.Printf("[ListTransactions] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
@@ -263,6 +274,7 @@ func ListTransactions(c *gin.Context) {
 	}
 
 	if len(transactions) == 0 {
+		log.Printf("[ListTransactions] Info: %v", "no transactions found")
 		c.JSON(http.StatusOK, gin.H{"message": "no transactions found"})
 		return
 	}
