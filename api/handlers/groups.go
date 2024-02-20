@@ -93,5 +93,5 @@ func CreateGroup(c *gin.Context) {
 		}
 	}
 	//TODO: Evaluate if we should pass scopeID
-	c.JSON(http.StatusCreated, gin.H{"message": "Group created successfully", "groupID": group.GroupID, "scopeID": scopeID})
+	c.JSON(http.StatusCreated, group)
 }
