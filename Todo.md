@@ -1,4 +1,5 @@
 ### TODO
+- Delete group & Udpate group info methods
 - Scope list is passed automatically from Handler layer, but we have confusion on Group Scope vs user scope
 - Scope violation error messages have to be more clear for user to be able to show right error on client
 - How does the client know if the scope for an item (like a source) is read only or read-write (scope markers don't go to the client)

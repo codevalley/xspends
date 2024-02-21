@@ -46,6 +46,7 @@ type AddToGroupRequest struct {
 }
 
 // TODO: Cleanup inline structs
+
 func CreateGroup(c *gin.Context) {
 	userID, ok := getUser(c)
 	if !ok {
