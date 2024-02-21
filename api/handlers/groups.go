@@ -45,6 +45,7 @@ type AddToGroupRequest struct {
 	Role    string `json:"role"`
 }
 
+// TODO: Cleanup inline structs
 func CreateGroup(c *gin.Context) {
 	userID, ok := getUser(c)
 	if !ok {
@@ -183,4 +184,51 @@ func RemoveFromGroup(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "User removed from group successfully"})
+}
+
+func EditUserInGroup(c *gin.Context) {
+	// Step 1: Authenticate and get current userID
+	currentUserID, ok := getUser(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user information"})
+		return
+	}
+
+	// Step 2: Fetch the request payload
+	var request struct {
+		UserID  int64  `json:"userID"`
+		GroupID int64  `json:"groupID"`
+		Role    string `json:"role"`
+	}
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	// Step 3: Verify if the current user is the owner of the requested GroupID
+	group, err := impl.GetModelsService().GroupModel.GetGroupByID(c, request.GroupID, currentUserID)
+	if err != nil || group.OwnerID != currentUserID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized to edit member roles in this group"})
+		return
+	}
+
+	// Step 4: Validate role type
+	if request.Role != impl.RoleView && request.Role != impl.RoleWrite {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid role specified"})
+		return
+	}
+
+	// Prevent the owner from downgrading their own role
+	if request.UserID == currentUserID && request.Role != impl.RoleOwner {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Owners cannot downgrade their own role"})
+		return
+	}
+
+	// Step 5: Update the user's role in the group
+	if err := impl.GetModelsService().UserScopeModel.UpsertUserScope(c, request.UserID, group.ScopeID, request.Role); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to edit user role in group"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "User role updated successfully in group"})
 }
