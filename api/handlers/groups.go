@@ -143,3 +143,44 @@ func AddToGroup(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "User added to group successfully"})
 }
+
+func RemoveFromGroup(c *gin.Context) {
+	// Step 1: Authenticate and get current userID
+	currentUserID, ok := getUser(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user information"})
+		return
+	}
+
+	// Step 2: Fetch the request payload
+	var request struct {
+		GroupID int64 `json:"groupID"`
+		UserID  int64 `json:"userID"`
+	}
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	// Step 3: Verify if the current user is the owner of the requested GroupID
+	group, err := impl.GetModelsService().GroupModel.GetGroupByID(c, request.GroupID, currentUserID)
+	if err != nil || group.OwnerID != currentUserID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized to remove members from this group"})
+		return
+	}
+
+	// Additional step: Ensure the user to be removed exists within the group
+	_, err = impl.GetModelsService().UserScopeModel.GetUserScope(c, request.UserID, group.ScopeID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not part of the group"})
+		return
+	}
+
+	// Step 4: Remove the userID tuple from the userScope table
+	if err := impl.GetModelsService().UserScopeModel.DeleteUserScope(c, request.UserID, group.ScopeID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove user from group"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "User removed from group successfully"})
+}
