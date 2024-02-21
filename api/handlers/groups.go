@@ -33,9 +33,16 @@ import (
 )
 
 type GroupObject struct {
-	GroupName   string
-	Description string
-	UserRoles   map[int64]string // Map of userID to role
+	GroupName   string           `json:"group_name"`
+	Description string           `json:"description"`
+	UserRoles   map[int64]string `json:"user_roles"`
+}
+
+// AddToGroupRequest represents the request payload for adding a user to a group.
+type AddToGroupRequest struct {
+	GroupID int64  `json:"group_id"`
+	UserID  int64  `json:"user_id"`
+	Role    string `json:"role"`
 }
 
 func CreateGroup(c *gin.Context) {
@@ -94,4 +101,45 @@ func CreateGroup(c *gin.Context) {
 	}
 	//TODO: Evaluate if we should pass scopeID
 	c.JSON(http.StatusCreated, group)
+}
+
+func AddToGroup(c *gin.Context) {
+	// Step 1: Authenticate and get current userID
+	currentUserID, ok := getUser(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user information"})
+		return
+	}
+
+	// Step 2: Fetch the request payload
+	var request struct {
+		GroupID int64  `json:"groupID"`
+		UserID  int64  `json:"userID"`
+		Role    string `json:"role"`
+	}
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	// Step 3: Verify if the current user is the owner of the requested GroupID
+	group, err := impl.GetModelsService().GroupModel.GetGroupByID(c, request.GroupID, currentUserID)
+	if err != nil || group.OwnerID != currentUserID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized to add members to this group"})
+		return
+	}
+
+	// Step 4: Validate role type
+	if request.Role != impl.RoleView && request.Role != impl.RoleWrite {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid role specified"})
+		return
+	}
+
+	// Step 5: Add the userID tuple to the userScope table
+	if err := impl.GetModelsService().UserScopeModel.UpsertUserScope(c, request.UserID, group.ScopeID, request.Role); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add user to group"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "User added to group successfully"})
 }
