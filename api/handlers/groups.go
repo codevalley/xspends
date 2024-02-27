@@ -115,8 +115,8 @@ func AddToGroup(c *gin.Context) {
 
 	// Step 2: Fetch the request payload
 	var request struct {
-		GroupID int64  `json:"groupID"`
-		UserID  int64  `json:"userID"`
+		GroupID int64  `json:"group_id"`
+		UserID  int64  `json:"user_id"`
 		Role    string `json:"role"`
 	}
 	if err := c.BindJSON(&request); err != nil {
@@ -156,8 +156,8 @@ func RemoveFromGroup(c *gin.Context) {
 
 	// Step 2: Fetch the request payload
 	var request struct {
-		GroupID int64 `json:"groupID"`
-		UserID  int64 `json:"userID"`
+		GroupID int64 `json:"group_id"`
+		UserID  int64 `json:"user_id"`
 	}
 	if err := c.BindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
@@ -197,8 +197,8 @@ func EditUserInGroup(c *gin.Context) {
 
 	// Step 2: Fetch the request payload
 	var request struct {
-		UserID  int64  `json:"userID"`
-		GroupID int64  `json:"groupID"`
+		UserID  int64  `json:"user_id"`
+		GroupID int64  `json:"group_id"`
 		Role    string `json:"role"`
 	}
 	if err := c.BindJSON(&request); err != nil {
