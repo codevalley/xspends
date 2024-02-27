@@ -150,6 +150,8 @@ func UpdateSource(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid source data"})
 		return
 	}
+
+	// model verifies if the sourceID matches the scope ID and user ID, if not updation fails
 	updatedSource.UserID = userID
 	updatedSource.ScopeID = scopes[0]
 	if err := impl.GetModelsService().SourceModel.UpdateSource(c, &updatedSource); err != nil {

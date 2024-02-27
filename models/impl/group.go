@@ -114,7 +114,7 @@ func (gm *GroupModel) DeleteGroup(ctx context.Context, groupID int64, requesting
 	isExternalTx, executor := getExecutor(otx...)
 
 	groupDeleteQuery, groupDeleteArgs, err := GetQueryBuilder().Delete(gm.TableGroups).
-		Where(squirrel.Eq{gm.ColumnGroupID: groupID}).
+		Where(squirrel.Eq{gm.ColumnGroupID: groupID, gm.ColumnOwnerID: requestingUserID}).
 		ToSql()
 	if err != nil {
 		commitOrRollback(executor, isExternalTx, err)

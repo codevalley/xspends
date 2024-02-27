@@ -26,6 +26,8 @@ package handlers
 import (
 	"log"
 	"net/http"
+	"strconv"
+	"time"
 	"xspends/models/impl"
 	"xspends/models/interfaces"
 
@@ -45,6 +47,24 @@ type AddToGroupRequest struct {
 	Role    string `json:"role"`
 }
 
+func getGroupID(c *gin.Context) (int64, bool) {
+	groupIDStr := c.Param("id")
+	if groupIDStr == "" {
+		log.Printf("[getGroupID] Error: Group ID is required")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "group ID is required"})
+		return 0, false
+	}
+
+	groupID, err := strconv.ParseInt(groupIDStr, 10, 64)
+	if err != nil {
+		log.Printf("[getGroupID] Error: invalid group ID format")
+		c.JSON(http.StatusNotFound, gin.H{"error": "invalid group ID format"})
+		return 0, false
+	}
+
+	return groupID, true
+}
+
 // TODO: Cleanup inline structs
 
 func CreateGroup(c *gin.Context) {
@@ -54,6 +74,7 @@ func CreateGroup(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user information"})
 		return
 	}
+
 	var request GroupObject
 	if err := c.BindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
@@ -73,6 +94,7 @@ func CreateGroup(c *gin.Context) {
 		ScopeID:     scopeID,
 		GroupName:   request.GroupName,
 		Description: request.Description,
+		//add missing fields
 	}
 	if err := impl.GetModelsService().GroupModel.CreateGroup(c, &group, nil); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create group"})
@@ -113,19 +135,21 @@ func AddToGroup(c *gin.Context) {
 		return
 	}
 
-	// Step 2: Fetch the request payload
-	var request struct {
-		GroupID int64  `json:"group_id"`
-		UserID  int64  `json:"user_id"`
-		Role    string `json:"role"`
+	groupID, ok := getGroupID(c)
+	if !ok {
+		log.Printf("[AddToGroup] Error: %v", "invalid group ID format")
+		return
 	}
+
+	// Step 2: Fetch the request payload
+	var request interfaces.UserScope
 	if err := c.BindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
 	// Step 3: Verify if the current user is the owner of the requested GroupID
-	group, err := impl.GetModelsService().GroupModel.GetGroupByID(c, request.GroupID, currentUserID)
+	group, err := impl.GetModelsService().GroupModel.GetGroupByID(c, groupID, currentUserID)
 	if err != nil || group.OwnerID != currentUserID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized to add members to this group"})
 		return
@@ -155,26 +179,23 @@ func RemoveFromGroup(c *gin.Context) {
 	}
 
 	// Step 2: Fetch the request payload
-	var request struct {
-		GroupID int64 `json:"group_id"`
-		UserID  int64 `json:"user_id"`
+	groupID, ok := getGroupID(c)
+	if !ok {
+		log.Printf("[RemoveFromGroup] Error: %v", "invalid group ID format")
+		return
 	}
+
+	// Step 2: Fetch the request payload
+	var request interfaces.UserScope
 	if err := c.BindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
 	// Step 3: Verify if the current user is the owner of the requested GroupID
-	group, err := impl.GetModelsService().GroupModel.GetGroupByID(c, request.GroupID, currentUserID)
+	group, err := impl.GetModelsService().GroupModel.GetGroupByID(c, groupID, currentUserID)
 	if err != nil || group.OwnerID != currentUserID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized to remove members from this group"})
-		return
-	}
-
-	// Additional step: Ensure the user to be removed exists within the group
-	_, err = impl.GetModelsService().UserScopeModel.GetUserScope(c, request.UserID, group.ScopeID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not part of the group"})
 		return
 	}
 
@@ -195,19 +216,21 @@ func EditUserInGroup(c *gin.Context) {
 		return
 	}
 
-	// Step 2: Fetch the request payload
-	var request struct {
-		UserID  int64  `json:"user_id"`
-		GroupID int64  `json:"group_id"`
-		Role    string `json:"role"`
+	groupID, ok := getGroupID(c)
+	if !ok {
+		log.Printf("[EditUserInGroup] Error: %v", "invalid group ID format")
+		return
 	}
+
+	// Step 2: Fetch the request payload
+	var request interfaces.UserScope
 	if err := c.BindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
 	// Step 3: Verify if the current user is the owner of the requested GroupID
-	group, err := impl.GetModelsService().GroupModel.GetGroupByID(c, request.GroupID, currentUserID)
+	group, err := impl.GetModelsService().GroupModel.GetGroupByID(c, groupID, currentUserID)
 	if err != nil || group.OwnerID != currentUserID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized to edit member roles in this group"})
 		return
@@ -220,11 +243,17 @@ func EditUserInGroup(c *gin.Context) {
 	}
 
 	// Prevent the owner from downgrading their own role
-	if request.UserID == currentUserID && request.Role != impl.RoleOwner {
+	if request.UserID == currentUserID {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Owners cannot downgrade their own role"})
 		return
 	}
+	// Prevent the owner from downgrading their own role
+	if request.Role == impl.RoleOwner {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot assign Owner role to another user"})
+		return
+	}
 
+	// TODO: This could potential insert a new user into the group if the user is not already in the group
 	// Step 5: Update the user's role in the group
 	if err := impl.GetModelsService().UserScopeModel.UpsertUserScope(c, request.UserID, group.ScopeID, request.Role); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to edit user role in group"})
@@ -232,4 +261,70 @@ func EditUserInGroup(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "User role updated successfully in group"})
+}
+
+func UpdateGroup(c *gin.Context) {
+	// Step 1: Authenticate and get current currentUserID
+	currentUserID, ok := getUser(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user information"})
+		return
+	}
+
+	// Step 2: Fetch the group details from the request payload
+	var request interfaces.Group
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	// Step 3: Fetch the group to ensure it exists and the current user is the owner
+	group, err := impl.GetModelsService().GroupModel.GetGroupByID(c, request.GroupID, currentUserID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Group not found"})
+		return
+	}
+	if group.OwnerID != currentUserID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized to update this group"})
+		return
+	}
+
+	// Step 4: Update the group details
+	request.CreatedAt = group.CreatedAt
+	request.UpdatedAt = time.Now()
+	request.OwnerID = currentUserID
+	request.ScopeID = group.ScopeID
+
+	//TODO: Implement updateGroup method
+
+	// if err := impl.GetModelsService().GroupModel.UpdateGroup(c, group); err != nil {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update group"})
+	// 	return
+	// }
+
+	c.JSON(http.StatusOK, gin.H{"message": "Group updated successfully", "group": group})
+}
+
+func DeleteGroup(c *gin.Context) {
+	// Step 1: Authenticate and get current userID
+	userID, ok := getUser(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user information"})
+		return
+	}
+
+	// Step 2: Fetch the groupID from the URL
+	groupID, ok := getGroupID(c)
+	if !ok {
+		log.Printf("[DeleteGroup] Error: %v", "invalid group ID format")
+		return
+	}
+
+	// Step 3: Delete the group
+	if err := impl.GetModelsService().GroupModel.DeleteGroup(c, groupID, userID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete group"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Group deleted successfully"})
 }

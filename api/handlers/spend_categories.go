@@ -189,6 +189,7 @@ func UpdateCategory(c *gin.Context) {
 		return
 	}
 
+	// model verifies if the categoryID matches the scope ID and user ID, if not updation fails
 	updatedCategory.UserID = userID
 	updatedCategory.ScopeID = scopes[0]
 	if err := impl.GetModelsService().CategoryModel.UpdateCategory(c, &updatedCategory, nil); err != nil {

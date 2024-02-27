@@ -1,4 +1,8 @@
 ### TODO
+- Update methods in handler are buggy
+- Review the overall model & handler code and refactor
+- LOT OF REFACTORING LEFT ON impl.group
+
 - Delete group & Udpate group info methods
 - Scope list is passed automatically from Handler layer, but we have confusion on Group Scope vs user scope
 - Scope violation error messages have to be more clear for user to be able to show right error on client

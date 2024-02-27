@@ -289,7 +289,7 @@ func getTagsForTransaction(ctx context.Context, transaction *interfaces.Transact
 // validateForeignKeyReferences checks if the foreign keys in the transaction exist.
 func validateForeignKeyReferences(ctx context.Context, txn interfaces.Transaction, otx ...*sql.Tx) error {
 	// Check if the user exists
-	userExists, err := GetModelsService().UserModel.UserIDExists(ctx, txn.UserID)
+	userExists, err := GetModelsService().UserModel.UserIDExists(ctx, txn.UserID, otx...)
 	if err != nil {
 		return errors.Wrap(err, "error checking if user exists")
 	}
@@ -298,7 +298,7 @@ func validateForeignKeyReferences(ctx context.Context, txn interfaces.Transactio
 	}
 
 	// Check if the source exists
-	sourceExists, err := GetModelsService().SourceModel.SourceIDExists(ctx, txn.SourceID, []int64{txn.ScopeID})
+	sourceExists, err := GetModelsService().SourceModel.SourceIDExists(ctx, txn.SourceID, []int64{txn.ScopeID}, otx...)
 	if err != nil {
 		return errors.Wrap(err, "error checking if source exists")
 	}
@@ -307,7 +307,7 @@ func validateForeignKeyReferences(ctx context.Context, txn interfaces.Transactio
 	}
 
 	// Check if the category exists
-	categoryExists, err := GetModelsService().CategoryModel.CategoryIDExists(ctx, txn.CategoryID, []int64{txn.ScopeID})
+	categoryExists, err := GetModelsService().CategoryModel.CategoryIDExists(ctx, txn.CategoryID, []int64{txn.ScopeID}, otx...)
 	if err != nil {
 		return errors.Wrap(err, "error checking if category exists")
 	}
@@ -316,7 +316,7 @@ func validateForeignKeyReferences(ctx context.Context, txn interfaces.Transactio
 	}
 
 	// Check if the scope exists
-	scopeExists, err := GetModelsService().ScopeModel.ScopeIDExists(ctx, txn.ScopeID)
+	scopeExists, err := GetModelsService().ScopeModel.ScopeIDExists(ctx, txn.ScopeID, otx...)
 	if err != nil {
 		return errors.Wrap(err, "error checking if scope exists")
 	}

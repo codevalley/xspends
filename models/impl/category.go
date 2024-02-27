@@ -83,7 +83,7 @@ func (cm *CategoryModel) InsertCategory(ctx context.Context, category *interface
 	}
 
 	var err error
-	category.ID, _ = util.GenerateSnowflakeID()
+	category.ID, err = util.GenerateSnowflakeID()
 	if err != nil {
 		return errors.Wrap(err, "generating Snowflake ID failed")
 	}
@@ -122,7 +122,7 @@ func (cm *CategoryModel) UpdateCategory(ctx context.Context, category *interface
 		Set(cm.ColumnDescription, category.Description).
 		Set(cm.ColumnIcon, category.Icon).
 		Set(cm.ColumnUpdatedAt, category.UpdatedAt).
-		Where(squirrel.Eq{cm.ColumnID: category.ID, cm.ColumnUserID: category.ScopeID}).
+		Where(squirrel.Eq{cm.ColumnID: category.ID, cm.ColumnScopeID: category.ScopeID}).
 		ToSql()
 	if err != nil {
 		return errors.Wrap(err, "preparing update statement failed")
@@ -157,6 +157,7 @@ func (cm *CategoryModel) DeleteCategory(ctx context.Context, categoryID int64, s
 	return nil
 }
 
+// deprecated
 func (cm *CategoryModel) GetAllScopedCategories(ctx context.Context, scopes []int64, otx ...*sql.Tx) ([]interfaces.Category, error) {
 	_, executor := getExecutor(otx...)
 
