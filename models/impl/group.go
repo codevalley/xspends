@@ -125,7 +125,7 @@ func (gm *GroupModel) UpdateGroup(ctx context.Context, group *interfaces.Group, 
 		Set(gm.ColumnDescription, group.Description).
 		Set(gm.ColumnIcon, group.Icon).
 		Set(gm.ColumnUpdatedAt, group.UpdatedAt).
-		Where(squirrel.Eq{gm.ColumnGroupID: group.GroupID, gm.ColumnOwnerID: requestingUserID, gm.ColumnScopeID: group.ScopeID}).
+		Where(squirrel.Eq{gm.ColumnGroupID: group.GroupID, gm.ColumnOwnerID: requestingUserID}).
 		ToSql()
 	if err != nil {
 		commitOrRollback(executor, isExternalTx, err)
