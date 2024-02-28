@@ -110,6 +110,38 @@ func (gm *GroupModel) CreateGroup(ctx context.Context, group *interfaces.Group, 
 	return nil
 }
 
+func (gm *GroupModel) UpdateGroup(ctx context.Context, group *interfaces.Group, requestingUserID int64, otx ...*sql.Tx) error {
+	isExternalTx, executor := getExecutor(otx...)
+
+	if err := gm.validateGroupInput(group); err != nil {
+		return err
+	}
+
+	group.UpdatedAt = time.Now()
+
+	// Insert into groups table
+	groupsQuery, groupsArgs, err := GetQueryBuilder().Update(gm.TableGroups).
+		Set(gm.ColumnGroupName, group.GroupName).
+		Set(gm.ColumnDescription, group.Description).
+		Set(gm.ColumnIcon, group.Icon).
+		Set(gm.ColumnUpdatedAt, group.UpdatedAt).
+		Where(squirrel.Eq{gm.ColumnGroupID: group.GroupID, gm.ColumnOwnerID: requestingUserID, gm.ColumnScopeID: group.ScopeID}).
+		ToSql()
+	if err != nil {
+		commitOrRollback(executor, isExternalTx, err)
+		return errors.Wrap(err, "building groups insert query failed")
+	}
+
+	_, err = executor.ExecContext(ctx, groupsQuery, groupsArgs...)
+	if err != nil {
+		commitOrRollback(executor, isExternalTx, err)
+		return errors.Wrap(err, "inserting into groups failed")
+	}
+
+	commitOrRollback(executor, isExternalTx, err)
+	return nil
+}
+
 func (gm *GroupModel) DeleteGroup(ctx context.Context, groupID int64, requestingUserID int64, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 

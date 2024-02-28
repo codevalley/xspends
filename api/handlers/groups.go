@@ -297,10 +297,10 @@ func UpdateGroup(c *gin.Context) {
 
 	//TODO: Implement updateGroup method
 
-	// if err := impl.GetModelsService().GroupModel.UpdateGroup(c, group); err != nil {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update group"})
-	// 	return
-	// }
+	if err := impl.GetModelsService().GroupModel.UpdateGroup(c, group, currentUserID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update group"})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Group updated successfully", "group": group})
 }

@@ -17,6 +17,10 @@ func (m *MockGroupModel) CreateGroup(ctx context.Context, group *interfaces.Grou
 	args := m.Called(ctx, group, userIDs, otx)
 	return args.Error(0)
 }
+func (m *MockGroupModel) UpdateGroup(ctx context.Context, group *interfaces.Group, requestingUserID int64, otx ...*sql.Tx) error {
+	args := m.Called(ctx, group, requestingUserID, otx)
+	return args.Error(0)
+}
 
 // Implementing DeleteGroup method of GroupService interface
 func (m *MockGroupModel) DeleteGroup(ctx context.Context, groupID int64, requestingUserID int64, otx ...*sql.Tx) error {
