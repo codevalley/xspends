@@ -1,6 +1,5 @@
 ### TODO
-- Update methods in handler are buggy
-- Review the overall model & handler code and refactor
+- The whole scope concept seems to be screwed up!! I have to review it from scratch
 - LOT OF REFACTORING LEFT ON impl.group
 
 - Delete group & Udpate group info methods
