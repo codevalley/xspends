@@ -11,17 +11,15 @@
 - Updated category tests, remove hardcoded table names
 - Add test cases to check missing scope (category, source)
 ### Multi user approach
-- When a user is created, a scope entry for the user (insert to scope where user_id = x)
-- When a user is deleted its associated scope is deleted (delete from scope where type = user and user_id = x)
-- [We may include a scope_id field in user table for reducing a lookup]
-- Group
-  - A new group is created when n user_ids are passed
-    - insert into scope where type is group
-      - insert into user_scope (user_id, owner, scope_id)
-      - insert into user_scope (user_id2, view/write, scope_id)
-      - ...
-    - remove user from a group, just remove him from user_scope for the group_id (done by user who is owner)
-  - Insert txn records (pass a valid scope_id [ group/personal ] )
+- Scope table maps users to various scopes
+- Group table optionally decorates scope table
+- Txns can be under one scope
+- Users getting added/removed from group, can result in a new scope_id for the group (no history mode)
+- Sources can be a part of a group or a user
+- Txn with source_id not visible to the group will have to be gracefully resolved
+- Categories will be at a scope level 
+- Tags --> A very loose concept, to be decided if to keep or not. 
+
 ### Multi user open items
 - In a multi user setup, how do we handle sharing of entities like tags, sources and categories?
 - Do we allow transfer or duplication of entities like txn, tags etc. 
