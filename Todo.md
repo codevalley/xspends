@@ -17,9 +17,11 @@
 - Users getting added/removed from group, can result in a new scope_id for the group (no history mode)
 - Sources can be a part of a group or a user
 - Txn with source_id not visible to the group will have to be gracefully resolved
-- Categories will be at a scope level 
+- Categories can be a part of a group or a user
 - Tags --> A very loose concept, to be decided if to keep or not. 
-
+- GetAllTxns should return txns that a user has access to (across scopes)
+- txns can be modified, to move to a different scope (by owner)
+- sources can eb modified, to move to another scope (by owner)
 ### Multi user open items
 - In a multi user setup, how do we handle sharing of entities like tags, sources and categories?
 - Do we allow transfer or duplication of entities like txn, tags etc. 
