@@ -43,14 +43,14 @@ import (
 // @Failure 500 {object} map[string]string "Unable to fetch sources"
 // @Router /sources [get]
 func ListSources(c *gin.Context) {
-	_, scopes, ok := getUserAndScopes(c, impl.RoleView)
+	userInfo, ok := GetScopeInfo(c, impl.RoleView)
 	if !ok {
 		log.Printf("[ListSources] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
-
-	sources, err := impl.GetModelsService().SourceModel.GetSources(c, scopes)
+	//TODO: We should fetch sources belonging to either userscope of the groupscope, not all the sources that user can see!
+	sources, err := impl.GetModelsService().SourceModel.GetSources(c, userInfo.scopes)
 	if err != nil {
 		log.Printf("[ListSources] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to fetch sources"})
