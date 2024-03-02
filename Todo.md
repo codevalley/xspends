@@ -22,16 +22,7 @@
 - GetAllTxns should return txns that a user has access to (across scopes)
 - txns can be modified, to move to a different scope (by owner)
 - sources can eb modified, to move to another scope (by owner)
-### Multi user open items
-- In a multi user setup, how do we handle sharing of entities like tags, sources and categories?
-- Do we allow transfer or duplication of entities like txn, tags etc. 
-- Can we have ephemeral scopes, to share a slice of txns.
-### Support multi user access to the data (txns, source, tag etc.)
-- Introduce groups and scope concepts to enable multi-user access to txn tables (sources, categories, transactions and tags)
-- Include basic access control for group members (view, write, manage)
-- Thrive for no group overhead (DB overhead) for single user accounts.
-- Forward compatibility for more sophisticated ACLs. 
-
+- Ephemeral scopes to share a slice of transactions?
 ### Logging & Monitoring
 - Implement structured logging with different log levels (info, error, debug, etc.).
 - Integrate with monitoring tools for database metrics.
