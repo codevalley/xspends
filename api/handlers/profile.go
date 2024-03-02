@@ -33,6 +33,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type ScopeInfo struct {
+	userID     int64
+	groupID    int64
+	ownerScope int64
+	scopes     []int64
+}
+
 func getUserAndScopes(c *gin.Context, role string) (int64, []int64, bool) {
 	//TODO: In case of Group, we need to pass the group scope in array[0]
 	userID, okUser := getUser(c)
@@ -40,13 +47,35 @@ func getUserAndScopes(c *gin.Context, role string) (int64, []int64, bool) {
 		log.Printf("[getUserAndScopes] Error: %v", "Missing user information")
 		return 0, nil, false
 	}
-	scopes, okScope := getScopes(c, userID, role)
+	_, scopes, okScope := getScopes(c, userID, role)
 	if !okScope {
 		log.Printf("[getUserAndScopes] Error: %v", "Missing scope information")
 		return userID, nil, false
 	}
 
 	return userID, scopes, true
+}
+
+func GetScopeInfo(c *gin.Context, role string) (ScopeInfo, bool) {
+	//TODO: In case of Group, we need to pass the group scope in array[0]
+	userID, okUser := getUser(c)
+	if !okUser {
+		log.Printf("[GetScopeInfo] Error: %v", "Missing user information")
+		return ScopeInfo{}, false
+	}
+
+	groupID, okGroup := getGroup(c)
+	if !okGroup {
+		log.Printf("[GetScopeInfo] Error: %v", "Missing Group information")
+	}
+
+	ownerScope, scopes, okScope := getScopes(c, userID, role)
+	if !okScope {
+		log.Printf("[GetScopeInfo] Error: %v", "Missing scope information")
+		return ScopeInfo{}, false
+	}
+	var scopeInfo ScopeInfo = ScopeInfo{userID, groupID, ownerScope, scopes}
+	return scopeInfo, true
 }
 
 func getUser(c *gin.Context) (int64, bool) {
@@ -67,6 +96,22 @@ func getUser(c *gin.Context) (int64, bool) {
 	return intUserID, true
 }
 
+func getGroup(c *gin.Context) (int64, bool) {
+	groupID, exists := c.Get("groupID")
+	if !exists {
+		log.Printf("[getGroup] Error: %v", "No groupID present in the request")
+		return 0, false
+	}
+
+	intGroupID, ok := groupID.(int64)
+	if !ok {
+		log.Printf("[getGroup] Error: %v", "failed to convert groupID to int64")
+		return 0, false
+	}
+
+	return intGroupID, true
+}
+
 func getScope(c *gin.Context) (int64, bool) {
 	scopeID, exists := c.Get("scopeID")
 	if !exists {
@@ -85,24 +130,24 @@ func getScope(c *gin.Context) (int64, bool) {
 	return intScopeID, true
 }
 
-func getScopes(c *gin.Context, userID int64, role string) ([]int64, bool) {
+func getScopes(c *gin.Context, userID int64, role string) (int64, []int64, bool) {
 	scopeID, exists := getScope(c)
 	if !exists {
 		log.Printf("[getScopes] Error: %v", "missing scope parameter")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing scope parameter"})
-		return nil, false
+		return 0, nil, false
 	}
 	scopes := []int64{scopeID}
 	scopeList, err := impl.GetModelsService().UserScopeModel.GetUserScopesByRole(c, userID, role)
 	if err != nil {
 		log.Printf("[getScopes] Error: %v", "unable to fetch related scopes for user")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "unable to fetch related scopes for user"})
-		return nil, false
+		return 0, nil, false
 	}
 	for _, scope := range scopeList {
 		scopes = append(scopes, scope.ScopeID)
 	}
-	return scopes, true
+	return scopeID, scopes, true
 }
 
 func GetUserProfile(c *gin.Context) {
