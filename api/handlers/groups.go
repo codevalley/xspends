@@ -68,7 +68,7 @@ func getGroupID(c *gin.Context) (int64, bool) {
 // TODO: Cleanup inline structs
 
 func CreateGroup(c *gin.Context) {
-	userID, ok := getUser(c)
+	userID, ok := getUserFromContext(c)
 	if !ok {
 		log.Printf("[CreateGroup] Error: %v", "Missing user information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user information"})
@@ -129,7 +129,7 @@ func CreateGroup(c *gin.Context) {
 
 func AddToGroup(c *gin.Context) {
 	// Step 1: Authenticate and get current userID
-	currentUserID, ok := getUser(c)
+	currentUserID, ok := getUserFromContext(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user information"})
 		return
@@ -172,7 +172,7 @@ func AddToGroup(c *gin.Context) {
 
 func RemoveFromGroup(c *gin.Context) {
 	// Step 1: Authenticate and get current userID
-	currentUserID, ok := getUser(c)
+	currentUserID, ok := getUserFromContext(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user information"})
 		return
@@ -210,7 +210,7 @@ func RemoveFromGroup(c *gin.Context) {
 
 func EditUserInGroup(c *gin.Context) {
 	// Step 1: Authenticate and get current userID
-	currentUserID, ok := getUser(c)
+	currentUserID, ok := getUserFromContext(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user information"})
 		return
@@ -265,7 +265,7 @@ func EditUserInGroup(c *gin.Context) {
 
 func UpdateGroup(c *gin.Context) {
 	// Step 1: Authenticate and get current currentUserID
-	currentUserID, ok := getUser(c)
+	currentUserID, ok := getUserFromContext(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user information"})
 		return
@@ -307,7 +307,7 @@ func UpdateGroup(c *gin.Context) {
 
 func DeleteGroup(c *gin.Context) {
 	// Step 1: Authenticate and get current userID
-	userID, ok := getUser(c)
+	userID, ok := getUserFromContext(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user information"})
 		return

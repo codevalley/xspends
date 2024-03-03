@@ -41,9 +41,9 @@ type ScopeInfo struct {
 	scopes     []int64
 }
 
+// Deprecated method
 func getUserAndScopes(c *gin.Context, role string) (int64, []int64, bool) {
-	//TODO: In case of Group, we need to pass the group scope in array[0]
-	userID, okUser := getUser(c)
+	userID, okUser := getUserFromContext(c)
 	if !okUser {
 		log.Printf("[getUserAndScopes] Error: %v", "Missing user information")
 		return 0, nil, false
@@ -59,13 +59,13 @@ func getUserAndScopes(c *gin.Context, role string) (int64, []int64, bool) {
 
 func GetScopeInfo(c *gin.Context, role string) (ScopeInfo, bool) {
 	//TODO: In case of Group, we need to pass the group scope in array[0]
-	userID, okUser := getUser(c)
+	userID, okUser := getUserFromContext(c)
 	if !okUser {
 		log.Printf("[GetScopeInfo] Error: %v", "Missing user information")
 		return ScopeInfo{}, false
 	}
 
-	groupID, okGroup := getGroup(c)
+	groupID, okGroup := getGroupFromContext(c)
 	groupScope := int64(0)
 	if !okGroup {
 		log.Printf("[GetScopeInfo] Error: %v", "Missing Group information")
@@ -85,7 +85,7 @@ func GetScopeInfo(c *gin.Context, role string) (ScopeInfo, bool) {
 	return scopeInfo, true
 }
 
-func getUser(c *gin.Context) (int64, bool) {
+func getUserFromContext(c *gin.Context) (int64, bool) {
 	userID, exists := c.Get("userID")
 	if !exists {
 		log.Printf("[getUser] Error: %v", "user not authenticated")
@@ -103,7 +103,7 @@ func getUser(c *gin.Context) (int64, bool) {
 	return intUserID, true
 }
 
-func getGroup(c *gin.Context) (int64, bool) {
+func getGroupFromContext(c *gin.Context) (int64, bool) {
 	groupID, exists := c.Get("groupID")
 	if !exists {
 		log.Printf("[getGroup] Error: %v", "No groupID present in the request")
@@ -119,7 +119,7 @@ func getGroup(c *gin.Context) (int64, bool) {
 	return intGroupID, true
 }
 
-func getUserScope(c *gin.Context) (int64, bool) {
+func getUserScopeFromContext(c *gin.Context) (int64, bool) {
 	scopeID, exists := c.Get("scopeID")
 	if !exists {
 		log.Printf("[getScope] Error: %v", "missing scope parameter")
@@ -147,7 +147,7 @@ func getGroupScope(c *gin.Context, userID int64, groupID int64) (int64, bool) {
 }
 
 func getScopes(c *gin.Context, userID int64, role string) (int64, []int64, bool) {
-	scopeID, exists := getUserScope(c)
+	scopeID, exists := getUserScopeFromContext(c)
 	if !exists {
 		log.Printf("[getScopes] Error: %v", "missing scope parameter")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing scope parameter"})
@@ -166,8 +166,10 @@ func getScopes(c *gin.Context, userID int64, role string) (int64, []int64, bool)
 	return scopeID, scopes, true
 }
 
+// Actual user methods
+// ///////////////////
 func GetUserProfile(c *gin.Context) {
-	userID, ok := getUser(c)
+	userID, ok := getUserFromContext(c)
 	if !ok {
 		log.Printf("[GetUserProfile] Error: %v", "Missing user information")
 		return
@@ -184,7 +186,7 @@ func GetUserProfile(c *gin.Context) {
 }
 
 func UpdateUserProfile(c *gin.Context) {
-	userID, ok := getUser(c)
+	userID, ok := getUserFromContext(c)
 	if !ok {
 		log.Printf("[UpdateUserProfile] Error: %v", "Missing user information")
 		return
@@ -209,7 +211,7 @@ func UpdateUserProfile(c *gin.Context) {
 }
 
 func DeleteUser(c *gin.Context) {
-	userID, ok := getUser(c)
+	userID, ok := getUserFromContext(c)
 	if !ok {
 		log.Printf("[DeleteUser] Error: %v", "Missing user information")
 		return
