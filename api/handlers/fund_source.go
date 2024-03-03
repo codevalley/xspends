@@ -151,12 +151,17 @@ func CreateSource(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Failed to update source"
 // @Router /sources/{id} [put]
 func UpdateSource(c *gin.Context) {
-	userID, scopes, ok := getUserAndScopes(c, impl.RoleWrite)
+	userInfo, ok := GetScopeInfo(c, impl.RoleView)
 	if !ok {
 		log.Printf("[UpdateSource] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
+	useScope := userInfo.ownerScope
+	if userInfo.groupID != 0 {
+		useScope = userInfo.groupScope
+	}
+
 	var updatedSource interfaces.Source
 	if err := c.ShouldBindJSON(&updatedSource); err != nil {
 		log.Printf("[UpdateSource] Error: %v", err)
@@ -165,8 +170,8 @@ func UpdateSource(c *gin.Context) {
 	}
 
 	// model verifies if the sourceID matches the scope ID and user ID, if not updation fails
-	updatedSource.UserID = userID
-	updatedSource.ScopeID = scopes[0]
+	updatedSource.UserID = userInfo.userID
+	updatedSource.ScopeID = useScope
 	if err := impl.GetModelsService().SourceModel.UpdateSource(c, &updatedSource); err != nil {
 		log.Printf("[UpdateSource] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update source"})
@@ -188,18 +193,22 @@ func UpdateSource(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Failed to delete source"
 // @Router /sources/{id} [delete]
 func DeleteSource(c *gin.Context) {
-	_, scopes, ok := getUserAndScopes(c, impl.RoleWrite)
+	userInfo, ok := GetScopeInfo(c, impl.RoleView)
 	if !ok {
 		log.Printf("[DeleteSource] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
+	}
+	useScope := userInfo.ownerScope
+	if userInfo.groupID != 0 {
+		useScope = userInfo.groupScope
 	}
 	sourceID, ok := getSourceID(c)
 	if !ok {
 		log.Printf("[DeleteSource]: Missing source ID")
 		return
 	}
-	if err := impl.GetModelsService().SourceModel.DeleteSource(c, sourceID, scopes); err != nil {
+	if err := impl.GetModelsService().SourceModel.DeleteSource(c, sourceID, []int64{useScope}); err != nil {
 		log.Printf("[DeleteSource] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete source"})
 		return
