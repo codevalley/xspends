@@ -37,6 +37,7 @@ type ScopeInfo struct {
 	userID     int64
 	groupID    int64
 	ownerScope int64
+	groupScope int64
 	scopes     []int64
 }
 
@@ -65,8 +66,14 @@ func GetScopeInfo(c *gin.Context, role string) (ScopeInfo, bool) {
 	}
 
 	groupID, okGroup := getGroup(c)
+	groupScope := int64(0)
 	if !okGroup {
 		log.Printf("[GetScopeInfo] Error: %v", "Missing Group information")
+	} else {
+		groupScope, okGroup = getGroupScope(c, userID, groupID)
+		if !okGroup {
+			log.Printf("[GetScopeInfo] Error: %v", "Missing Group scope information")
+		}
 	}
 
 	ownerScope, scopes, okScope := getScopes(c, userID, role)
@@ -74,7 +81,7 @@ func GetScopeInfo(c *gin.Context, role string) (ScopeInfo, bool) {
 		log.Printf("[GetScopeInfo] Error: %v", "Missing scope information")
 		return ScopeInfo{}, false
 	}
-	var scopeInfo ScopeInfo = ScopeInfo{userID, groupID, ownerScope, scopes}
+	var scopeInfo ScopeInfo = ScopeInfo{userID, groupID, groupScope, ownerScope, scopes}
 	return scopeInfo, true
 }
 
@@ -112,7 +119,7 @@ func getGroup(c *gin.Context) (int64, bool) {
 	return intGroupID, true
 }
 
-func getScope(c *gin.Context) (int64, bool) {
+func getUserScope(c *gin.Context) (int64, bool) {
 	scopeID, exists := c.Get("scopeID")
 	if !exists {
 		log.Printf("[getScope] Error: %v", "missing scope parameter")
@@ -130,8 +137,17 @@ func getScope(c *gin.Context) (int64, bool) {
 	return intScopeID, true
 }
 
+func getGroupScope(c *gin.Context, userID int64, groupID int64) (int64, bool) {
+	group, ok := impl.GetModelsService().GroupModel.GetGroupByID(c, groupID, userID)
+	if ok != nil {
+		log.Printf("[getGroupScope] Error: %v", "Group does not exist")
+		return 0, false
+	}
+	return group.ScopeID, true
+}
+
 func getScopes(c *gin.Context, userID int64, role string) (int64, []int64, bool) {
-	scopeID, exists := getScope(c)
+	scopeID, exists := getUserScope(c)
 	if !exists {
 		log.Printf("[getScopes] Error: %v", "missing scope parameter")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing scope parameter"})

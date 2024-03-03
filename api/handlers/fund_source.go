@@ -49,8 +49,11 @@ func ListSources(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
-	//TODO: We should fetch sources belonging to either userscope of the groupscope, not all the sources that user can see!
-	sources, err := impl.GetModelsService().SourceModel.GetSources(c, userInfo.scopes)
+	useScope := userInfo.ownerScope
+	if userInfo.groupID != 0 {
+		useScope = userInfo.groupScope
+	}
+	sources, err := impl.GetModelsService().SourceModel.GetSources(c, []int64{useScope})
 	if err != nil {
 		log.Printf("[ListSources] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to fetch sources"})
@@ -71,10 +74,15 @@ func ListSources(c *gin.Context) {
 // @Failure 404 {object} map[string]string "Source not found"
 // @Router /sources/{id} [get]
 func GetSource(c *gin.Context) {
-	_, scopes, ok := getUserAndScopes(c, impl.RoleView)
+	userInfo, ok := GetScopeInfo(c, impl.RoleView)
 	if !ok {
+		log.Printf("[GetSource] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
+	}
+	useScope := userInfo.ownerScope
+	if userInfo.groupID != 0 {
+		useScope = userInfo.groupScope
 	}
 
 	sourceID, ok := getSourceID(c)
@@ -82,7 +90,7 @@ func GetSource(c *gin.Context) {
 		log.Printf("[ListSources]: Missing source ID")
 		return
 	}
-	source, err := impl.GetModelsService().SourceModel.GetSourceByID(c, sourceID, scopes)
+	source, err := impl.GetModelsService().SourceModel.GetSourceByID(c, sourceID, []int64{useScope})
 	if err != nil {
 		log.Printf("[GetSource] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "Source not found"})
@@ -103,20 +111,25 @@ func GetSource(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Failed to create source"
 // @Router /sources [post]
 func CreateSource(c *gin.Context) {
-	userID, scopes, ok := getUserAndScopes(c, impl.RoleWrite)
+	userInfo, ok := GetScopeInfo(c, impl.RoleView)
 	if !ok {
-		log.Printf("[CreateSource] Error: %v", "Missing user or scope information")
+		log.Printf("[GetSource] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
+	useScope := userInfo.ownerScope
+	if userInfo.groupID != 0 {
+		useScope = userInfo.groupScope
+	}
+
 	var newSource interfaces.Source
 	if err := c.ShouldBindJSON(&newSource); err != nil {
 		log.Printf("[CreateSource] Error: %v", "Invalid source data")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid source data"})
 		return
 	}
-	newSource.UserID = userID
-	newSource.ScopeID = scopes[0]
+	newSource.UserID = userInfo.userID
+	newSource.ScopeID = useScope
 	if err := impl.GetModelsService().SourceModel.InsertSource(c, &newSource); err != nil {
 		log.Printf("[CreateSource] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create source"})

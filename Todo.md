@@ -1,5 +1,5 @@
 ### TODO
-- The whole scope concept seems to be screwed up!! I have to review it from scratch
+- Decide where you really have a need to pass scope array (in model layer). In most cases, we have a single scope operation
 - LOT OF REFACTORING LEFT ON impl.group
 
 - Delete group & Udpate group info methods
