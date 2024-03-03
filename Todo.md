@@ -1,5 +1,6 @@
 ### TODO
 - Decide where you really have a need to pass scope array (in model layer). In most cases, we have a single scope operation
+- When the client asks for a resource, should we scope it to a group/user or send all possible info (that user has access to?)
 - LOT OF REFACTORING LEFT ON impl.group
 
 - Delete group & Udpate group info methods
