@@ -66,17 +66,21 @@ func getCategoryID(c *gin.Context) (int64, bool) {
 // @Failure 500 {object} map[string]string "Unable to fetch categories"
 // @Router /categories [get]
 func ListCategories(c *gin.Context) {
-	_, scopes, ok := getUserAndScopes(c, impl.RoleView)
+	userInfo, ok := GetScopeInfo(c, impl.RoleView)
 	if !ok {
 		log.Printf("[ListCategories] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
+	useScope := userInfo.ownerScope
+	if userInfo.groupID != 0 {
+		useScope = userInfo.groupScope
+	}
 	//TODO: Extract literals like this to constants
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	//TODO: Extract literals like this to constants
 	itemsPerPage, _ := strconv.Atoi(c.DefaultQuery("items_per_page", strconv.Itoa(defaultItemsPerPage)))
-	categories, err := impl.GetModelsService().CategoryModel.GetScopedCategories(c, page, itemsPerPage, scopes, nil)
+	categories, err := impl.GetModelsService().CategoryModel.GetScopedCategories(c, page, itemsPerPage, []int64{useScope}, nil)
 	if err != nil {
 		log.Printf("[ListCategories] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch categories"})
@@ -103,11 +107,15 @@ func ListCategories(c *gin.Context) {
 // @Failure 404 {object} map[string]string "Category not found"
 // @Router /categories/{id} [get]
 func GetCategory(c *gin.Context) {
-	_, scopes, ok := getUserAndScopes(c, impl.RoleView)
+	userInfo, ok := GetScopeInfo(c, impl.RoleView)
 	if !ok {
-		log.Printf("[GetCategory] Error: %v", "Missing user or scope information")
+		log.Printf("[GetCategories] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
+	}
+	useScope := userInfo.ownerScope
+	if userInfo.groupID != 0 {
+		useScope = userInfo.groupScope
 	}
 
 	categoryID, ok := getCategoryID(c)
@@ -116,7 +124,7 @@ func GetCategory(c *gin.Context) {
 		return
 	}
 
-	category, err := impl.GetModelsService().CategoryModel.GetCategoryByID(c, categoryID, scopes, nil)
+	category, err := impl.GetModelsService().CategoryModel.GetCategoryByID(c, categoryID, []int64{useScope}, nil)
 	if err != nil {
 		log.Printf("[GetCategory] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "category not found"})
@@ -138,11 +146,15 @@ func GetCategory(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Unable to create category"
 // @Router /categories [post]
 func CreateCategory(c *gin.Context) {
-	userID, scopes, ok := getUserAndScopes(c, impl.RoleWrite)
+	userInfo, ok := GetScopeInfo(c, impl.RoleView)
 	if !ok {
-		log.Printf("[CreateCategory] Error: %v", "Missing user or scope information")
+		log.Printf("[CreateCategories] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
+	}
+	useScope := userInfo.ownerScope
+	if userInfo.groupID != 0 {
+		useScope = userInfo.groupScope
 	}
 
 	var newCategory interfaces.Category
@@ -152,8 +164,8 @@ func CreateCategory(c *gin.Context) {
 		return
 	}
 
-	newCategory.UserID = userID
-	newCategory.ScopeID = scopes[0]
+	newCategory.UserID = userInfo.userID
+	newCategory.ScopeID = useScope
 	if err := impl.GetModelsService().CategoryModel.InsertCategory(c, &newCategory, nil); err != nil {
 		log.Printf("[CreateCategory] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create category"})
