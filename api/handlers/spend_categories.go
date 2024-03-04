@@ -110,10 +110,6 @@ func GetCategory(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
-	useScope := userInfo.ownerScope
-	if userInfo.groupID != 0 {
-		useScope = userInfo.groupScope
-	}
 
 	categoryID, ok := getCategoryID(c)
 	if !ok {
@@ -121,7 +117,7 @@ func GetCategory(c *gin.Context) {
 		return
 	}
 
-	category, err := impl.GetModelsService().CategoryModel.GetCategoryByID(c, categoryID, []int64{useScope}, nil)
+	category, err := impl.GetModelsService().CategoryModel.GetCategoryByID(c, categoryID, []int64{userInfo.useScope}, nil)
 	if err != nil {
 		log.Printf("[GetCategory] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "category not found"})
@@ -149,10 +145,6 @@ func CreateCategory(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
-	useScope := userInfo.ownerScope
-	if userInfo.groupID != 0 {
-		useScope = userInfo.groupScope
-	}
 
 	var newCategory interfaces.Category
 	if err := c.ShouldBindJSON(&newCategory); err != nil {
@@ -162,7 +154,7 @@ func CreateCategory(c *gin.Context) {
 	}
 
 	newCategory.UserID = userInfo.userID
-	newCategory.ScopeID = useScope
+	newCategory.ScopeID = userInfo.useScope
 	if err := impl.GetModelsService().CategoryModel.InsertCategory(c, &newCategory, nil); err != nil {
 		log.Printf("[CreateCategory] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create category"})
@@ -191,10 +183,7 @@ func UpdateCategory(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
-	useScope := userInfo.ownerScope
-	if userInfo.groupID != 0 {
-		useScope = userInfo.groupScope
-	}
+
 	var updatedCategory interfaces.Category
 	if err := c.ShouldBindJSON(&updatedCategory); err != nil {
 		log.Printf("[UpdateCategory] Error: %v", err)
@@ -204,7 +193,7 @@ func UpdateCategory(c *gin.Context) {
 
 	// model verifies if the categoryID matches the scope ID and user ID, if not updation fails
 	updatedCategory.UserID = userInfo.userID
-	updatedCategory.ScopeID = useScope
+	updatedCategory.ScopeID = userInfo.useScope
 	if err := impl.GetModelsService().CategoryModel.UpdateCategory(c, &updatedCategory, nil); err != nil {
 		log.Printf("[UpdateCategory] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update category"})
@@ -231,10 +220,6 @@ func DeleteCategory(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
-	useScope := userInfo.ownerScope
-	if userInfo.groupID != 0 {
-		useScope = userInfo.groupScope
-	}
 
 	categoryID, ok := getCategoryID(c)
 	if !ok {
@@ -242,7 +227,7 @@ func DeleteCategory(c *gin.Context) {
 		return
 	}
 
-	if err := impl.GetModelsService().CategoryModel.DeleteCategory(c, categoryID, []int64{useScope}, nil); err != nil {
+	if err := impl.GetModelsService().CategoryModel.DeleteCategory(c, categoryID, []int64{userInfo.useScope}, nil); err != nil {
 		log.Printf("[DeleteCategory] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete category"})
 		return
