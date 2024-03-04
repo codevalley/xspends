@@ -80,17 +80,13 @@ func GetSource(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
-	useScope := userInfo.ownerScope
-	if userInfo.groupID != 0 {
-		useScope = userInfo.groupScope
-	}
 
 	sourceID, ok := getSourceID(c)
 	if !ok {
 		log.Printf("[ListSources]: Missing source ID")
 		return
 	}
-	source, err := impl.GetModelsService().SourceModel.GetSourceByID(c, sourceID, []int64{useScope})
+	source, err := impl.GetModelsService().SourceModel.GetSourceByID(c, sourceID, []int64{userInfo.useScope})
 	if err != nil {
 		log.Printf("[GetSource] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "Source not found"})
@@ -117,10 +113,6 @@ func CreateSource(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
-	useScope := userInfo.ownerScope
-	if userInfo.groupID != 0 {
-		useScope = userInfo.groupScope
-	}
 
 	var newSource interfaces.Source
 	if err := c.ShouldBindJSON(&newSource); err != nil {
@@ -129,7 +121,7 @@ func CreateSource(c *gin.Context) {
 		return
 	}
 	newSource.UserID = userInfo.userID
-	newSource.ScopeID = useScope
+	newSource.ScopeID = userInfo.useScope
 	if err := impl.GetModelsService().SourceModel.InsertSource(c, &newSource); err != nil {
 		log.Printf("[CreateSource] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create source"})
@@ -157,10 +149,6 @@ func UpdateSource(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
-	useScope := userInfo.ownerScope
-	if userInfo.groupID != 0 {
-		useScope = userInfo.groupScope
-	}
 
 	var updatedSource interfaces.Source
 	if err := c.ShouldBindJSON(&updatedSource); err != nil {
@@ -171,7 +159,7 @@ func UpdateSource(c *gin.Context) {
 
 	// model verifies if the sourceID matches the scope ID and user ID, if not updation fails
 	updatedSource.UserID = userInfo.userID
-	updatedSource.ScopeID = useScope
+	updatedSource.ScopeID = userInfo.useScope
 	if err := impl.GetModelsService().SourceModel.UpdateSource(c, &updatedSource); err != nil {
 		log.Printf("[UpdateSource] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update source"})
@@ -199,16 +187,13 @@ func DeleteSource(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
-	useScope := userInfo.ownerScope
-	if userInfo.groupID != 0 {
-		useScope = userInfo.groupScope
-	}
+
 	sourceID, ok := getSourceID(c)
 	if !ok {
 		log.Printf("[DeleteSource]: Missing source ID")
 		return
 	}
-	if err := impl.GetModelsService().SourceModel.DeleteSource(c, sourceID, []int64{useScope}); err != nil {
+	if err := impl.GetModelsService().SourceModel.DeleteSource(c, sourceID, []int64{userInfo.useScope}); err != nil {
 		log.Printf("[DeleteSource] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete source"})
 		return
