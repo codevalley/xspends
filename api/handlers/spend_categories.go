@@ -188,11 +188,15 @@ func CreateCategory(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Unable to update category"
 // @Router /categories/{id} [put]
 func UpdateCategory(c *gin.Context) {
-	userID, scopes, ok := getUserAndScopes(c, impl.RoleWrite)
+	userInfo, ok := GetScopeInfo(c, impl.RoleView)
 	if !ok {
-		log.Printf("[UpdateCategory] Error: %v", "Missing user or scope information")
+		log.Printf("[CreateCategories] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
+	}
+	useScope := userInfo.ownerScope
+	if userInfo.groupID != 0 {
+		useScope = userInfo.groupScope
 	}
 	var updatedCategory interfaces.Category
 	if err := c.ShouldBindJSON(&updatedCategory); err != nil {
@@ -202,8 +206,8 @@ func UpdateCategory(c *gin.Context) {
 	}
 
 	// model verifies if the categoryID matches the scope ID and user ID, if not updation fails
-	updatedCategory.UserID = userID
-	updatedCategory.ScopeID = scopes[0]
+	updatedCategory.UserID = userInfo.userID
+	updatedCategory.ScopeID = useScope
 	if err := impl.GetModelsService().CategoryModel.UpdateCategory(c, &updatedCategory, nil); err != nil {
 		log.Printf("[UpdateCategory] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update category"})
@@ -224,11 +228,15 @@ func UpdateCategory(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Unable to delete category"
 // @Router /categories/{id} [delete]
 func DeleteCategory(c *gin.Context) {
-	_, scopes, ok := getUserAndScopes(c, impl.RoleView)
+	userInfo, ok := GetScopeInfo(c, impl.RoleView)
 	if !ok {
-		log.Printf("[DeleteCategory] Error: %v", "Missing user or scope information")
+		log.Printf("[CreateCategories] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
+	}
+	useScope := userInfo.ownerScope
+	if userInfo.groupID != 0 {
+		useScope = userInfo.groupScope
 	}
 
 	categoryID, ok := getCategoryID(c)
@@ -237,7 +245,7 @@ func DeleteCategory(c *gin.Context) {
 		return
 	}
 
-	if err := impl.GetModelsService().CategoryModel.DeleteCategory(c, categoryID, scopes, nil); err != nil {
+	if err := impl.GetModelsService().CategoryModel.DeleteCategory(c, categoryID, []int64{useScope}, nil); err != nil {
 		log.Printf("[DeleteCategory] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete category"})
 		return
