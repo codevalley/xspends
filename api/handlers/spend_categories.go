@@ -72,15 +72,12 @@ func ListCategories(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
-	useScope := userInfo.ownerScope
-	if userInfo.groupID != 0 {
-		useScope = userInfo.groupScope
-	}
+
 	//TODO: Extract literals like this to constants
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	//TODO: Extract literals like this to constants
 	itemsPerPage, _ := strconv.Atoi(c.DefaultQuery("items_per_page", strconv.Itoa(defaultItemsPerPage)))
-	categories, err := impl.GetModelsService().CategoryModel.GetScopedCategories(c, page, itemsPerPage, []int64{useScope}, nil)
+	categories, err := impl.GetModelsService().CategoryModel.GetScopedCategories(c, page, itemsPerPage, []int64{userInfo.useScope}, nil)
 	if err != nil {
 		log.Printf("[ListCategories] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch categories"})

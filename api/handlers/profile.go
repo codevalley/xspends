@@ -38,6 +38,7 @@ type ScopeInfo struct {
 	groupID    int64
 	ownerScope int64
 	groupScope int64
+	useScope   int64
 	scopes     []int64
 }
 
@@ -81,7 +82,12 @@ func GetScopeInfo(c *gin.Context, role string) (ScopeInfo, bool) {
 		log.Printf("[GetScopeInfo] Error: %v", "Missing scope information")
 		return ScopeInfo{}, false
 	}
-	var scopeInfo ScopeInfo = ScopeInfo{userID, groupID, groupScope, ownerScope, scopes}
+
+	useScope := ownerScope
+	if groupID != 0 {
+		useScope = groupScope
+	}
+	var scopeInfo ScopeInfo = ScopeInfo{userID, groupID, groupScope, ownerScope, useScope, scopes}
 	return scopeInfo, true
 }
 
