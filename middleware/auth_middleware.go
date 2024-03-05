@@ -25,6 +25,7 @@ SOFTWARE.
 package middleware
 
 import (
+	"log"
 	"net/http"
 	"strings"
 
@@ -42,7 +43,17 @@ var ab *authboss.Authboss
 
 const scopeIDKey = "scopeID"
 const userIDKey = "userID"
+const groupIDKey = "groupID"
 const authKey = "Authorization"
+
+type ScopeInfo struct {
+	UserID     int64
+	GroupID    int64
+	OwnerScope int64
+	GroupScope int64
+	UseScope   int64
+	Scopes     []int64
+}
 
 func AuthMiddleware(ab *authboss.Authboss) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -80,6 +91,95 @@ func AuthMiddleware(ab *authboss.Authboss) gin.HandlerFunc {
 		// Continue with the request
 		c.Next()
 	}
+}
+
+func ScopeMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID, exists := c.Get(userIDKey)
+		if !exists {
+			log.Printf("[ScopeMiddleware] Error: %v", "Missing user information")
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user information"})
+			c.Abort()
+			return
+		}
+
+		groupID, exists := c.Get(groupIDKey)
+		if !exists {
+			groupID = int64(0)
+		}
+
+		scopeInfo, ok := GetScopeInfo(c, userID.(int64), groupID.(int64), impl.RoleView)
+		if !ok {
+			log.Printf("[ScopeMiddleware] Error: %v", "Missing scope information")
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing scope information"})
+			c.Abort()
+			return
+		}
+
+		c.Set("scopeInfo", scopeInfo)
+		c.Next()
+	}
+}
+
+func GetScopeInfo(c *gin.Context, userID int64, groupID int64, role string) (ScopeInfo, bool) {
+	ownerScope, scopes, okScope := getScopes(c, userID, role)
+	if !okScope {
+		log.Printf("[GetScopeInfo] Error: %v", "Missing scope information")
+		return ScopeInfo{}, false
+	}
+
+	groupScope := int64(0)
+	if groupID != 0 {
+		var okGroup bool
+		groupScope, okGroup = getGroupScope(c, userID, groupID)
+		if !okGroup {
+			log.Printf("[GetScopeInfo] Error: %v", "Missing Group scope information")
+		}
+	}
+
+	useScope := ownerScope
+	if groupID != 0 {
+		useScope = groupScope
+	}
+
+	var scopeInfo ScopeInfo = ScopeInfo{
+		UserID:     userID,
+		GroupID:    groupID,
+		GroupScope: groupScope,
+		OwnerScope: ownerScope,
+		UseScope:   useScope,
+		Scopes:     scopes,
+	}
+	return scopeInfo, true
+}
+func getGroupScope(c *gin.Context, userID int64, groupID int64) (int64, bool) {
+	group, ok := impl.GetModelsService().GroupModel.GetGroupByID(c, groupID, userID)
+	if ok != nil {
+		log.Printf("[getGroupScope] Error: %v", "Group does not exist")
+		return 0, false
+	}
+	return group.ScopeID, true
+}
+
+func getScopes(c *gin.Context, userID int64, role string) (int64, []int64, bool) {
+	scopeID, exists := c.Get(scopeIDKey)
+	if !exists {
+		log.Printf("[getScopes] Error: %v", "missing scope parameter")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing scope parameter"})
+		return 0, nil, false
+	}
+
+	scopes := []int64{scopeID.(int64)}
+	scopeList, err := impl.GetModelsService().UserScopeModel.GetUserScopesByRole(c, userID, role)
+	if err != nil {
+		log.Printf("[getScopes] Error: %v", "unable to fetch related scopes for user")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "unable to fetch related scopes for user"})
+		return 0, nil, false
+	}
+	for _, scope := range scopeList {
+		scopes = append(scopes, scope.ScopeID)
+	}
+	return scopeID.(int64), scopes, true
 }
 
 func EnsureUserID() gin.HandlerFunc {
