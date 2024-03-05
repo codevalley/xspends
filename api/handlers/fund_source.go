@@ -43,15 +43,21 @@ import (
 // @Failure 500 {object} map[string]string "Unable to fetch sources"
 // @Router /sources [get]
 func ListSources(c *gin.Context) {
-	userInfo, ok := GetScopeInfo(c, impl.RoleView)
+	scopeInfo, ok := c.Get("scopeInfo")
 	if !ok {
 		log.Printf("[ListSources] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
-	useScope := userInfo.ownerScope
-	if userInfo.groupID != 0 {
-		useScope = userInfo.groupScope
+	userInfo, ok := scopeInfo.(ScopeInfo)
+	if !ok {
+		log.Printf("[ListSources] Error: %v", "Failed to typecast scope information")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to typecast scope information"})
+		return
+	}
+	useScope := userInfo.OwnerScope
+	if userInfo.GroupID != 0 {
+		useScope = userInfo.GroupScope
 	}
 	sources, err := impl.GetModelsService().SourceModel.GetSources(c, []int64{useScope})
 	if err != nil {
@@ -74,10 +80,16 @@ func ListSources(c *gin.Context) {
 // @Failure 404 {object} map[string]string "Source not found"
 // @Router /sources/{id} [get]
 func GetSource(c *gin.Context) {
-	userInfo, ok := GetScopeInfo(c, impl.RoleView)
+	scopeInfo, ok := c.Get("scopeInfo")
 	if !ok {
-		log.Printf("[GetSource] Error: %v", "Missing user or scope information")
+		log.Printf("[ListSources] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
+		return
+	}
+	userInfo, ok := scopeInfo.(ScopeInfo)
+	if !ok {
+		log.Printf("[ListSources] Error: %v", "Failed to typecast scope information")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to typecast scope information"})
 		return
 	}
 
@@ -86,7 +98,7 @@ func GetSource(c *gin.Context) {
 		log.Printf("[ListSources]: Missing source ID")
 		return
 	}
-	source, err := impl.GetModelsService().SourceModel.GetSourceByID(c, sourceID, []int64{userInfo.useScope})
+	source, err := impl.GetModelsService().SourceModel.GetSourceByID(c, sourceID, []int64{userInfo.UseScope})
 	if err != nil {
 		log.Printf("[GetSource] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "Source not found"})
@@ -107,10 +119,16 @@ func GetSource(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Failed to create source"
 // @Router /sources [post]
 func CreateSource(c *gin.Context) {
-	userInfo, ok := GetScopeInfo(c, impl.RoleView)
+	scopeInfo, ok := c.Get("scopeInfo")
 	if !ok {
-		log.Printf("[GetSource] Error: %v", "Missing user or scope information")
+		log.Printf("[ListSources] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
+		return
+	}
+	userInfo, ok := scopeInfo.(ScopeInfo)
+	if !ok {
+		log.Printf("[ListSources] Error: %v", "Failed to typecast scope information")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to typecast scope information"})
 		return
 	}
 
@@ -120,8 +138,8 @@ func CreateSource(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid source data"})
 		return
 	}
-	newSource.UserID = userInfo.userID
-	newSource.ScopeID = userInfo.useScope
+	newSource.UserID = userInfo.UserID
+	newSource.ScopeID = userInfo.UseScope
 	if err := impl.GetModelsService().SourceModel.InsertSource(c, &newSource); err != nil {
 		log.Printf("[CreateSource] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create source"})
@@ -143,10 +161,16 @@ func CreateSource(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Failed to update source"
 // @Router /sources/{id} [put]
 func UpdateSource(c *gin.Context) {
-	userInfo, ok := GetScopeInfo(c, impl.RoleView)
+	scopeInfo, ok := c.Get("scopeInfo")
 	if !ok {
-		log.Printf("[UpdateSource] Error: %v", "Missing user or scope information")
+		log.Printf("[ListSources] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
+		return
+	}
+	userInfo, ok := scopeInfo.(ScopeInfo)
+	if !ok {
+		log.Printf("[ListSources] Error: %v", "Failed to typecast scope information")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to typecast scope information"})
 		return
 	}
 
@@ -158,8 +182,8 @@ func UpdateSource(c *gin.Context) {
 	}
 
 	// model verifies if the sourceID matches the scope ID and user ID, if not updation fails
-	updatedSource.UserID = userInfo.userID
-	updatedSource.ScopeID = userInfo.useScope
+	updatedSource.UserID = userInfo.UserID
+	updatedSource.ScopeID = userInfo.UseScope
 	if err := impl.GetModelsService().SourceModel.UpdateSource(c, &updatedSource); err != nil {
 		log.Printf("[UpdateSource] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update source"})
@@ -181,10 +205,16 @@ func UpdateSource(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Failed to delete source"
 // @Router /sources/{id} [delete]
 func DeleteSource(c *gin.Context) {
-	userInfo, ok := GetScopeInfo(c, impl.RoleView)
+	scopeInfo, ok := c.Get("scopeInfo")
 	if !ok {
-		log.Printf("[DeleteSource] Error: %v", "Missing user or scope information")
+		log.Printf("[ListSources] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
+		return
+	}
+	userInfo, ok := scopeInfo.(ScopeInfo)
+	if !ok {
+		log.Printf("[ListSources] Error: %v", "Failed to typecast scope information")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to typecast scope information"})
 		return
 	}
 
@@ -193,7 +223,7 @@ func DeleteSource(c *gin.Context) {
 		log.Printf("[DeleteSource]: Missing source ID")
 		return
 	}
-	if err := impl.GetModelsService().SourceModel.DeleteSource(c, sourceID, []int64{userInfo.useScope}); err != nil {
+	if err := impl.GetModelsService().SourceModel.DeleteSource(c, sourceID, []int64{userInfo.UseScope}); err != nil {
 		log.Printf("[DeleteSource] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete source"})
 		return

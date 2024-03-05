@@ -77,7 +77,7 @@ func ListCategories(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	//TODO: Extract literals like this to constants
 	itemsPerPage, _ := strconv.Atoi(c.DefaultQuery("items_per_page", strconv.Itoa(defaultItemsPerPage)))
-	categories, err := impl.GetModelsService().CategoryModel.GetScopedCategories(c, page, itemsPerPage, []int64{userInfo.useScope}, nil)
+	categories, err := impl.GetModelsService().CategoryModel.GetScopedCategories(c, page, itemsPerPage, []int64{userInfo.UseScope}, nil)
 	if err != nil {
 		log.Printf("[ListCategories] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch categories"})
@@ -117,7 +117,7 @@ func GetCategory(c *gin.Context) {
 		return
 	}
 
-	category, err := impl.GetModelsService().CategoryModel.GetCategoryByID(c, categoryID, []int64{userInfo.useScope}, nil)
+	category, err := impl.GetModelsService().CategoryModel.GetCategoryByID(c, categoryID, []int64{userInfo.UseScope}, nil)
 	if err != nil {
 		log.Printf("[GetCategory] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "category not found"})
@@ -153,8 +153,8 @@ func CreateCategory(c *gin.Context) {
 		return
 	}
 
-	newCategory.UserID = userInfo.userID
-	newCategory.ScopeID = userInfo.useScope
+	newCategory.UserID = userInfo.UserID
+	newCategory.ScopeID = userInfo.UseScope
 	if err := impl.GetModelsService().CategoryModel.InsertCategory(c, &newCategory, nil); err != nil {
 		log.Printf("[CreateCategory] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create category"})
@@ -192,8 +192,8 @@ func UpdateCategory(c *gin.Context) {
 	}
 
 	// model verifies if the categoryID matches the scope ID and user ID, if not updation fails
-	updatedCategory.UserID = userInfo.userID
-	updatedCategory.ScopeID = userInfo.useScope
+	updatedCategory.UserID = userInfo.UserID
+	updatedCategory.ScopeID = userInfo.UseScope
 	if err := impl.GetModelsService().CategoryModel.UpdateCategory(c, &updatedCategory, nil); err != nil {
 		log.Printf("[UpdateCategory] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update category"})
@@ -227,7 +227,7 @@ func DeleteCategory(c *gin.Context) {
 		return
 	}
 
-	if err := impl.GetModelsService().CategoryModel.DeleteCategory(c, categoryID, []int64{userInfo.useScope}, nil); err != nil {
+	if err := impl.GetModelsService().CategoryModel.DeleteCategory(c, categoryID, []int64{userInfo.UseScope}, nil); err != nil {
 		log.Printf("[DeleteCategory] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete category"})
 		return

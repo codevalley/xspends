@@ -83,6 +83,8 @@ func SetupRoutes(r *gin.Engine, kvClient kvstore.RawKVClientInterface) {
 	// These routes are used for managing sources.
 	sources := apiRoutes.Group("/sources")
 	{
+		// TODO: Add role level filtering at ScopeMiddleware
+		//       something like this sources.GET("", handlers.ListSources).Use(ScopeMiddleware(impl.RoleView))
 		sources.GET("", handlers.ListSources)
 		sources.POST("", handlers.CreateSource)
 		sources.GET("/:id", handlers.GetSource)

@@ -46,15 +46,6 @@ const userIDKey = "userID"
 const groupIDKey = "groupID"
 const authKey = "Authorization"
 
-type ScopeInfo struct {
-	UserID     int64
-	GroupID    int64
-	OwnerScope int64
-	GroupScope int64
-	UseScope   int64
-	Scopes     []int64
-}
-
 func AuthMiddleware(ab *authboss.Authboss) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Get token from the Authorization header
@@ -121,11 +112,11 @@ func ScopeMiddleware() gin.HandlerFunc {
 	}
 }
 
-func GetScopeInfo(c *gin.Context, userID int64, groupID int64, role string) (ScopeInfo, bool) {
+func GetScopeInfo(c *gin.Context, userID int64, groupID int64, role string) (handlers.ScopeInfo, bool) {
 	ownerScope, scopes, okScope := getScopes(c, userID, role)
 	if !okScope {
 		log.Printf("[GetScopeInfo] Error: %v", "Missing scope information")
-		return ScopeInfo{}, false
+		return handlers.ScopeInfo{}, false
 	}
 
 	groupScope := int64(0)
@@ -142,7 +133,7 @@ func GetScopeInfo(c *gin.Context, userID int64, groupID int64, role string) (Sco
 		useScope = groupScope
 	}
 
-	var scopeInfo ScopeInfo = ScopeInfo{
+	scopeInfo := handlers.ScopeInfo{
 		UserID:     userID,
 		GroupID:    groupID,
 		GroupScope: groupScope,

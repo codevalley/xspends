@@ -34,12 +34,12 @@ import (
 )
 
 type ScopeInfo struct {
-	userID     int64
-	groupID    int64
-	ownerScope int64
-	groupScope int64
-	useScope   int64
-	scopes     []int64
+	UserID     int64
+	GroupID    int64
+	OwnerScope int64
+	GroupScope int64
+	UseScope   int64
+	Scopes     []int64
 }
 
 // Deprecated method
