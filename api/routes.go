@@ -53,6 +53,7 @@ import (
 	"xspends/api/handlers"
 	"xspends/kvstore"
 	"xspends/middleware"
+	"xspends/models/impl"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -75,34 +76,42 @@ func SetupRoutes(r *gin.Engine, kvClient kvstore.RawKVClientInterface) {
 		auth.POST("/logout", handlers.JWTLogoutHandler(ab))     // Logout a user
 	}
 
+	// TODO:
+	// txns - Scope only to the current scope
+	// categories - Scope only to the current scope
+	// source - Scope current scope + user scope
+	// tags - no scope restriction (only user)
+	// special case: Get my transactions (all scope[] but filtered for current user)
+
 	// All other routes should be protected by the AuthMiddleware
 	// These routes are used for managing sources, categories, tags, and transactions.
 	apiRoutes := r.Group("/")
-	apiRoutes.Use(middleware.AuthMiddleware(ab), middleware.ScopeMiddleware(), middleware.EnsureUserID(), middleware.EnsureScopeID())
+	apiRoutes.Use(middleware.AuthMiddleware(ab), middleware.ScopeMiddleware(impl.RoleWrite), middleware.EnsureUserID(), middleware.EnsureScopeID())
 	// Source routes
 	// These routes are used for managing sources.
+	// Sources can a mixed scope relationship
 	sources := apiRoutes.Group("/sources")
 	{
-		// TODO: Add role level filtering at ScopeMiddleware
-		//       something like this sources.GET("", handlers.ListSources).Use(ScopeMiddleware(impl.RoleView))
-		sources.GET("", handlers.ListSources)
+		sources.GET("", handlers.ListSources).Use(middleware.ScopeMiddleware(impl.RoleView))
 		sources.POST("", handlers.CreateSource)
-		sources.GET("/:id", handlers.GetSource)
+		sources.GET("/:id", handlers.GetSource).Use(middleware.ScopeMiddleware(impl.RoleView))
 		sources.PUT("/:id", handlers.UpdateSource)
 		sources.DELETE("/:id", handlers.DeleteSource)
 	}
 	// Category routes
 	// These routes are used for managing categories.
+	// Catgegories will be a strict Scope relationship
 	categories := apiRoutes.Group("/categories")
 	{
-		categories.GET("", handlers.ListCategories)
+		categories.GET("", handlers.ListCategories).Use(middleware.ScopeMiddleware(impl.RoleView))
 		categories.POST("", handlers.CreateCategory)
-		categories.GET("/:id", handlers.GetCategory)
+		categories.GET("/:id", handlers.GetCategory).Use(middleware.ScopeMiddleware(impl.RoleView))
 		categories.PUT("/:id", handlers.UpdateCategory)
 		categories.DELETE("/:id", handlers.DeleteCategory)
 	}
 	// Tag routes
 	// These routes are used for managing tags.
+	// Tag doesn't depend on scope, it is at a user level
 	tags := apiRoutes.Group("/tags")
 	{
 		tags.GET("", handlers.ListTags)
@@ -113,14 +122,16 @@ func SetupRoutes(r *gin.Engine, kvClient kvstore.RawKVClientInterface) {
 	}
 	// Transaction routes
 	// These routes are used for managing transactions and transaction tags.
+	// Transactions will be a strict scope level relationship
 	transactions := apiRoutes.Group("/transactions")
 	{
-		transactions.GET("", handlers.ListTransactions)
+		//add method to get all txns owner by current user
+		transactions.GET("", handlers.ListTransactions).Use(middleware.ScopeMiddleware(impl.RoleView))
 		transactions.POST("", handlers.CreateTransaction)
-		transactions.GET("/:id", handlers.GetTransaction)
+		transactions.GET("/:id", handlers.GetTransaction).Use(middleware.ScopeMiddleware(impl.RoleView))
 		transactions.PUT("/:id", handlers.UpdateTransaction)
 		transactions.DELETE("/:id", handlers.DeleteTransaction)
-		transactions.GET("/:id/tags", handlers.ListTransactionTags)
+		transactions.GET("/:id/tags", handlers.ListTransactionTags).Use(middleware.ScopeMiddleware(impl.RoleView))
 		transactions.POST("/:id/tags", handlers.AddTagToTransaction)
 		transactions.DELETE("/:id/tags/:tagID", handlers.RemoveTagFromTransaction)
 	}

@@ -84,7 +84,7 @@ func AuthMiddleware(ab *authboss.Authboss) gin.HandlerFunc {
 	}
 }
 
-func ScopeMiddleware() gin.HandlerFunc {
+func ScopeMiddleware(role string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, exists := c.Get(userIDKey)
 		if !exists {
@@ -99,7 +99,7 @@ func ScopeMiddleware() gin.HandlerFunc {
 			groupID = int64(0)
 		}
 
-		scopeInfo, ok := GetScopeInfo(c, userID.(int64), groupID.(int64), impl.RoleView)
+		scopeInfo, ok := GetScopeInfo(c, userID.(int64), groupID.(int64), role)
 		if !ok {
 			log.Printf("[ScopeMiddleware] Error: %v", "Missing scope information")
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing scope information"})
@@ -140,6 +140,7 @@ func GetScopeInfo(c *gin.Context, userID int64, groupID int64, role string) (han
 		OwnerScope: ownerScope,
 		UseScope:   useScope,
 		Scopes:     scopes,
+		Role:       role,
 	}
 	return scopeInfo, true
 }

@@ -40,6 +40,7 @@ type ScopeInfo struct {
 	GroupScope int64
 	UseScope   int64
 	Scopes     []int64
+	Role       string
 }
 
 // Deprecated method
@@ -87,7 +88,7 @@ func GetScopeInfo(c *gin.Context, role string) (ScopeInfo, bool) {
 	if groupID != 0 {
 		useScope = groupScope
 	}
-	var scopeInfo ScopeInfo = ScopeInfo{userID, groupID, groupScope, ownerScope, useScope, scopes}
+	var scopeInfo ScopeInfo = ScopeInfo{userID, groupID, groupScope, ownerScope, useScope, scopes, role}
 	return scopeInfo, true
 }
 
