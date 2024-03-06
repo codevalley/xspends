@@ -55,11 +55,11 @@ func ListSources(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to typecast scope information"})
 		return
 	}
-	useScope := userInfo.OwnerScope
+	useScope := []int64{userInfo.OwnerScope}
 	if userInfo.GroupID != 0 {
-		useScope = userInfo.GroupScope
+		useScope = append(useScope, userInfo.GroupScope)
 	}
-	sources, err := impl.GetModelsService().SourceModel.GetSources(c, []int64{useScope})
+	sources, err := impl.GetModelsService().SourceModel.GetSources(c, useScope)
 	if err != nil {
 		log.Printf("[ListSources] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to fetch sources"})
@@ -92,13 +92,16 @@ func GetSource(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to typecast scope information"})
 		return
 	}
-
+	useScope := []int64{userInfo.OwnerScope}
+	if userInfo.GroupID != 0 {
+		useScope = append(useScope, userInfo.GroupScope)
+	}
 	sourceID, ok := getSourceID(c)
 	if !ok {
 		log.Printf("[ListSources]: Missing source ID")
 		return
 	}
-	source, err := impl.GetModelsService().SourceModel.GetSourceByID(c, sourceID, []int64{userInfo.UseScope})
+	source, err := impl.GetModelsService().SourceModel.GetSourceByID(c, sourceID, useScope)
 	if err != nil {
 		log.Printf("[GetSource] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "Source not found"})
@@ -217,13 +220,16 @@ func DeleteSource(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to typecast scope information"})
 		return
 	}
-
+	useScope := []int64{userInfo.OwnerScope}
+	if userInfo.GroupID != 0 {
+		useScope = append(useScope, userInfo.GroupScope)
+	}
 	sourceID, ok := getSourceID(c)
 	if !ok {
 		log.Printf("[DeleteSource]: Missing source ID")
 		return
 	}
-	if err := impl.GetModelsService().SourceModel.DeleteSource(c, sourceID, []int64{userInfo.UseScope}); err != nil {
+	if err := impl.GetModelsService().SourceModel.DeleteSource(c, sourceID, useScope); err != nil {
 		log.Printf("[DeleteSource] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete source"})
 		return

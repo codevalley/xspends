@@ -66,10 +66,16 @@ func getCategoryID(c *gin.Context) (int64, bool) {
 // @Failure 500 {object} map[string]string "Unable to fetch categories"
 // @Router /categories [get]
 func ListCategories(c *gin.Context) {
-	userInfo, ok := GetScopeInfo(c, impl.RoleView)
+	scopeInfo, ok := c.Get("scopeInfo")
 	if !ok {
-		log.Printf("[ListCategories] Error: %v", "Missing user or scope information")
+		log.Printf("[ListSources] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
+		return
+	}
+	userInfo, ok := scopeInfo.(ScopeInfo)
+	if !ok {
+		log.Printf("[ListSources] Error: %v", "Failed to typecast scope information")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to typecast scope information"})
 		return
 	}
 
