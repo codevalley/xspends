@@ -110,10 +110,16 @@ func ListCategories(c *gin.Context) {
 // @Failure 404 {object} map[string]string "Category not found"
 // @Router /categories/{id} [get]
 func GetCategory(c *gin.Context) {
-	userInfo, ok := GetScopeInfo(c, impl.RoleView)
+	scopeInfo, ok := c.Get("scopeInfo")
 	if !ok {
-		log.Printf("[GetCategories] Error: %v", "Missing user or scope information")
+		log.Printf("[ListSources] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
+		return
+	}
+	userInfo, ok := scopeInfo.(ScopeInfo)
+	if !ok {
+		log.Printf("[ListSources] Error: %v", "Failed to typecast scope information")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to typecast scope information"})
 		return
 	}
 
@@ -145,10 +151,16 @@ func GetCategory(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Unable to create category"
 // @Router /categories [post]
 func CreateCategory(c *gin.Context) {
-	userInfo, ok := GetScopeInfo(c, impl.RoleView)
+	scopeInfo, ok := c.Get("scopeInfo")
 	if !ok {
-		log.Printf("[CreateCategories] Error: %v", "Missing user or scope information")
+		log.Printf("[ListSources] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
+		return
+	}
+	userInfo, ok := scopeInfo.(ScopeInfo)
+	if !ok {
+		log.Printf("[ListSources] Error: %v", "Failed to typecast scope information")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to typecast scope information"})
 		return
 	}
 
@@ -183,10 +195,16 @@ func CreateCategory(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Unable to update category"
 // @Router /categories/{id} [put]
 func UpdateCategory(c *gin.Context) {
-	userInfo, ok := GetScopeInfo(c, impl.RoleView)
+	scopeInfo, ok := c.Get("scopeInfo")
 	if !ok {
-		log.Printf("[CreateCategories] Error: %v", "Missing user or scope information")
+		log.Printf("[ListSources] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
+		return
+	}
+	userInfo, ok := scopeInfo.(ScopeInfo)
+	if !ok {
+		log.Printf("[ListSources] Error: %v", "Failed to typecast scope information")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to typecast scope information"})
 		return
 	}
 
@@ -220,10 +238,16 @@ func UpdateCategory(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Unable to delete category"
 // @Router /categories/{id} [delete]
 func DeleteCategory(c *gin.Context) {
-	userInfo, ok := GetScopeInfo(c, impl.RoleView)
+	scopeInfo, ok := c.Get("scopeInfo")
 	if !ok {
-		log.Printf("[CreateCategories] Error: %v", "Missing user or scope information")
+		log.Printf("[ListSources] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
+		return
+	}
+	userInfo, ok := scopeInfo.(ScopeInfo)
+	if !ok {
+		log.Printf("[ListSources] Error: %v", "Failed to typecast scope information")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to typecast scope information"})
 		return
 	}
 

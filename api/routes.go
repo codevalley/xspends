@@ -78,8 +78,8 @@ func SetupRoutes(r *gin.Engine, kvClient kvstore.RawKVClientInterface) {
 
 	// TODO:
 	// txns - Scope only to the current scope
-	// categories - Scope only to the current scope
-	// source - Scope current scope + user scope
+	// categories - Scope only to the current scope [done]
+	// source - Scope current scope + user scope [done]
 	// tags - no scope restriction (only user)
 	// special case: Get my transactions (all scope[] but filtered for current user)
 
