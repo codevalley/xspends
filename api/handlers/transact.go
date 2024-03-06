@@ -65,10 +65,16 @@ func getTransactionID(c *gin.Context) (int64, bool) {
 // @Failure 500 {object} map[string]string "Unable to create transaction"
 // @Router /transactions [post]
 func CreateTransaction(c *gin.Context) {
-	userID, scopes, ok := getUserAndScopes(c, impl.RoleWrite)
+	scopeInfo, ok := c.Get("scopeInfo")
 	if !ok {
-		log.Printf("[CreateTransaction] Error: Missing user or scope information")
+		log.Printf("[ListSources] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
+		return
+	}
+	userInfo, ok := scopeInfo.(ScopeInfo)
+	if !ok {
+		log.Printf("[ListSources] Error: %v", "Failed to typecast scope information")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to typecast scope information"})
 		return
 	}
 
@@ -78,8 +84,8 @@ func CreateTransaction(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	newTransaction.UserID = userID
-	newTransaction.ScopeID = scopes[0]
+	newTransaction.UserID = userInfo.UserID
+	newTransaction.ScopeID = userInfo.UseScope
 	if err := impl.GetModelsService().TransactionModel.InsertTransaction(c, newTransaction); err != nil {
 		log.Printf("[CreateTransaction] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create transaction"})
@@ -100,18 +106,25 @@ func CreateTransaction(c *gin.Context) {
 // @Failure 404 {object} map[string]string "Transaction not found"
 // @Router /transactions/{id} [get]
 func GetTransaction(c *gin.Context) {
-	_, scopes, ok := getUserAndScopes(c, impl.RoleView)
+	scopeInfo, ok := c.Get("scopeInfo")
 	if !ok {
-		log.Printf("[GetTransaction] Error: %v", "Missing user or scope information")
+		log.Printf("[ListSources] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
+	userInfo, ok := scopeInfo.(ScopeInfo)
+	if !ok {
+		log.Printf("[ListSources] Error: %v", "Failed to typecast scope information")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to typecast scope information"})
+		return
+	}
+
 	transactionID, ok := getTransactionID(c)
 	if !ok {
 		log.Printf("[GetTransaction] Error: %v", "Invalid transaction ID")
 		return
 	}
-	transaction, err := impl.GetModelsService().TransactionModel.GetTransactionByID(c, transactionID, scopes)
+	transaction, err := impl.GetModelsService().TransactionModel.GetTransactionByID(c, transactionID, []int64{userInfo.UseScope})
 	if err != nil {
 		log.Printf("[GetTransaction] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "transaction not found"})
@@ -135,10 +148,16 @@ func GetTransaction(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Unable to update transaction"
 // @Router /transactions/{id} [put]
 func UpdateTransaction(c *gin.Context) {
-	userID, scopes, ok := getUserAndScopes(c, impl.RoleWrite)
+	scopeInfo, ok := c.Get("scopeInfo")
 	if !ok {
-		log.Printf("[UpdateTransaction] Error: %v", "Missing user or scope information")
+		log.Printf("[ListSources] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
+		return
+	}
+	userInfo, ok := scopeInfo.(ScopeInfo)
+	if !ok {
+		log.Printf("[ListSources] Error: %v", "Failed to typecast scope information")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to typecast scope information"})
 		return
 	}
 	transactionID, ok := getTransactionID(c)
@@ -153,10 +172,10 @@ func UpdateTransaction(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	uTxn.UserID = userID
-	uTxn.ScopeID = scopes[0]
+	uTxn.UserID = userInfo.UserID
+	uTxn.ScopeID = userInfo.UseScope
 	uTxn.ID = transactionID
-	oTxn, err := impl.GetModelsService().TransactionModel.GetTransactionByID(c, transactionID, scopes)
+	oTxn, err := impl.GetModelsService().TransactionModel.GetTransactionByID(c, transactionID, []int64{userInfo.UseScope})
 	if err != nil {
 		log.Printf("[UpdateTransaction] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "unable to find transaction"})
@@ -201,10 +220,16 @@ func UpdateTransaction(c *gin.Context) {
 // @Router /transactions/{id} [delete]
 func DeleteTransaction(c *gin.Context) {
 
-	_, scopes, ok := getUserAndScopes(c, impl.RoleWrite)
+	scopeInfo, ok := c.Get("scopeInfo")
 	if !ok {
-		log.Printf("[DeleteTransaction] Error: %v", "Missing user or scope information")
+		log.Printf("[ListSources] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
+		return
+	}
+	userInfo, ok := scopeInfo.(ScopeInfo)
+	if !ok {
+		log.Printf("[ListSources] Error: %v", "Failed to typecast scope information")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to typecast scope information"})
 		return
 	}
 	transactionID, ok := getTransactionID(c)
@@ -212,7 +237,7 @@ func DeleteTransaction(c *gin.Context) {
 		log.Printf("[DeleteTransaction] Error: %v", "Invalid transaction ID")
 		return
 	}
-	if err := impl.GetModelsService().TransactionModel.DeleteTransaction(c, transactionID, scopes); err != nil {
+	if err := impl.GetModelsService().TransactionModel.DeleteTransaction(c, transactionID, []int64{userInfo.UseScope}); err != nil {
 		log.Printf("[DeleteTransaction] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete transaction"})
 		return
@@ -242,17 +267,23 @@ func DeleteTransaction(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Unable to fetch transactions"
 // @Router /transactions [get]
 func ListTransactions(c *gin.Context) {
-	userID, scopes, ok := getUserAndScopes(c, impl.RoleView)
+	scopeInfo, ok := c.Get("scopeInfo")
 	if !ok {
-		log.Printf("[ListTransactions] Error: %v", "Missing user or scope information")
+		log.Printf("[ListSources] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
+		return
+	}
+	userInfo, ok := scopeInfo.(ScopeInfo)
+	if !ok {
+		log.Printf("[ListSources] Error: %v", "Failed to typecast scope information")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to typecast scope information"})
 		return
 	}
 
 	// Create a filter from the query parameters.
 	filter := interfaces.TransactionFilter{
-		UserID:       userID,
-		Scopes:       scopes,
+		UserID:       userInfo.UserID,
+		Scopes:       []int64{userInfo.UseScope},
 		StartDate:    c.DefaultQuery("start_date", ""),
 		EndDate:      c.DefaultQuery("end_date", ""),
 		Category:     c.DefaultQuery("category", ""),
