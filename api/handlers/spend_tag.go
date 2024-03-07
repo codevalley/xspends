@@ -66,17 +66,27 @@ func getTagID(c *gin.Context) (int64, bool) {
 // @Failure 500 {object} map[string]string "Unable to fetch tags"
 // @Router /tags [get]
 func ListTags(c *gin.Context) {
-	_, scopes, ok := getUserAndScopes(c, impl.RoleView)
+	scopeInfo, ok := c.Get("scopeInfo")
 	if !ok {
 		log.Printf("[ListTags] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
+	userInfo, ok := scopeInfo.(ScopeInfo)
+	if !ok {
+		log.Printf("[ListTags] Error: %v", "Failed to typecast scope information")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to typecast scope information"})
+		return
+	}
+	useScope := []int64{userInfo.OwnerScope}
+	if userInfo.GroupID != 0 {
+		useScope = append(useScope, userInfo.GroupScope)
+	}
 
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", strconv.Itoa(defaultLimit)))
 	offset, _ := strconv.Atoi(c.Query("offset"))
 
-	tags, err := impl.GetModelsService().TagModel.GetScopedTags(c, scopes, interfaces.PaginationParams{Limit: limit, Offset: offset}, nil)
+	tags, err := impl.GetModelsService().TagModel.GetScopedTags(c, useScope, interfaces.PaginationParams{Limit: limit, Offset: offset}, nil)
 	if err != nil {
 		log.Printf("[ListTags] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to fetch tags"})
@@ -103,11 +113,21 @@ func ListTags(c *gin.Context) {
 // @Failure 404 {object} map[string]string "Tag not found"
 // @Router /tags/{id} [get]
 func GetTag(c *gin.Context) {
-	_, scopes, ok := getUserAndScopes(c, impl.RoleView)
+	scopeInfo, ok := c.Get("scopeInfo")
 	if !ok {
-		log.Printf("[GetTag] Error: %v", "Missing user or scope information")
+		log.Printf("[getTag] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
+	}
+	userInfo, ok := scopeInfo.(ScopeInfo)
+	if !ok {
+		log.Printf("[getTag] Error: %v", "Failed to typecast scope information")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to typecast scope information"})
+		return
+	}
+	useScope := []int64{userInfo.OwnerScope}
+	if userInfo.GroupID != 0 {
+		useScope = append(useScope, userInfo.GroupScope)
 	}
 
 	tagID, ok := getTagID(c)
@@ -116,7 +136,7 @@ func GetTag(c *gin.Context) {
 		return
 	}
 
-	tag, err := impl.GetModelsService().TagModel.GetTagByID(c, tagID, scopes, nil)
+	tag, err := impl.GetModelsService().TagModel.GetTagByID(c, tagID, useScope, nil)
 	if err != nil {
 		log.Printf("[GetTag] Error: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "tag not found"})
@@ -137,20 +157,31 @@ func GetTag(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Unable to create tag"
 // @Router /tags [post]
 func CreateTag(c *gin.Context) {
-	userID, scopes, ok := getUserAndScopes(c, impl.RoleWrite)
+	scopeInfo, ok := c.Get("scopeInfo")
 	if !ok {
 		log.Printf("[CreateTag] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
 	}
+	userInfo, ok := scopeInfo.(ScopeInfo)
+	if !ok {
+		log.Printf("[CreateTag] Error: %v", "Failed to typecast scope information")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to typecast scope information"})
+		return
+	}
+	useScope := []int64{userInfo.OwnerScope}
+	if userInfo.GroupID != 0 {
+		useScope = append(useScope, userInfo.GroupScope)
+	}
+
 	var newTag interfaces.Tag
 	if err := c.ShouldBindJSON(&newTag); err != nil {
 		log.Printf("[CreateTag] Error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid tag data JSON"})
 		return
 	}
-	newTag.UserID = userID
-	newTag.ScopeID = scopes[0]
+	newTag.UserID = userInfo.UserID
+	newTag.ScopeID = userInfo.UseScope
 	if len(newTag.Name) > maxTagNameLength {
 		log.Printf("[CreateTag] Error: tag name exceeds maximum length")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "tag name exceeds maximum length"})
@@ -177,11 +208,21 @@ func CreateTag(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Unable to update tag"
 // @Router /tags/{id} [put]
 func UpdateTag(c *gin.Context) {
-	userID, scopes, ok := getUserAndScopes(c, impl.RoleWrite)
+	scopeInfo, ok := c.Get("scopeInfo")
 	if !ok {
-		log.Printf("[UpdateTag] Error: %v", "Missing user or scope information")
+		log.Printf("[ListTags] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
+	}
+	userInfo, ok := scopeInfo.(ScopeInfo)
+	if !ok {
+		log.Printf("[ListTags] Error: %v", "Failed to typecast scope information")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to typecast scope information"})
+		return
+	}
+	useScope := []int64{userInfo.OwnerScope}
+	if userInfo.GroupID != 0 {
+		useScope = append(useScope, userInfo.GroupScope)
 	}
 
 	var updatedTag interfaces.Tag
@@ -190,8 +231,8 @@ func UpdateTag(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid tag data JSON"})
 		return
 	}
-	updatedTag.UserID = userID
-	updatedTag.ScopeID = scopes[0]
+	updatedTag.UserID = userInfo.UserID
+	updatedTag.ScopeID = userInfo.UseScope
 	if len(updatedTag.Name) > maxTagNameLength {
 		log.Printf("[UpdateTag] Error: tag name exceeds maximum length")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "tag name exceeds maximum length"})
@@ -216,11 +257,21 @@ func UpdateTag(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Unable to delete tag"
 // @Router /tags/{id} [delete]
 func DeleteTag(c *gin.Context) {
-	_, scopes, ok := getUserAndScopes(c, impl.RoleWrite)
+	scopeInfo, ok := c.Get("scopeInfo")
 	if !ok {
-		log.Printf("[DeleteTag] Error: %v", "Missing user or scope information")
+		log.Printf("[ListTags] Error: %v", "Missing user or scope information")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user or scope information"})
 		return
+	}
+	userInfo, ok := scopeInfo.(ScopeInfo)
+	if !ok {
+		log.Printf("[ListTags] Error: %v", "Failed to typecast scope information")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to typecast scope information"})
+		return
+	}
+	useScope := []int64{userInfo.OwnerScope}
+	if userInfo.GroupID != 0 {
+		useScope = append(useScope, userInfo.GroupScope)
 	}
 	tagID, ok := getTagID(c)
 	if !ok {
@@ -228,7 +279,7 @@ func DeleteTag(c *gin.Context) {
 		return
 	}
 
-	if err := impl.GetModelsService().TagModel.DeleteTag(c, tagID, scopes, nil); err != nil {
+	if err := impl.GetModelsService().TagModel.DeleteTag(c, tagID, useScope, nil); err != nil {
 		log.Printf("[DeleteTag] Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to delete tag"})
 		return
