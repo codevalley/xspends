@@ -169,10 +169,6 @@ func CreateTag(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to typecast scope information"})
 		return
 	}
-	useScope := []int64{userInfo.OwnerScope}
-	if userInfo.GroupID != 0 {
-		useScope = append(useScope, userInfo.GroupScope)
-	}
 
 	var newTag interfaces.Tag
 	if err := c.ShouldBindJSON(&newTag); err != nil {
@@ -219,10 +215,6 @@ func UpdateTag(c *gin.Context) {
 		log.Printf("[ListTags] Error: %v", "Failed to typecast scope information")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to typecast scope information"})
 		return
-	}
-	useScope := []int64{userInfo.OwnerScope}
-	if userInfo.GroupID != 0 {
-		useScope = append(useScope, userInfo.GroupScope)
 	}
 
 	var updatedTag interfaces.Tag

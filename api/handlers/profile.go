@@ -29,7 +29,6 @@ import (
 	"xspends/models/impl"
 	"xspends/models/interfaces"
 
-	// Importing our data models
 	"github.com/gin-gonic/gin"
 )
 
@@ -61,8 +60,6 @@ func getUserFromContext(c *gin.Context) (int64, bool) {
 	return intUserID, true
 }
 
-// Actual user methods
-// ///////////////////
 func GetUserProfile(c *gin.Context) {
 	userID, ok := getUserFromContext(c)
 	if !ok {
