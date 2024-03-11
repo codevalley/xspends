@@ -75,6 +75,46 @@ func (usm *UserScopeModel) GetUserScope(ctx context.Context, userID, scopeID int
 	return &userScope, nil
 }
 
+// GetUserScope retrieves a specific user-scope relationship.
+func (usm *UserScopeModel) ValidateUserScope(ctx context.Context, userID, scopeID int64, role string, otx ...*sql.Tx) bool {
+	_, executor := getExecutor(otx...)
+
+	// Determine the minimum access level required based on the provided role
+	minAccessLevel, ok := roleHierarchy[role]
+	if !ok {
+		return false
+	}
+
+	// Build a slice of roles to include based on the hierarchy
+	var rolesToInclude []string
+	for r, level := range roleHierarchy {
+		if level <= minAccessLevel {
+			rolesToInclude = append(rolesToInclude, r)
+		}
+	}
+
+	query, args, err := GetQueryBuilder().
+		Select(usm.ColumnUserID, usm.ColumnScopeID, usm.ColumnRole).
+		From(usm.TableUserScopes).
+		Where(squirrel.Eq{usm.ColumnUserID: userID, usm.ColumnScopeID: scopeID}).
+		Where(squirrel.Eq{usm.ColumnRole: rolesToInclude}).
+		ToSql()
+	if err != nil {
+		return false
+	}
+
+	var userScope interfaces.UserScope
+	err = executor.QueryRowContext(ctx, query, args...).Scan(&userScope.UserID, &userScope.ScopeID, &userScope.Role)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false
+		}
+		return false
+	}
+
+	return true
+}
+
 // GetUserScope retrieves user-scope relationships based on access level hierarchy.
 func (usm *UserScopeModel) GetUserScopesByRole(ctx context.Context, userID int64, role string, otx ...*sql.Tx) ([]interfaces.UserScope, error) {
 	_, executor := getExecutor(otx...)

@@ -25,7 +25,10 @@ func (m *MockUserScopeModel) GetUserScope(ctx context.Context, userID, scopeID i
 	args := m.Called(ctx, userID, scopeID, otx)
 	return args.Get(0).(*interfaces.UserScope), args.Error(1)
 }
-
+func (m *MockUserScopeModel) ValidateUserScope(ctx context.Context, userID, scopeID int64, role string, otx ...*sql.Tx) bool {
+	args := m.Called(ctx, userID, scopeID, role, otx)
+	return args.Bool(0)
+}
 func (m *MockUserScopeModel) GetUserScopesByRole(ctx context.Context, userID int64, role string, otx ...*sql.Tx) ([]interfaces.UserScope, error) {
 	args := m.Called(ctx, userID, role, otx)
 	return args.Get(0).([]interfaces.UserScope), args.Error(1)
