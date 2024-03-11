@@ -68,8 +68,13 @@ func NewCategoryModel() *CategoryModel {
 }
 
 // TODO: Validate if the user has access to this scope
-func (cm *CategoryModel) validateCategoryInput(category *interfaces.Category) error {
+func (cm *CategoryModel) validateCategoryInput(ctx context.Context, category *interfaces.Category) error {
 	if category.ScopeID <= 0 || category.UserID <= 0 || category.Name == "" || len(category.Name) > cm.MaxCategoryNameLength || len(category.Description) > cm.MaxCategoryDescriptionLength {
+		return errors.New(ErrInvalidInput)
+	}
+
+	_, ok := GetModelsService().UserScopeModel.GetUserScope(ctx, category.UserID, category.ScopeID)
+	if ok != nil {
 		return errors.New(ErrInvalidInput)
 	}
 	return nil
@@ -79,7 +84,7 @@ func (cm *CategoryModel) validateCategoryInput(category *interfaces.Category) er
 func (cm *CategoryModel) InsertCategory(ctx context.Context, category *interfaces.Category, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
-	if err := cm.validateCategoryInput(category); err != nil {
+	if err := cm.validateCategoryInput(ctx, category); err != nil {
 		return err
 	}
 
@@ -112,7 +117,7 @@ func (cm *CategoryModel) InsertCategory(ctx context.Context, category *interface
 func (cm *CategoryModel) UpdateCategory(ctx context.Context, category *interfaces.Category, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
-	if err := cm.validateCategoryInput(category); err != nil {
+	if err := cm.validateCategoryInput(ctx, category); err != nil {
 		return err
 	}
 
