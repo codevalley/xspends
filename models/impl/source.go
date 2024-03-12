@@ -71,6 +71,10 @@ func (cm *SourceModel) validateSourceInput(ctx context.Context, source *interfac
 		return errors.New(ErrInvalidInput)
 	}
 
+	if !strings.EqualFold(source.Type, cm.SourceTypeCredit) && !strings.EqualFold(source.Type, cm.SourceTypeSavings) {
+		return errors.New("invalid type: type must be CREDIT or SAVINGS")
+	}
+
 	if !GetModelsService().UserScopeModel.ValidateUserScope(ctx, source.UserID, source.ScopeID, role) {
 		return errors.New(ErrInvalidInput)
 	}
@@ -80,11 +84,8 @@ func (cm *SourceModel) validateSourceInput(ctx context.Context, source *interfac
 func (sm *SourceModel) InsertSource(ctx context.Context, source *interfaces.Source, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
-	if source.Name == "" || source.UserID <= 0 || source.ScopeID <= 0 {
-		return errors.New("invalid input: name or user ID or scope ID is empty")
-	}
-	if !strings.EqualFold(source.Type, sm.SourceTypeCredit) && !strings.EqualFold(source.Type, sm.SourceTypeSavings) {
-		return errors.New("invalid type: type must be CREDIT or SAVINGS")
+	if err := sm.validateSourceInput(ctx, source, RoleWrite); err != nil {
+		return err
 	}
 
 	var err error
@@ -115,11 +116,8 @@ func (sm *SourceModel) InsertSource(ctx context.Context, source *interfaces.Sour
 func (sm *SourceModel) UpdateSource(ctx context.Context, source *interfaces.Source, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
-	if source.Name == "" || source.UserID <= 0 || source.ScopeID <= 0 {
-		return errors.New("invalid input: name or user ID or Scope ID is empty")
-	}
-	if !strings.EqualFold(source.Type, sm.SourceTypeCredit) && !strings.EqualFold(source.Type, sm.SourceTypeSavings) {
-		return errors.New("invalid type: type must be CREDIT or SAVINGS")
+	if err := sm.validateSourceInput(ctx, source, RoleWrite); err != nil {
+		return err
 	}
 
 	source.UpdatedAt = time.Now()
