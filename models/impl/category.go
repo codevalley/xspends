@@ -67,7 +67,6 @@ func NewCategoryModel() *CategoryModel {
 	}
 }
 
-// TODO: Validate if the user has access to this scope
 func (cm *CategoryModel) validateCategoryInput(ctx context.Context, category *interfaces.Category, role string) error {
 	if category.ScopeID <= 0 || category.UserID <= 0 || category.Name == "" || len(category.Name) > cm.MaxCategoryNameLength || len(category.Description) > cm.MaxCategoryDescriptionLength {
 		return errors.New(ErrInvalidInput)

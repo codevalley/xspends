@@ -66,6 +66,17 @@ func NewSourceModel() *SourceModel {
 	}
 }
 
+func (cm *SourceModel) validateSourceInput(ctx context.Context, source *interfaces.Source, role string) error {
+	if source.ScopeID <= 0 || source.UserID <= 0 || source.Name == "" {
+		return errors.New(ErrInvalidInput)
+	}
+
+	if !GetModelsService().UserScopeModel.ValidateUserScope(ctx, source.UserID, source.ScopeID, role) {
+		return errors.New(ErrInvalidInput)
+	}
+	return nil
+}
+
 func (sm *SourceModel) InsertSource(ctx context.Context, source *interfaces.Source, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
