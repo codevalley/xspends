@@ -76,12 +76,15 @@ func NewTransactionModel() *TransactionModel {
 func (tm *TransactionModel) InsertTransaction(ctx context.Context, txn interfaces.Transaction, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
-	txn.ID, _ = util.GenerateSnowflakeID()
-	txn.Timestamp = time.Now()
-
+	if !GetModelsService().UserScopeModel.ValidateUserScope(ctx, txn.UserID, txn.ScopeID, RoleWrite) {
+		return errors.New("Scope validating failed")
+	}
 	if err := validateForeignKeyReferences(ctx, txn, otx...); err != nil {
 		return errors.Wrap(err, "validating foreign key references failed")
 	}
+
+	txn.ID, _ = util.GenerateSnowflakeID()
+	txn.Timestamp = time.Now()
 
 	query, args, err := squirrel.Insert(tm.TableTransactions).
 		Columns(tm.ColumnID, tm.ColumnUserID, tm.ColumnSourceID, tm.ColumnCategoryID, tm.ColumnTimestamp, tm.ColumnAmount, tm.ColumnType, tm.ColumnDescription, tm.ColumnScope).
@@ -110,6 +113,9 @@ func (tm *TransactionModel) InsertTransaction(ctx context.Context, txn interface
 func (tm *TransactionModel) UpdateTransaction(ctx context.Context, txn interfaces.Transaction, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
+	if !GetModelsService().UserScopeModel.ValidateUserScope(ctx, txn.UserID, txn.ScopeID, RoleWrite) {
+		return errors.New("Scope validating failed")
+	}
 	// Validate foreign key references
 	if err := validateForeignKeyReferences(ctx, txn, otx...); err != nil {
 		return errors.Wrap(err, "validating foreign key references failed")
