@@ -35,7 +35,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-const ErrInvalidInput = "invalid input: user ID must be positive, name must not be empty or exceed max length, description must not exceed max length"
+const ErrInvalidInput = "invalid input: user ID must be numeric, name must not be empty or exceed max length, description must not exceed max length"
+const ErrInvalidScope = "Invalid scope presented for the request"
 
 type CategoryModel struct {
 	TableCategories              string
@@ -73,7 +74,7 @@ func (cm *CategoryModel) validateCategoryInput(ctx context.Context, category *in
 	}
 
 	if !GetModelsService().UserScopeModel.ValidateUserScope(ctx, category.UserID, category.ScopeID, role) {
-		return errors.New(ErrInvalidInput)
+		return errors.New(ErrInvalidScope)
 	}
 	return nil
 }
@@ -145,6 +146,10 @@ func (cm *CategoryModel) UpdateCategory(ctx context.Context, category *interface
 func (cm *CategoryModel) DeleteCategory(ctx context.Context, categoryID int64, scopes []int64, otx ...*sql.Tx) error {
 	isExternalTx, executor := getExecutor(otx...)
 
+	// if !GetModelsService().UserScopeModel.ValidateUserScope(ctx, category.UserID, scopes, RoleWrite) {
+	// 	return errors.New(ErrInvalidScope)
+	// }
+	//TODO: No check if the current user has access to the scope (will happen in handler, but no double check)
 	//We can add validation here as well
 	query, args, err := GetQueryBuilder().Delete(cm.TableCategories).
 		Where(squirrel.Eq{cm.ColumnID: categoryID, cm.ColumnScopeID: scopes}).

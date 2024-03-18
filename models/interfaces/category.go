@@ -20,7 +20,6 @@ type Category struct {
 type CategoryService interface {
 	InsertCategory(ctx context.Context, category *Category, otx ...*sql.Tx) error
 	UpdateCategory(ctx context.Context, category *Category, otx ...*sql.Tx) error
-
 	DeleteCategory(ctx context.Context, categoryID int64, scopes []int64, otx ...*sql.Tx) error
 	GetCategoryByID(ctx context.Context, categoryID int64, scopes []int64, otx ...*sql.Tx) (*Category, error)
 	GetScopedCategories(ctx context.Context, page int, itemsPerPage int, scopes []int64, otx ...*sql.Tx) ([]Category, error)

@@ -1,3 +1,8 @@
+### For tomorrow
+- Remove scopes[] array params for category
+- Add userID for delete method
+- Review GetCategoryByID, GetScopedCategories, CategoryIDExists
+
 ### TODO
 - Add tests for ValidateUserScope()
 - Decide where you really have a need to pass scope array (in model layer). In most cases, we have a single scope operation
