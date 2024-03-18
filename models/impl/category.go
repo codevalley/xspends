@@ -161,37 +161,6 @@ func (cm *CategoryModel) DeleteCategory(ctx context.Context, categoryID int64, s
 	return nil
 }
 
-// deprecated
-func (cm *CategoryModel) GetAllScopedCategories(ctx context.Context, scopes []int64, otx ...*sql.Tx) ([]interfaces.Category, error) {
-	_, executor := getExecutor(otx...)
-
-	// Building the query
-	query, args, err := GetQueryBuilder().Select(cm.ColumnID, cm.ColumnUserID, cm.ColumnName, cm.ColumnDescription, cm.ColumnIcon, cm.ColumnScopeID, cm.ColumnCreatedAt, cm.ColumnUpdatedAt).
-		From(cm.TableCategories).
-		Where(squirrel.Eq{cm.ColumnScopeID: scopes}). // Filter by scope IDs
-		ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "preparing select statement for all scoped categories failed")
-	}
-
-	rows, err := executor.QueryContext(ctx, query, args...)
-	if err != nil {
-		return nil, errors.Wrap(err, "querying scoped categories failed")
-	}
-	defer rows.Close()
-
-	var categories []interfaces.Category
-	for rows.Next() {
-		category := interfaces.Category{}
-		if err := rows.Scan(&category.ID, &category.UserID, &category.Name, &category.Description, &category.Icon, &category.CreatedAt, &category.UpdatedAt); err != nil {
-			return nil, errors.Wrap(err, "scanning category row failed")
-		}
-		categories = append(categories, category)
-	}
-
-	return categories, nil
-}
-
 func (cm *CategoryModel) GetCategoryByID(ctx context.Context, categoryID int64, scopes []int64, otx ...*sql.Tx) (*interfaces.Category, error) {
 	_, executor := getExecutor(otx...)
 

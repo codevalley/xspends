@@ -77,27 +77,7 @@ func TestDeleteCategoryWithDatabaseError(t *testing.T) {
 	assert.EqualError(t, err, "executing delete statement failed: database error")
 }
 
-// TestGetAllCategoriesWithDatabaseError verifies that the function returns an error for database errors.
-func TestGetAllCategoriesWithDatabaseError(t *testing.T) {
-	tearDown := setUp(t, func(config *ModelsConfig) {
-		// Replace the mocked CategoryModel with a real one just for this test
-		config.CategoryModel = NewCategoryModel()
-	})
-	defer tearDown()
-
-	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
-	}
-	defer db.Close()
-
-	ModelsService.DBService.Executor = db
-
-	mock.ExpectQuery("^SELECT (.+) FROM categories WHERE").WillReturnError(errors.New("database error"))
-
-	_, err = ModelsService.CategoryModel.GetAllScopedCategories(ctx, []int64{1})
-	assert.EqualError(t, err, "querying scoped categories failed: database error")
-}
+// TestGetAllCategoriesWithDatabaseError verifies that the function returns an error for database errors
 
 // TestGetCategoryByIDWithCategoryNotFound verifies that the function returns an error for a non-existent category.
 func TestGetCategoryByIDWithCategoryNotFound(t *testing.T) {

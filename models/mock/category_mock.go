@@ -41,11 +41,6 @@ func (m *MockCategoryModel) DeleteCategory(ctx context.Context, categoryID int64
 	return args.Error(0)
 }
 
-func (m *MockCategoryModel) GetAllScopedCategories(ctx context.Context, scopes []int64, otx ...*sql.Tx) ([]interfaces.Category, error) {
-	args := m.Called(ctx, scopes, otx)
-	return args.Get(0).([]interfaces.Category), args.Error(1)
-}
-
 func (m *MockCategoryModel) GetCategoryByID(ctx context.Context, categoryID int64, scopes []int64, otx ...*sql.Tx) (*interfaces.Category, error) {
 	args := m.Called(ctx, categoryID, scopes, otx)
 	return args.Get(0).(*interfaces.Category), args.Error(1)
